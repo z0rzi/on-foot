@@ -1,13 +1,13 @@
 import { useRef } from 'react'
 import { View } from 'react-native'
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet'
-import { MapProviderProvider } from '../src/map/provider'
-import { mapboxProvider } from '../src/map/providers/mapbox'
-import { MapCanvas } from '../src/map/MapCanvas'
-import { MapControls } from '../src/map/MapControls'
-import { LayersSheet } from '../src/map/LayersSheet'
+import { MapProviderProvider } from './provider'
+import { mapboxProvider } from './providers/mapbox'
+import { MapCanvas } from './MapCanvas'
+import { MapControls } from './MapControls'
+import { LayersSheet } from './LayersSheet'
 
-export default function MapTab() {
+export function MapScreen() {
   const sheetRef = useRef<BottomSheetModal>(null)
 
   return (
