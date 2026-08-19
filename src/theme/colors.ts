@@ -49,6 +49,6 @@ export const darkColors: AppColors = {
   controlsText: '#FFFFFF',
 }
 
-export function getColors(scheme: 'light' | 'dark' | null | 'unspecified'): AppColors {
+export function getColors(scheme: 'light' | 'dark' | null): AppColors {
   return scheme === 'dark' ? darkColors : lightColors
 }
