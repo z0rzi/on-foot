@@ -3,6 +3,7 @@ export const MapTokens = {
   pitchToggle: 60,
   pitchMin: 0,
   pitchMax: 85,
+  pitchSensitivity: 0.3,
   controlSize: 36,
   controlIconSize: 20,
   controlsSpacing: 12,
