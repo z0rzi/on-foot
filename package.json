@@ -27,6 +27,7 @@
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
+    "react-native-svg": "15.15.4",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.10.1",
     "zustand": "^5.0.15"
@@ -52,7 +53,9 @@
   "private": true,
   "jest": {
     "preset": "jest-expo",
-    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.js"
+    ],
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@rnmapbox/.*|react-navigation|@react-navigation/.*|@gorhom/.*|zustand))"
     ]
