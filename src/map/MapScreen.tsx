@@ -6,9 +6,11 @@ import { mapboxProvider } from './providers/mapbox'
 import { MapCanvas } from './MapCanvas'
 import { MapControls } from './MapControls'
 import { LayersSheet } from './LayersSheet'
+import { useLocationPermission } from './useLocationPermission'
 
 export function MapScreen() {
   const sheetRef = useRef<BottomSheetModal>(null)
+  useLocationPermission()
 
   return (
     <MapProviderProvider provider={mapboxProvider}>
