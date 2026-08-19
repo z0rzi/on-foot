@@ -1,17 +1,13 @@
-import { Text, View, StyleSheet } from "react-native";
+import Mapbox from '@rnmapbox/maps'
+import { View } from 'react-native'
+import { MAPBOX_ACCESS_TOKEN } from '../src/map/providers/mapbox/token'
 
-export default function Index() {
+Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN)
+
+export default function MapTab() {
   return (
-    <View style={styles.container}>
-      <Text>Edit app/index.tsx to edit this screen.</Text>
+    <View style={{ flex: 1 }}>
+      <Mapbox.MapView style={{ flex: 1 }} styleURL="mapbox://styles/mapbox/standard" />
     </View>
-  );
+  )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
