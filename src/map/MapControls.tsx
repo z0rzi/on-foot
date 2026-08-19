@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useMemo, useRef } from 'react'
 import { StyleSheet, View, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
@@ -49,17 +49,29 @@ export function MapControls({
     setPitch(next, true)
   }
 
-  const pan = Gesture.Pan()
-    .onBegin(() => {
-      disableFollow()
-      dragSeed.current = cameraPitch
-    })
-    .onUpdate((e) => {
-      const next = clampPitch(dragSeed.current - e.translationY * MapTokens.pitchSensitivity)
-      setCameraPitch(next)
-      setPitch(next, false)
-    })
-    .runOnJS(true)
+  // Memoized so the gesture object's identity is stable across renders — MapStore's
+  // setCameraPitch triggers a re-render on every drag frame (`.onUpdate` below), and a fresh
+  // Gesture.Pan() per render makes RNGH re-run its native `updateGestureHandler` bridge call on
+  // every frame (RNGH docs: "Gesture config should be wrapped with useMemo"). `cameraPitch` is
+  // deliberately NOT a dep — it changes every frame too, which would defeat the memo — so
+  // `.onBegin` reads the live pitch imperatively from the store instead of closing over it.
+  // `disableFollow`/`setCameraPitch` are Zustand actions (stable by default) and `setPitch` is
+  // `useCallback`'d with `[]` deps in MapScreen, so the empty dep array below is safe.
+  const pan = useMemo(
+    () =>
+      Gesture.Pan()
+        .onBegin(() => {
+          disableFollow()
+          dragSeed.current = useMapStore.getState().cameraPitch
+        })
+        .onUpdate((e) => {
+          const next = clampPitch(dragSeed.current - e.translationY * MapTokens.pitchSensitivity)
+          setCameraPitch(next)
+          setPitch(next, false)
+        })
+        .runOnJS(true),
+    [disableFollow, setCameraPitch, setPitch],
+  )
 
   return (
     <View
