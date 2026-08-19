@@ -1,0 +1,1 @@
+export { mapboxProvider } from './adapter'
