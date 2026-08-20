@@ -2,12 +2,10 @@ import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { Text, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
-import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator'
-import { db } from '../src/data/db/client'
-import migrations from '../src/data/db/migrations/migrations'
+import { useDatabaseMigrations } from '../src/data/db/useDatabaseMigrations'
 
 export default function RootLayout() {
-  const { success, error } = useMigrations(db, migrations)
+  const { success, error } = useDatabaseMigrations()
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
