@@ -26,14 +26,13 @@ const input: NewTrailInput = {
 
 beforeEach(() => {
   jest.clearAllMocks()
-  useTrailsStore.setState({ trails: [], loading: false })
+  useTrailsStore.setState({ trails: [] })
 })
 
 test('loadTrails caches summaries from the repository', async () => {
   fakeRepo.listSummaries.mockResolvedValue([summary(2), summary(1)])
   await useTrailsStore.getState().loadTrails()
   expect(useTrailsStore.getState().trails.map((t) => t.id)).toEqual([2, 1])
-  expect(useTrailsStore.getState().loading).toBe(false)
 })
 
 test('addTrail creates via the repository, reloads, and returns the new id', async () => {
@@ -45,9 +44,10 @@ test('addTrail creates via the repository, reloads, and returns the new id', asy
   expect(useTrailsStore.getState().trails.map((t) => t.id)).toEqual([42])
 })
 
-test('removeTrail deletes via the repository and drops it from the cache', async () => {
+test('removeTrail deletes via the repository and reloads the cache', async () => {
   useTrailsStore.setState({ trails: [summary(1), summary(2)] })
   fakeRepo.deleteTrail.mockResolvedValue(undefined)
+  fakeRepo.listSummaries.mockResolvedValue([summary(2)])
   await useTrailsStore.getState().removeTrail(1)
   expect(fakeRepo.deleteTrail).toHaveBeenCalledWith(1)
   expect(useTrailsStore.getState().trails.map((t) => t.id)).toEqual([2])
