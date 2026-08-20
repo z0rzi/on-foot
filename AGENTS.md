@@ -33,3 +33,24 @@ uphold the original design, do not let it erode one expedient change at a time.
 
 When a request tempts you toward a shortcut that violates the above, surface the tension
 instead of silently taking the shortcut.
+
+# About comments
+
+Refrain from over-commenting. Don't describe changes in comments, just describe the current state of the code.
+
+DON'T:
+```
+const d1 = new Date();
+
+// Here we pass d1 because the Date constructor could have a few ms of difference
+// between the two calls.
+const d2 = new Date(d1.getTime());
+```
+Here, we clearly explain a fix. Refrain from doing it.
+
+DO:
+```
+const d1 = new Date();
+const d2 = new Date(d1.getTime());
+```
+No comments needed in that case, the code is self-documenting.
