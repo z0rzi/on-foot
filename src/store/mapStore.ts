@@ -70,9 +70,45 @@ export function followCameraProps(mode: FollowMode): FollowCameraProps {
   }
 }
 
+// A style choice as the quick-switch logic needs to see it: an id plus the semantic satellite
+// marker declared on the provider port. The store stays provider-agnostic — callers (MapControls)
+// pass the provider's style list in, so no provider style id is ever hardcoded here.
+export interface StyleChoice {
+  id: string
+  satellite?: boolean
+}
+
+// The cold-start fallback for quick-switch when there is no usable previous layer: from any
+// non-satellite layer, switch to the satellite one; from satellite, switch to the first
+// non-satellite layer in the list. Degenerate lists (no satellite / no non-satellite) leave the
+// style unchanged by returning the current id.
+export function satelliteToggleTarget(currentId: string, styles: StyleChoice[]): string {
+  const current = styles.find((s) => s.id === currentId)
+  const target = current?.satellite
+    ? styles.find((s) => !s.satellite)
+    : styles.find((s) => s.satellite)
+  return target?.id ?? currentId
+}
+
+// Resolve the quick-switch (swipe) target: the previously selected layer when it is still a
+// valid, different, in-list choice (the A/B toggle); otherwise the satellite-toggle fallback.
+export function resolveQuickSwitch(
+  currentId: string,
+  previousId: string | null,
+  styles: StyleChoice[],
+): string {
+  if (previousId && previousId !== currentId && styles.some((s) => s.id === previousId)) {
+    return previousId
+  }
+  return satelliteToggleTarget(currentId, styles)
+}
+
 interface MapStore {
   followMode: FollowMode
   mapStyleId: string
+  // The style shown before the current one, so a swipe on the layers button can A/B-toggle back.
+  // Session-only (not persisted) — a fresh launch cold-starts into the satellite-toggle fallback.
+  previousMapStyleId: string | null
   selectedTrailId: number | null
   hasZoomedToUser: boolean
   cameraPitch: number
@@ -83,6 +119,7 @@ interface MapStore {
   disableFollow: () => void
   northPressed: () => void
   setMapStyle: (id: string) => void
+  quickSwitchMapStyle: (styles: StyleChoice[]) => void
   setSelectedTrailId: (id: number | null) => void
   setHasZoomedToUser: (v: boolean) => void
   setCameraPitch: (p: number) => void
@@ -97,6 +134,7 @@ export const useMapStore = create<MapStore>()(
       // launch re-follows.
       followMode: 'position',
       mapStyleId: 'standard',
+      previousMapStyleId: null,
       selectedTrailId: null,
       hasZoomedToUser: false,
       cameraPitch: 0,
@@ -108,7 +146,17 @@ export const useMapStore = create<MapStore>()(
         }),
       disableFollow: () => set({ followMode: 'off' }),
       northPressed: () => set((s) => ({ followMode: demoteBearing(s.followMode) })),
-      setMapStyle: (id) => set({ mapStyleId: id }),
+      // Record the outgoing style as previous (only on an actual change) so the swipe quick-switch
+      // can A/B-toggle back to it — whether the change came from the sheet or from a swipe.
+      setMapStyle: (id) =>
+        set((s) =>
+          id === s.mapStyleId ? { mapStyleId: id } : { mapStyleId: id, previousMapStyleId: s.mapStyleId },
+        ),
+      quickSwitchMapStyle: (styles) =>
+        set((s) => {
+          const target = resolveQuickSwitch(s.mapStyleId, s.previousMapStyleId, styles)
+          return target === s.mapStyleId ? {} : { mapStyleId: target, previousMapStyleId: s.mapStyleId }
+        }),
       setSelectedTrailId: (id) => set({ selectedTrailId: id }),
       setHasZoomedToUser: (v) => set({ hasZoomedToUser: v }),
       setCameraPitch: (p) => set({ cameraPitch: p, pitchAnimated: false }),

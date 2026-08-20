@@ -5,6 +5,10 @@ export interface StyleDescriptor {
   label: string
   url: string
   preview: number
+  // Semantic marker: this style is the provider's satellite/aerial-imagery layer. Declared on
+  // the port so provider-agnostic code (the store's quick-switch logic) can identify it without
+  // hardcoding a provider-specific style id. A future provider marks its own imagery style.
+  satellite?: boolean
 }
 
 export interface MapCapabilities {

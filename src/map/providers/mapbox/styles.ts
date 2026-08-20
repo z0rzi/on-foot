@@ -2,7 +2,7 @@ import type { StyleDescriptor } from '../../provider/types'
 
 export const MAPBOX_STYLES: StyleDescriptor[] = [
   { id: 'standard',  label: 'Default',   url: 'mapbox://styles/mapbox/standard',           preview: require('../../../assets/layers/default.png') },
-  { id: 'satellite', label: 'Satellite', url: 'mapbox://styles/mapbox/standard-satellite', preview: require('../../../assets/layers/satellite.png') },
+  { id: 'satellite', label: 'Satellite', url: 'mapbox://styles/mapbox/standard-satellite', preview: require('../../../assets/layers/satellite.png'), satellite: true },
   { id: 'outdoors',  label: 'Outdoors',  url: 'mapbox://styles/mapbox/outdoors-v12',       preview: require('../../../assets/layers/outdoors.png') },
 ]
 

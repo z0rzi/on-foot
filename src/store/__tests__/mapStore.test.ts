@@ -5,8 +5,18 @@ import {
   clampPitch,
   pitchForFollowMode,
   followCameraProps,
+  satelliteToggleTarget,
+  resolveQuickSwitch,
   useMapStore,
 } from '../mapStore'
+
+// Mirrors the provider's style list shape (id + semantic satellite flag). The store logic
+// operates on this, never on a hardcoded provider style id, preserving the seam.
+const STYLES = [
+  { id: 'standard' },
+  { id: 'satellite', satellite: true },
+  { id: 'outdoors' },
+]
 
 describe('nextFollowMode', () => {
   test('off -> position', () => expect(nextFollowMode('off')).toBe('position'))
@@ -61,10 +71,36 @@ describe('followCameraProps', () => {
     }))
 })
 
+describe('satelliteToggleTarget', () => {
+  test('non-satellite layer -> satellite', () =>
+    expect(satelliteToggleTarget('standard', STYLES)).toBe('satellite'))
+  test('another non-satellite layer -> satellite', () =>
+    expect(satelliteToggleTarget('outdoors', STYLES)).toBe('satellite'))
+  test('satellite -> first non-satellite in the list', () =>
+    expect(satelliteToggleTarget('satellite', STYLES)).toBe('standard'))
+  test('no satellite in list -> falls back to current id', () =>
+    expect(satelliteToggleTarget('standard', [{ id: 'standard' }])).toBe('standard'))
+  test('only-satellite list -> falls back to current id', () =>
+    expect(satelliteToggleTarget('satellite', [{ id: 'satellite', satellite: true }])).toBe('satellite'))
+})
+
+describe('resolveQuickSwitch', () => {
+  test('valid, different, in-list previous wins', () =>
+    expect(resolveQuickSwitch('standard', 'outdoors', STYLES)).toBe('outdoors'))
+  test('null previous falls through to the satellite toggle', () =>
+    expect(resolveQuickSwitch('standard', null, STYLES)).toBe('satellite'))
+  test('previous equal to current falls through to the satellite toggle', () =>
+    expect(resolveQuickSwitch('satellite', 'satellite', STYLES)).toBe('standard'))
+  test('previous absent from the list falls through to the satellite toggle', () =>
+    expect(resolveQuickSwitch('standard', 'ghost', STYLES)).toBe('satellite'))
+})
+
 describe('store actions', () => {
   beforeEach(() => {
     useMapStore.setState({
       followMode: 'off',
+      mapStyleId: 'standard',
+      previousMapStyleId: null,
       selectedTrailId: null,
       hasZoomedToUser: false,
       cameraPitch: 0,
@@ -104,5 +140,43 @@ describe('store actions', () => {
     useMapStore.getState().setCameraPitchAnimated(60)
     expect(useMapStore.getState().cameraPitch).toBe(60)
     expect(useMapStore.getState().pitchAnimated).toBe(true)
+  })
+  test('setMapStyle records the outgoing style as previous on change', () => {
+    useMapStore.getState().setMapStyle('satellite')
+    expect(useMapStore.getState().mapStyleId).toBe('satellite')
+    expect(useMapStore.getState().previousMapStyleId).toBe('standard')
+  })
+  test('setMapStyle leaves previous untouched when the style is unchanged', () => {
+    useMapStore.setState({ previousMapStyleId: 'outdoors' })
+    useMapStore.getState().setMapStyle('standard')
+    expect(useMapStore.getState().mapStyleId).toBe('standard')
+    expect(useMapStore.getState().previousMapStyleId).toBe('outdoors')
+  })
+  test('quickSwitchMapStyle swaps to the resolved target and records previous', () => {
+    // No history -> satellite toggle from the non-satellite default.
+    useMapStore.getState().quickSwitchMapStyle(STYLES)
+    expect(useMapStore.getState().mapStyleId).toBe('satellite')
+    expect(useMapStore.getState().previousMapStyleId).toBe('standard')
+  })
+  test('quickSwitchMapStyle A/B-toggles between the two most-recent layers', () => {
+    useMapStore.setState({ mapStyleId: 'satellite', previousMapStyleId: 'standard' })
+    useMapStore.getState().quickSwitchMapStyle(STYLES)
+    expect(useMapStore.getState().mapStyleId).toBe('standard')
+    expect(useMapStore.getState().previousMapStyleId).toBe('satellite')
+    useMapStore.getState().quickSwitchMapStyle(STYLES)
+    expect(useMapStore.getState().mapStyleId).toBe('satellite')
+    expect(useMapStore.getState().previousMapStyleId).toBe('standard')
+  })
+  test('quickSwitchMapStyle is a no-op when the resolved target equals the current style', () => {
+    useMapStore.setState({ mapStyleId: 'standard', previousMapStyleId: null })
+    useMapStore.getState().quickSwitchMapStyle([{ id: 'standard' }])
+    expect(useMapStore.getState().mapStyleId).toBe('standard')
+    expect(useMapStore.getState().previousMapStyleId).toBeNull()
+  })
+  test('previousMapStyleId is session-only (not persisted)', () => {
+    const partialize = useMapStore.persist.getOptions().partialize!
+    const partial = partialize({ ...useMapStore.getState() } as any)
+    expect(partial).not.toHaveProperty('previousMapStyleId')
+    expect(partial).toEqual({ mapStyleId: useMapStore.getState().mapStyleId })
   })
 })

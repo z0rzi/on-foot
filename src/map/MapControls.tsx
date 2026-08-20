@@ -18,6 +18,7 @@ export function MapControls({ onOpenLayers }: { onOpenLayers: () => void }) {
   const caps = useMapCapabilities()
   const followMode = useMapStore((s) => s.followMode)
   const cycleFollowMode = useMapStore((s) => s.cycleFollowMode)
+  const quickSwitchMapStyle = useMapStore((s) => s.quickSwitchMapStyle)
   const cameraPitch = useMapStore((s) => s.cameraPitch)
   const setCameraPitch = useMapStore((s) => s.setCameraPitch)
   const setCameraPitchAnimated = useMapStore((s) => s.setCameraPitchAnimated)
@@ -65,6 +66,27 @@ export function MapControls({ onOpenLayers }: { onOpenLayers: () => void }) {
     [disableFollow, setCameraPitch],
   )
 
+  // The provider's styles as the seam-neutral choices the store's quick-switch logic consumes
+  // (id + satellite flag) — the store never learns provider-specific style ids this way.
+  const styleChoices = useMemo(
+    () => caps.styles.map((s) => ({ id: s.id, satellite: s.satellite })),
+    [caps.styles],
+  )
+  // Swipe the layers button (any direction, past a small threshold) to quick-switch the layer
+  // without opening the sheet. A real swipe activates the pan and RNGH cancels the button's
+  // onPress, so a plain tap still opens the sheet. Memoized for the same stability reason as `pan`.
+  const layerSwipe = useMemo(
+    () =>
+      Gesture.Pan()
+        .onEnd((e) => {
+          if (Math.hypot(e.translationX, e.translationY) > MapTokens.layerSwipeThreshold) {
+            quickSwitchMapStyle(styleChoices)
+          }
+        })
+        .runOnJS(true),
+    [quickSwitchMapStyle, styleChoices],
+  )
+
   return (
     <View
       style={[
@@ -89,9 +111,11 @@ export function MapControls({ onOpenLayers }: { onOpenLayers: () => void }) {
           </ControlButton>
         </GestureDetector>
       )}
-      <ControlButton accessibilityLabel="Open map layers" onPress={onOpenLayers}>
-        <LayersIcon size={MapTokens.controlIconSize} color={c.controlContent} />
-      </ControlButton>
+      <GestureDetector gesture={layerSwipe}>
+        <ControlButton accessibilityLabel="Open map layers" onPress={onOpenLayers}>
+          <LayersIcon size={MapTokens.controlIconSize} color={c.controlContent} />
+        </ControlButton>
+      </GestureDetector>
       <ControlButton accessibilityLabel="Center on your location" onPress={cycleFollowMode}>
         <LocationIcon size={MapTokens.controlIconSize} color={following ? c.controlAccent : c.controlContent} />
       </ControlButton>

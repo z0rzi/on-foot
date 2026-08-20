@@ -1,6 +1,11 @@
-import React, { forwardRef, useMemo } from 'react'
+import React, { forwardRef, useCallback, useMemo } from 'react'
 import { Image, Pressable, StyleSheet, Text } from 'react-native'
-import { BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet'
+import {
+  BottomSheetModal,
+  BottomSheetView,
+  BottomSheetBackdrop,
+  type BottomSheetBackdropProps,
+} from '@gorhom/bottom-sheet'
 import { useTheme } from '../theme/useTheme'
 import { useMapCapabilities } from './provider'
 import { useMapStore } from '../store/mapStore'
@@ -11,8 +16,21 @@ export const LayersSheet = forwardRef<BottomSheetModal>((_props, ref) => {
   const setMapStyle = useMapStore((s) => s.setMapStyle)
   const snapPoints = useMemo(() => ['50%'], [])
 
+  // Dim + tap-outside-to-close: tapping the backdrop dismisses the sheet (swipe-down still works).
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
+    ),
+    [],
+  )
+
   return (
-    <BottomSheetModal ref={ref} snapPoints={snapPoints} backgroundStyle={{ backgroundColor: c.panelBackground }}>
+    <BottomSheetModal
+      ref={ref}
+      snapPoints={snapPoints}
+      backdropComponent={renderBackdrop}
+      backgroundStyle={{ backgroundColor: c.panelBackground }}
+    >
       <BottomSheetView style={styles.content}>
         <Text style={[styles.title, { color: c.panelContent }]}>Map Layers</Text>
         {caps.styles.map((s) => (
