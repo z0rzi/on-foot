@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { StyleSheet } from 'react-native'
 import { useMapProvider, useMapCapabilities } from './provider'
+import type { CameraController } from './provider/types'
 import { useMapStore, followCameraProps } from '../store/mapStore'
 import { MapTokens } from '../theme/tokens'
 
@@ -19,6 +20,16 @@ export function MapCanvas() {
   const cameraPitch = useMapStore((s) => s.cameraPitch)
   const pitchAnimated = useMapStore((s) => s.pitchAnimated)
   const disableFollow = useMapStore((s) => s.disableFollow)
+  const setCameraHeading = useMapStore((s) => s.setCameraHeading)
+  const northResetNonce = useMapStore((s) => s.northResetNonce)
+  const cameraRef = useRef<CameraController>(null)
+
+  // The North button (in MapControls) signals an off-mode reset by bumping northResetNonce;
+  // fire the one-shot imperative rotate-to-north here, where the Camera ref lives.
+  useEffect(() => {
+    if (northResetNonce > 0) cameraRef.current?.resetNorth(true)
+  }, [northResetNonce])
+
   const follow = followCameraProps(followMode)
   const manualPitch =
     followMode === 'off'
@@ -26,8 +37,13 @@ export function MapCanvas() {
       : {}
 
   return (
-    <MapView style={StyleSheet.absoluteFill} styleURL={style.url}>
+    <MapView
+      style={StyleSheet.absoluteFill}
+      styleURL={style.url}
+      onCameraChanged={(e) => setCameraHeading(e.heading)}
+    >
       <Camera
+        ref={cameraRef}
         {...follow}
         {...manualPitch}
         // A manual pan/zoom/tilt cancels rnmapbox tracking; drop our follow mode to match so the
