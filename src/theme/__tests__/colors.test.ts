@@ -23,3 +23,9 @@ test('difficulty colors are defined in both themes', () => {
     expect(c.difficultyHard).toMatch(/^#/)
   }
 })
+
+test('danger color is defined in both themes', () => {
+  for (const c of [lightColors, darkColors]) {
+    expect(c.danger).toMatch(/^#/)
+  }
+})

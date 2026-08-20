@@ -16,6 +16,7 @@ export interface AppColors {
   difficultyEasy: string
   difficultyMedium: string
   difficultyHard: string
+  danger: string
 }
 
 export const lightColors: AppColors = {
@@ -36,6 +37,7 @@ export const lightColors: AppColors = {
   difficultyEasy: '#2E7D32',
   difficultyMedium: '#F9A825',
   difficultyHard: '#C62828',
+  danger: '#C62828',
 }
 
 export const darkColors: AppColors = {
@@ -56,6 +58,7 @@ export const darkColors: AppColors = {
   difficultyEasy: '#66BB6A',
   difficultyMedium: '#FFB300',
   difficultyHard: '#EF5350',
+  danger: '#EF5350',
 }
 
 export function getColors(scheme: 'light' | 'dark' | null): AppColors {

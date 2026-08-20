@@ -20,7 +20,7 @@ export function TrailListItem({ trail, onDelete }: { trail: TrailSummary; onDele
         </Text>
       </View>
       <Pressable accessibilityLabel="Delete trail" onPress={() => onDelete(trail.id)} hitSlop={8} style={styles.delete}>
-        <Ionicons name="trash-outline" size={22} color={c.difficultyHard} />
+        <Ionicons name="trash-outline" size={22} color={c.danger} />
       </Pressable>
     </View>
   )

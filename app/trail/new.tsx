@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView,
+  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -68,6 +68,8 @@ export default function TrailFormScreen() {
         geometry,
       })
       router.back()
+    } catch {
+      Alert.alert('Could not save trail', 'Something went wrong while saving. Please try again.')
     } finally {
       setSaving(false)
     }
