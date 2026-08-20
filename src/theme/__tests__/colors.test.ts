@@ -15,3 +15,11 @@ test('control surface differs between light and dark', () => {
   expect(lightColors.controlSurface).toBe('#FFFFFF')
   expect(darkColors.controlSurface).toBe('#2D2D2D')
 })
+
+test('difficulty colors are defined in both themes', () => {
+  for (const c of [lightColors, darkColors]) {
+    expect(c.difficultyEasy).toMatch(/^#/)
+    expect(c.difficultyMedium).toMatch(/^#/)
+    expect(c.difficultyHard).toMatch(/^#/)
+  }
+})
