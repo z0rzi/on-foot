@@ -13,4 +13,11 @@ export const MapTokens = {
   // Dead-zone (deg): the North button shows only when the camera is rotated more than this off north.
   bearingThreshold: 1,
   terrainExaggeration: 1.0,
+  trailLineWidth: 4,
+  arrowSpacing: 100,
+  arrowSize: 0.8,
+  endpointRadius: 8,
+  endpointStrokeWidth: 2.5,
+  cameraPadding: { top: 100, sides: 100, bottom: 300 },
+  trailFitDurationMs: 1000,
 } as const
