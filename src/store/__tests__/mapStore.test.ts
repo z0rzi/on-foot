@@ -9,6 +9,7 @@ import {
   resolveQuickSwitch,
   normalizeDeg,
   shouldShowNorthButton,
+  followModeChange,
   useMapStore,
 } from '../mapStore'
 
@@ -125,6 +126,21 @@ describe('shouldShowNorthButton', () => {
   })
 })
 
+describe('followModeChange', () => {
+  test('position flattens pitch and animates', () =>
+    expect(followModeChange('position', 60)).toEqual({
+      followMode: 'position',
+      cameraPitch: 0,
+      pitchAnimated: true,
+    }))
+  test('positionAndBearing tilts pitch and animates', () =>
+    expect(followModeChange('positionAndBearing', 0)).toEqual({
+      followMode: 'positionAndBearing',
+      cameraPitch: 60,
+      pitchAnimated: true,
+    }))
+})
+
 describe('store actions', () => {
   beforeEach(() => {
     useMapStore.setState({
@@ -176,10 +192,13 @@ describe('store actions', () => {
     useMapStore.getState().setCameraHeading(42)
     expect(useMapStore.getState().cameraHeading).toBe(42)
   })
-  test('northPressed from compass follow demotes to position without bumping the nonce', () => {
-    useMapStore.setState({ followMode: 'positionAndBearing', northResetNonce: 0 })
+  test('northPressed from compass follow demotes to position, flattening pitch, without bumping the nonce', () => {
+    useMapStore.setState({ followMode: 'positionAndBearing', cameraPitch: 60, northResetNonce: 0 })
     useMapStore.getState().northPressed()
     expect(useMapStore.getState().followMode).toBe('position')
+    // Pitch must flatten so the 2D/3D label stays in sync with the now-flat follow camera.
+    expect(useMapStore.getState().cameraPitch).toBe(0)
+    expect(useMapStore.getState().pitchAnimated).toBe(true)
     expect(useMapStore.getState().northResetNonce).toBe(0)
   })
   test('northPressed while off bumps the reset nonce without changing follow', () => {

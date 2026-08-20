@@ -52,6 +52,18 @@ export function pitchForFollowMode(mode: FollowMode, current: number): number {
   }
 }
 
+// A follow-mode change also (animated) syncs the pitch that mode implies, so the 2D/3D label
+// stays consistent with the follow-driven camera. Shared by every action that changes followMode
+// (cycleFollowMode, northPressed) so the two paths can't drift out of sync.
+export interface FollowModeChange {
+  followMode: FollowMode
+  cameraPitch: number
+  pitchAnimated: boolean
+}
+export function followModeChange(mode: FollowMode, currentPitch: number): FollowModeChange {
+  return { followMode: mode, cameraPitch: pitchForFollowMode(mode, currentPitch), pitchAnimated: true }
+}
+
 // SDK-neutral <Camera> follow configuration for a given follow mode. Mirrors the Kotlin
 // FollowPuckViewportState options: Position = follow location north-up & flat; PositionAndBearing
 // = follow location + device heading, tilted to 3D. 'off' releases the camera to the user.
@@ -157,18 +169,15 @@ export const useMapStore = create<MapStore>()(
       pitchAnimated: false,
       cameraHeading: 0,
       northResetNonce: 0,
-      cycleFollowMode: () =>
-        set((s) => {
-          const followMode = nextFollowMode(s.followMode)
-          return { followMode, cameraPitch: pitchForFollowMode(followMode, s.cameraPitch), pitchAnimated: true }
-        }),
+      cycleFollowMode: () => set((s) => followModeChange(nextFollowMode(s.followMode), s.cameraPitch)),
       disableFollow: () => set({ followMode: 'off' }),
-      // Compass-follow → demote to north-up Position (follow viewport snaps bearing to north).
-      // Otherwise (off / manually-rotated) → signal MapCanvas to one-shot rotate the camera north.
+      // Compass-follow → demote to north-up Position (follow viewport snaps bearing to north, and
+      // followModeChange flattens the pitch + keeps the 2D/3D label in sync). Otherwise (off /
+      // manually-rotated) → signal MapCanvas to one-shot rotate the camera north.
       northPressed: () =>
         set((s) =>
           s.followMode === 'positionAndBearing'
-            ? { followMode: demoteBearing(s.followMode) }
+            ? followModeChange(demoteBearing(s.followMode), s.cameraPitch)
             : { northResetNonce: s.northResetNonce + 1 },
         ),
       // Record the outgoing style as previous (only on an actual change) so the swipe quick-switch
