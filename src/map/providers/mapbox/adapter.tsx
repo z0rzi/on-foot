@@ -41,11 +41,18 @@ const Camera = forwardRef<CameraHandle, CameraProps>((props, ref) => {
         animationDuration: cfg.animationDuration ?? 0,
       }),
   }))
+  // Pull out fields whose neutral shape differs from rnmapbox's before spreading the rest.
+  const { followUserMode, onUserTrackingModeChange, ...rest } = props
   return (
     <Mapbox.Camera
       ref={inner}
-      {...props}
-      followUserMode={props.followUserMode as unknown as Mapbox.UserTrackingMode | undefined}
+      {...rest}
+      followUserMode={followUserMode as unknown as Mapbox.UserTrackingMode | undefined}
+      onUserTrackingModeChange={
+        onUserTrackingModeChange
+          ? (e) => onUserTrackingModeChange(!!e?.nativeEvent?.payload?.followUserLocation)
+          : undefined
+      }
     />
   )
 })

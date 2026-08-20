@@ -12,16 +12,7 @@ import { LayersIcon } from '../assets/icons/layers'
 import { PositionIcon } from '../assets/icons/position'
 import { PositionFollowIcon } from '../assets/icons/position-follow'
 
-export function MapControls({
-  onOpenLayers,
-  setPitch,
-}: {
-  onOpenLayers: () => void
-  // Imperative camera pitch setter lifted from MapScreen (see MapScreen.tsx / MapCanvas.tsx).
-  // Keeps this component free of any map-SDK import — it only ever talks to the port's
-  // CameraHandle through this callback plus the Zustand store for the "last known" pitch.
-  setPitch: (pitch: number, animated: boolean) => void
-}) {
+export function MapControls({ onOpenLayers }: { onOpenLayers: () => void }) {
   const c = useTheme()
   const insets = useSafeAreaInsets()
   const caps = useMapCapabilities()
@@ -29,6 +20,7 @@ export function MapControls({
   const cycleFollowMode = useMapStore((s) => s.cycleFollowMode)
   const cameraPitch = useMapStore((s) => s.cameraPitch)
   const setCameraPitch = useMapStore((s) => s.setCameraPitch)
+  const setCameraPitchAnimated = useMapStore((s) => s.setCameraPitchAnimated)
   const disableFollow = useMapStore((s) => s.disableFollow)
 
   // Heading tracking is Phase 2 — the tracked heading is hardcoded to 0 for now,
@@ -43,10 +35,11 @@ export function MapControls({
   const dragSeed = useRef(0)
 
   const handleToggle = () => {
+    // Leave follow so the manual pitch takes effect, then animate to the toggled pitch. MapCanvas
+    // applies it declaratively (follow is now off), which sidesteps rnmapbox ignoring imperative
+    // camera moves while follow is active.
     disableFollow()
-    const next = nextPitchOnToggle(cameraPitch)
-    setCameraPitch(next)
-    setPitch(next, true)
+    setCameraPitchAnimated(nextPitchOnToggle(cameraPitch))
   }
 
   // Memoized so the gesture object's identity is stable across renders — MapStore's
@@ -55,8 +48,8 @@ export function MapControls({
   // every frame (RNGH docs: "Gesture config should be wrapped with useMemo"). `cameraPitch` is
   // deliberately NOT a dep — it changes every frame too, which would defeat the memo — so
   // `.onBegin` reads the live pitch imperatively from the store instead of closing over it.
-  // `disableFollow`/`setCameraPitch` are Zustand actions (stable by default) and `setPitch` is
-  // `useCallback`'d with `[]` deps in MapScreen, so the empty dep array below is safe.
+  // `disableFollow`/`setCameraPitch` are Zustand actions (stable by default), so these deps never
+  // change and the memoized gesture keeps a stable identity across drag-frame re-renders.
   const pan = useMemo(
     () =>
       Gesture.Pan()
@@ -67,10 +60,9 @@ export function MapControls({
         .onUpdate((e) => {
           const next = clampPitch(dragSeed.current - e.translationY * MapTokens.pitchSensitivity)
           setCameraPitch(next)
-          setPitch(next, false)
         })
         .runOnJS(true),
-    [disableFollow, setCameraPitch, setPitch],
+    [disableFollow, setCameraPitch],
   )
 
   return (

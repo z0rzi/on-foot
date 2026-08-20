@@ -26,6 +26,9 @@ export interface CameraProps {
   followZoomLevel?: number
   followPitch?: number
   animationDuration?: number
+  // Fires when the map's user-tracking state changes. `following` is false when a manual gesture
+  // cancels follow, so the app can drop its follow mode. SDK-neutral (see adapter for mapping).
+  onUserTrackingModeChange?: (following: boolean) => void
 }
 
 export interface TerrainProps {
