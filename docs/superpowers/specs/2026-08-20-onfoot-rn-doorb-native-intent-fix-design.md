@@ -88,11 +88,21 @@ export function redirectSystemPath({ path }: { path: string; initial: boolean })
   `file:///…/x.gpx` → `/trail/new?uri=file%3A%2F%2F…`;
   `onfootrn://trail/new` → unchanged; `https://example.com/x` → unchanged.
   Assert the `uri` param round-trips via `decodeURIComponent`.
-- **Device-verified:** cold start (app closed) and warm start (app open)
-  open-with → form populates with the GPX's metrics/name → save → trail listed.
-  A native rebuild is **not** needed (JS-only change; the intent filter already
-  ships in the installed build); a clean rebuild is only needed if the intent
-  filter changes, which it does not here.
+- **Device-verified (release build only — see below):** cold start open-with →
+  form populates with the GPX's metrics/name → save → trail listed. Verified on
+  device 2026-08-20 with a `--variant release` build: `redirectSystemPath`
+  received the raw `content://media/external/downloads/<id>` URI and routed to
+  `/trail/new`; `readGpxFile` read the content URI directly (no copy-to-cache).
+
+- **IMPORTANT — Door B only works in a release/production build.** The Expo
+  **dev-client launcher** intercepts the launch intent and loads the app via its
+  own `onfootrn://expo-development-client/?url=…` deep link, which bypasses
+  expo-router's `getLinkingConfig` `nativeLinking` — so `redirectSystemPath` is
+  **never called in a dev-client build**, and an open-with lands on "Unmatched
+  Route" there. This is expected dev-client behavior, not a code defect. Verify
+  Door B with `npx expo run:android --variant release` (Door A and everything
+  else verify fine in the dev/debug build). The redirect logic itself is covered
+  by the pure unit test regardless of build type.
 
 ## Architecture-rule compliance
 - Smallest clean fix at the right layer (the framework's own interception hook),
