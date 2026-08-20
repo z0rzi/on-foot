@@ -24,8 +24,12 @@ export function MapControls({ onOpenLayers }: { onOpenLayers: () => void }) {
   const setCameraPitchAnimated = useMapStore((s) => s.setCameraPitchAnimated)
   const disableFollow = useMapStore((s) => s.disableFollow)
   const northPressed = useMapStore((s) => s.northPressed)
-  // Derived boolean selector: re-renders only when visibility flips, though heading streams in.
-  const showNorth = useMapStore((s) => shouldShowNorthButton(s.cameraHeading, MapTokens.bearingThreshold))
+  // The live camera bearing drives both the button's visibility and the needle's counter-rotation
+  // (so the red tip always points at true north, mirroring the Kotlin `rotationZ = -cameraBearing`).
+  // This selector only re-renders on actual rotation — panning/zooming keep heading unchanged, so
+  // Zustand's Object.is check skips the update.
+  const cameraHeading = useMapStore((s) => s.cameraHeading)
+  const showNorth = shouldShowNorthButton(cameraHeading, MapTokens.bearingThreshold)
 
   const following = followMode !== 'off'
   const LocationIcon = followMode === 'positionAndBearing' ? PositionFollowIcon : PositionIcon
@@ -96,7 +100,9 @@ export function MapControls({ onOpenLayers }: { onOpenLayers: () => void }) {
     >
       {showNorth && (
         <ControlButton accessibilityLabel="Reset north" onPress={northPressed}>
-          <NorthIcon size={MapTokens.controlIconSize} color={c.controlContent} />
+          <View style={{ transform: [{ rotate: `${-cameraHeading}deg` }] }}>
+            <NorthIcon size={MapTokens.controlIconSize} color={c.controlContent} />
+          </View>
         </ControlButton>
       )}
       {caps.supportsTerrain && (
