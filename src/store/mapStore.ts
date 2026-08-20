@@ -110,7 +110,6 @@ interface MapStore {
   // Session-only (not persisted) — a fresh launch cold-starts into the satellite-toggle fallback.
   previousMapStyleId: string | null
   selectedTrailId: number | null
-  hasZoomedToUser: boolean
   cameraPitch: number
   // Whether the next declarative pitch application should animate (tap toggle) or snap
   // (live drag). Session-only; drives the <Camera> animationDuration in MapCanvas.
@@ -121,7 +120,6 @@ interface MapStore {
   setMapStyle: (id: string) => void
   quickSwitchMapStyle: (styles: StyleChoice[]) => void
   setSelectedTrailId: (id: number | null) => void
-  setHasZoomedToUser: (v: boolean) => void
   setCameraPitch: (p: number) => void
   setCameraPitchAnimated: (p: number) => void
 }
@@ -136,7 +134,6 @@ export const useMapStore = create<MapStore>()(
       mapStyleId: 'standard',
       previousMapStyleId: null,
       selectedTrailId: null,
-      hasZoomedToUser: false,
       cameraPitch: 0,
       pitchAnimated: false,
       cycleFollowMode: () =>
@@ -158,7 +155,6 @@ export const useMapStore = create<MapStore>()(
           return target === s.mapStyleId ? {} : { mapStyleId: target, previousMapStyleId: s.mapStyleId }
         }),
       setSelectedTrailId: (id) => set({ selectedTrailId: id }),
-      setHasZoomedToUser: (v) => set({ hasZoomedToUser: v }),
       setCameraPitch: (p) => set({ cameraPitch: p, pitchAnimated: false }),
       setCameraPitchAnimated: (p) => set({ cameraPitch: p, pitchAnimated: true }),
     }),

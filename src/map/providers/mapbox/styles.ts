@@ -6,8 +6,9 @@ export const MAPBOX_STYLES: StyleDescriptor[] = [
   { id: 'outdoors',  label: 'Outdoors',  url: 'mapbox://styles/mapbox/outdoors-v12',       preview: require('../../../assets/layers/outdoors.png') },
 ]
 
+// tileSize is a Mapbox DEM implementation detail (not exposed on the port); terrain
+// exaggeration flows through TerrainProps and lives in the agnostic MapTokens instead.
 export const TERRAIN_DEM = {
   url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
   tileSize: 514,
-  exaggeration: 1.0,
 } as const

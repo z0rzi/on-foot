@@ -21,10 +21,7 @@ export interface MapCapabilities {
 }
 
 export interface CameraProps {
-  centerCoordinate?: [number, number]
-  zoomLevel?: number
   pitch?: number
-  heading?: number
   followUserLocation?: boolean
   followUserMode?: 'normal' | 'compass' | 'course'
   followZoomLevel?: number

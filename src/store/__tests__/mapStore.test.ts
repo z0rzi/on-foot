@@ -102,7 +102,6 @@ describe('store actions', () => {
       mapStyleId: 'standard',
       previousMapStyleId: null,
       selectedTrailId: null,
-      hasZoomedToUser: false,
       cameraPitch: 0,
       pitchAnimated: false,
     })
