@@ -10,5 +10,7 @@ export const MapTokens = {
   controlIconSize: 20,
   controlsSpacing: 12,
   overlayPadding: 16,
+  // Dead-zone (deg): the North button shows only when the camera is rotated more than this off north.
+  bearingThreshold: 1,
   terrainExaggeration: 1.0,
 } as const

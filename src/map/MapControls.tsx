@@ -6,7 +6,7 @@ import { ControlButton } from '../components/ControlButton'
 import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
 import { useMapCapabilities } from './provider'
-import { useMapStore, nextPitchOnToggle, clampPitch } from '../store/mapStore'
+import { useMapStore, nextPitchOnToggle, clampPitch, shouldShowNorthButton } from '../store/mapStore'
 import { NorthIcon } from '../assets/icons/north'
 import { LayersIcon } from '../assets/icons/layers'
 import { PositionIcon } from '../assets/icons/position'
@@ -23,10 +23,10 @@ export function MapControls({ onOpenLayers }: { onOpenLayers: () => void }) {
   const setCameraPitch = useMapStore((s) => s.setCameraPitch)
   const setCameraPitchAnimated = useMapStore((s) => s.setCameraPitchAnimated)
   const disableFollow = useMapStore((s) => s.disableFollow)
+  const northPressed = useMapStore((s) => s.northPressed)
+  // Derived boolean selector: re-renders only when visibility flips, though heading streams in.
+  const showNorth = useMapStore((s) => shouldShowNorthButton(s.cameraHeading, MapTokens.bearingThreshold))
 
-  // Heading tracking is Phase 2 — the tracked heading is hardcoded to 0 for now,
-  // so the North button stays hidden until Phase 2 wires up real bearing.
-  const heading = 0
   const following = followMode !== 'off'
   const LocationIcon = followMode === 'positionAndBearing' ? PositionFollowIcon : PositionIcon
 
@@ -94,8 +94,8 @@ export function MapControls({ onOpenLayers }: { onOpenLayers: () => void }) {
         { bottom: insets.bottom + MapTokens.overlayPadding, right: MapTokens.overlayPadding },
       ]}
     >
-      {heading !== 0 && (
-        <ControlButton accessibilityLabel="Reset north" onPress={() => {}}>
+      {showNorth && (
+        <ControlButton accessibilityLabel="Reset north" onPress={northPressed}>
           <NorthIcon size={MapTokens.controlIconSize} color={c.controlContent} />
         </ControlButton>
       )}
