@@ -13,6 +13,10 @@ export interface AppColors {
   controlContent: string
   controlAccent: string
   controlsText: string
+  difficultyEasy: string
+  difficultyMedium: string
+  difficultyHard: string
+  danger: string
 }
 
 export const lightColors: AppColors = {
@@ -30,6 +34,10 @@ export const lightColors: AppColors = {
   controlContent: '#1C1B1F',
   controlAccent: '#2196F3',
   controlsText: '#000000',
+  difficultyEasy: '#2E7D32',
+  difficultyMedium: '#F9A825',
+  difficultyHard: '#C62828',
+  danger: '#C62828',
 }
 
 export const darkColors: AppColors = {
@@ -47,6 +55,10 @@ export const darkColors: AppColors = {
   controlContent: '#FFFFFF',
   controlAccent: '#42A5F5',
   controlsText: '#FFFFFF',
+  difficultyEasy: '#66BB6A',
+  difficultyMedium: '#FFB300',
+  difficultyHard: '#EF5350',
+  danger: '#EF5350',
 }
 
 export function getColors(scheme: 'light' | 'dark' | null): AppColors {

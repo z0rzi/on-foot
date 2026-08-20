@@ -21,6 +21,18 @@ const config: ExpoConfig = {
       monochromeImage: "./assets/images/android-icon-monochrome.png",
     },
     predictiveBackGestureEnabled: false,
+    intentFilters: [
+      {
+        action: "VIEW",
+        category: ["DEFAULT", "BROWSABLE"],
+        data: [
+          { scheme: "content", mimeType: "application/gpx+xml" },
+          { scheme: "content", mimeType: "application/octet-stream" },
+          { scheme: "file", mimeType: "*/*", pathPattern: ".*\\.gpx" },
+          { scheme: "content", mimeType: "*/*", pathPattern: ".*\\.gpx" },
+        ],
+      },
+    ],
   },
   web: {
     output: "static",
