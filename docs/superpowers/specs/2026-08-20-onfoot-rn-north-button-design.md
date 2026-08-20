@@ -102,7 +102,7 @@ is a no-op while following" trap does **not** apply: this path only runs when fo
 
 - **Jest (pure, TDD first)** in `src/store/__tests__/mapStore.test.ts`:
   - `normalizeDeg`: 0→0, 90→90, 180→180, 181→−179, 359→−1, 360→0, −1→−1, 720→0.
-  - `shouldShowNorthButton`: 0→false, 0.5→false (below 1°), 2→true, 359→true (wrap), −2→true.
+  - `shouldShowNorthButton`: 0→false, 0.5→false (below 1°), 2→true, 358→true (wrap: 358°≈−2°), 359→false (1° = at threshold, not beyond), −2→true.
   - `northPressed`: from `positionAndBearing` → `followMode==='position'`, nonce unchanged;
     from `off` → nonce incremented, `followMode` unchanged; from `position` → nonce
     incremented (harmless), `followMode` unchanged.
