@@ -4,13 +4,19 @@ import { useMapProvider, useMapCapabilities } from './provider'
 import type { CameraController } from './provider/types'
 import { useMapStore, followCameraProps } from '../store/mapStore'
 import { MapTokens } from '../theme/tokens'
+import { useTheme } from '../theme/useTheme'
+import { Trail } from '../data/trails'
+import { boundsForPoints, toLineCoordinates, endpointCoordinates } from './geo'
 
-export function MapCanvas() {
+const trailArrow = require('../assets/trail-arrow.png')
+
+export function MapCanvas({ trail }: { trail: Trail | null }) {
   const { components } = useMapProvider()
   const caps = useMapCapabilities()
+  const c = useTheme()
   const styleId = useMapStore((s) => s.mapStyleId)
   const style = caps.styles.find((s) => s.id === styleId) ?? caps.styles[0]
-  const { View: MapView, Camera, Terrain, UserPuck } = components
+  const { View: MapView, Camera, Terrain, UserPuck, TrailOverlay } = components
 
   // The camera is driven declaratively from the store. When a follow mode is active, rnmapbox
   // owns the camera (centres/zooms/tilts to the puck) — this is what auto-zooms to the user on
@@ -24,11 +30,21 @@ export function MapCanvas() {
   const northResetNonce = useMapStore((s) => s.northResetNonce)
   const cameraRef = useRef<CameraController>(null)
 
-  // The North button (in MapControls) signals an off-mode reset by bumping northResetNonce;
-  // fire the one-shot imperative rotate-to-north here, where the Camera ref lives.
   useEffect(() => {
     if (northResetNonce > 0) cameraRef.current?.resetNorth(true)
   }, [northResetNonce])
+
+  const points = trail?.geometry.points ?? []
+  const hasTrail = points.length >= 2
+
+  // Frame the selected trail once when it loads (follow is already off — selectTrail set it).
+  useEffect(() => {
+    if (!hasTrail) return
+    const bounds = boundsForPoints(points)
+    if (!bounds) return
+    const { top, sides, bottom } = MapTokens.cameraPadding
+    cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs)
+  }, [trail])
 
   const follow = followCameraProps(followMode)
   const manualPitch =
@@ -54,6 +70,20 @@ export function MapCanvas() {
       />
       {caps.supportsTerrain && <Terrain exaggeration={MapTokens.terrainExaggeration} />}
       <UserPuck />
+      {hasTrail && (
+        <TrailOverlay
+          line={toLineCoordinates(points)}
+          endpoints={endpointCoordinates(points)}
+          color={c.trailLine}
+          lineWidth={MapTokens.trailLineWidth}
+          arrowImage={trailArrow}
+          arrowSpacing={MapTokens.arrowSpacing}
+          arrowSize={MapTokens.arrowSize}
+          endpointRadius={MapTokens.endpointRadius}
+          endpointStrokeColor="#FFFFFF"
+          endpointStrokeWidth={MapTokens.endpointStrokeWidth}
+        />
+      )}
     </MapView>
   )
 }
