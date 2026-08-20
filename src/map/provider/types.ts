@@ -38,13 +38,21 @@ export interface TerrainProps {
 
 export interface MapViewProps {
   styleURL: string
+  // Fires as the camera moves; heading only (all the North button needs). SDK-neutral.
+  onCameraChanged?: (e: { heading: number }) => void
   children?: React.ReactNode
   style?: any
 }
 
+// The one imperative camera affordance: a one-shot rotate back to north, used only when
+// follow is off (a declarative follow demote handles the compass-follow case).
+export interface CameraController {
+  resetNorth(animated: boolean): void
+}
+
 export interface MapComponents {
   View: React.ComponentType<MapViewProps>
-  Camera: React.ComponentType<CameraProps>
+  Camera: React.ForwardRefExoticComponent<CameraProps & React.RefAttributes<CameraController>>
   Terrain: React.ComponentType<TerrainProps>
   UserPuck: React.ComponentType<{}>
 }
