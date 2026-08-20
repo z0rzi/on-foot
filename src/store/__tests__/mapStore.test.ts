@@ -7,6 +7,8 @@ import {
   followCameraProps,
   satelliteToggleTarget,
   resolveQuickSwitch,
+  normalizeDeg,
+  shouldShowNorthButton,
   useMapStore,
 } from '../mapStore'
 
@@ -95,6 +97,34 @@ describe('resolveQuickSwitch', () => {
     expect(resolveQuickSwitch('standard', 'ghost', STYLES)).toBe('satellite'))
 })
 
+describe('normalizeDeg', () => {
+  test('passes through in-range angles', () => {
+    expect(normalizeDeg(0)).toBe(0)
+    expect(normalizeDeg(90)).toBe(90)
+    expect(normalizeDeg(180)).toBe(180)
+    expect(normalizeDeg(-1)).toBe(-1)
+  })
+  test('wraps out-of-range angles into (-180, 180]', () => {
+    expect(normalizeDeg(181)).toBe(-179)
+    expect(normalizeDeg(359)).toBe(-1)
+    expect(normalizeDeg(360)).toBe(0)
+    expect(normalizeDeg(720)).toBe(0)
+  })
+})
+
+describe('shouldShowNorthButton', () => {
+  test('hidden within the dead-zone (<= threshold)', () => {
+    expect(shouldShowNorthButton(0, 1)).toBe(false)
+    expect(shouldShowNorthButton(0.5, 1)).toBe(false)
+    expect(shouldShowNorthButton(359, 1)).toBe(false) // 359° = 1° off = at threshold
+  })
+  test('shown when rotated beyond the threshold, including wrap-around', () => {
+    expect(shouldShowNorthButton(2, 1)).toBe(true)
+    expect(shouldShowNorthButton(-2, 1)).toBe(true)
+    expect(shouldShowNorthButton(358, 1)).toBe(true) // 358° ≈ -2°
+  })
+})
+
 describe('store actions', () => {
   beforeEach(() => {
     useMapStore.setState({
@@ -104,6 +134,8 @@ describe('store actions', () => {
       selectedTrailId: null,
       cameraPitch: 0,
       pitchAnimated: false,
+      cameraHeading: 0,
+      northResetNonce: 0,
     })
   })
   test('defaults to position follow so the map centres on the user at launch', () => {
@@ -139,6 +171,27 @@ describe('store actions', () => {
     useMapStore.getState().setCameraPitchAnimated(60)
     expect(useMapStore.getState().cameraPitch).toBe(60)
     expect(useMapStore.getState().pitchAnimated).toBe(true)
+  })
+  test('setCameraHeading updates cameraHeading', () => {
+    useMapStore.getState().setCameraHeading(42)
+    expect(useMapStore.getState().cameraHeading).toBe(42)
+  })
+  test('northPressed from compass follow demotes to position without bumping the nonce', () => {
+    useMapStore.setState({ followMode: 'positionAndBearing', northResetNonce: 0 })
+    useMapStore.getState().northPressed()
+    expect(useMapStore.getState().followMode).toBe('position')
+    expect(useMapStore.getState().northResetNonce).toBe(0)
+  })
+  test('northPressed while off bumps the reset nonce without changing follow', () => {
+    useMapStore.setState({ followMode: 'off', northResetNonce: 0 })
+    useMapStore.getState().northPressed()
+    expect(useMapStore.getState().followMode).toBe('off')
+    expect(useMapStore.getState().northResetNonce).toBe(1)
+  })
+  test('northPressed while position bumps the reset nonce (harmless)', () => {
+    useMapStore.setState({ followMode: 'position', northResetNonce: 5 })
+    useMapStore.getState().northPressed()
+    expect(useMapStore.getState().northResetNonce).toBe(6)
   })
   test('setMapStyle records the outgoing style as previous on change', () => {
     useMapStore.getState().setMapStyle('satellite')

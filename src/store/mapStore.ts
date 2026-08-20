@@ -28,6 +28,18 @@ export function clampPitch(v: number): number {
   return Math.min(MapTokens.pitchMax, Math.max(MapTokens.pitchMin, v))
 }
 
+// Normalize any angle (degrees) to the half-open range (-180, 180], so 359° reads as -1°.
+export function normalizeDeg(deg: number): number {
+  const m = ((deg % 360) + 360) % 360 // [0, 360)
+  return m > 180 ? m - 360 : m
+}
+
+// The North button shows when the map camera is rotated more than `threshold` degrees off
+// north (either direction). Pure so it can drive a re-render-cheap derived selector.
+export function shouldShowNorthButton(heading: number, threshold: number): boolean {
+  return Math.abs(normalizeDeg(heading)) > threshold
+}
+
 // The camera pitch each follow mode implies, so the 2D/3D label stays in sync with the
 // follow-driven camera without reading back the live camera: Position is flat (north-up 2D),
 // PositionAndBearing tilts to the 3D angle (mirrors the Kotlin location-button flyTo, which
@@ -114,6 +126,12 @@ interface MapStore {
   // Whether the next declarative pitch application should animate (tap toggle) or snap
   // (live drag). Session-only; drives the <Camera> animationDuration in MapCanvas.
   pitchAnimated: boolean
+  // Live map camera bearing (deg), streamed from onCameraChanged; drives North-button
+  // visibility. Session-only.
+  cameraHeading: number
+  // Bumped by northPressed in the off/manually-rotated case to signal MapCanvas to fire a
+  // one-shot imperative rotate-to-north. Session-only.
+  northResetNonce: number
   cycleFollowMode: () => void
   disableFollow: () => void
   northPressed: () => void
@@ -122,6 +140,7 @@ interface MapStore {
   setSelectedTrailId: (id: number | null) => void
   setCameraPitch: (p: number) => void
   setCameraPitchAnimated: (p: number) => void
+  setCameraHeading: (h: number) => void
 }
 
 export const useMapStore = create<MapStore>()(
@@ -136,13 +155,22 @@ export const useMapStore = create<MapStore>()(
       selectedTrailId: null,
       cameraPitch: 0,
       pitchAnimated: false,
+      cameraHeading: 0,
+      northResetNonce: 0,
       cycleFollowMode: () =>
         set((s) => {
           const followMode = nextFollowMode(s.followMode)
           return { followMode, cameraPitch: pitchForFollowMode(followMode, s.cameraPitch), pitchAnimated: true }
         }),
       disableFollow: () => set({ followMode: 'off' }),
-      northPressed: () => set((s) => ({ followMode: demoteBearing(s.followMode) })),
+      // Compass-follow → demote to north-up Position (follow viewport snaps bearing to north).
+      // Otherwise (off / manually-rotated) → signal MapCanvas to one-shot rotate the camera north.
+      northPressed: () =>
+        set((s) =>
+          s.followMode === 'positionAndBearing'
+            ? { followMode: demoteBearing(s.followMode) }
+            : { northResetNonce: s.northResetNonce + 1 },
+        ),
       // Record the outgoing style as previous (only on an actual change) so the swipe quick-switch
       // can A/B-toggle back to it — whether the change came from the sheet or from a swipe.
       setMapStyle: (id) =>
@@ -157,6 +185,7 @@ export const useMapStore = create<MapStore>()(
       setSelectedTrailId: (id) => set({ selectedTrailId: id }),
       setCameraPitch: (p) => set({ cameraPitch: p, pitchAnimated: false }),
       setCameraPitchAnimated: (p) => set({ cameraPitch: p, pitchAnimated: true }),
+      setCameraHeading: (h) => set({ cameraHeading: h }),
     }),
     {
       name: 'onfoot-map',
