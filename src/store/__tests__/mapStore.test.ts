@@ -192,6 +192,18 @@ describe('store actions', () => {
     useMapStore.getState().setCameraHeading(42)
     expect(useMapStore.getState().cameraHeading).toBe(42)
   })
+  test('selectTrail selects the trail and turns follow off', () => {
+    useMapStore.setState({ followMode: 'positionAndBearing', selectedTrailId: null })
+    useMapStore.getState().selectTrail(7)
+    expect(useMapStore.getState().selectedTrailId).toBe(7)
+    expect(useMapStore.getState().followMode).toBe('off')
+  })
+  test('clearSelectedTrail clears the selection and leaves follow untouched', () => {
+    useMapStore.setState({ selectedTrailId: 7, followMode: 'position' })
+    useMapStore.getState().clearSelectedTrail()
+    expect(useMapStore.getState().selectedTrailId).toBeNull()
+    expect(useMapStore.getState().followMode).toBe('position')
+  })
   test('northPressed from compass follow demotes to position, flattening pitch, without bumping the nonce', () => {
     useMapStore.setState({ followMode: 'positionAndBearing', cameraPitch: 60, northResetNonce: 0 })
     useMapStore.getState().northPressed()
