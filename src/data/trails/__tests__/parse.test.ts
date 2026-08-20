@@ -26,6 +26,18 @@ const NO_NAMES = `<?xml version="1.0"?>
 const MISSING_LAT = `<?xml version="1.0"?>
 <gpx><trk><trkseg><trkpt lon="1"/></trkseg></trk></gpx>`
 
+const MULTI_SEG = `<?xml version="1.0"?>
+<gpx><trk><trkseg>
+<trkpt lat="1.0" lon="1.0"/><trkpt lat="2.0" lon="2.0"/>
+</trkseg><trkseg>
+<trkpt lat="3.0" lon="3.0"/>
+</trkseg></trk></gpx>`
+
+const MULTI_RTE = `<?xml version="1.0"?>
+<gpx><rte><rtept lat="1.0" lon="1.0"/><rtept lat="2.0" lon="2.0"/></rte>
+<rte><rtept lat="3.0" lon="3.0"/></rte>
+<trk><trkseg><trkpt lat="9.0" lon="9.0"/></trkseg></trk></gpx>`
+
 test('track: points, elevation, waypoints, and track-name title', () => {
   const r = parseGpx(TRACK)
   expect(r.points).toEqual([
@@ -58,4 +70,22 @@ test('title falls back to metadata name, then to the provided fallback', () => {
 
 test('a point missing lat or lon throws', () => {
   expect(() => parseGpx(MISSING_LAT)).toThrow()
+})
+
+test('multiple track segments merge in document order', () => {
+  const r = parseGpx(MULTI_SEG)
+  expect(r.points).toEqual([
+    { lat: 1.0, lng: 1.0, ele: null },
+    { lat: 2.0, lng: 2.0, ele: null },
+    { lat: 3.0, lng: 3.0, ele: null },
+  ])
+})
+
+test('multiple routes merge in document order and win over tracks', () => {
+  const r = parseGpx(MULTI_RTE)
+  expect(r.points).toEqual([
+    { lat: 1.0, lng: 1.0, ele: null },
+    { lat: 2.0, lng: 2.0, ele: null },
+    { lat: 3.0, lng: 3.0, ele: null },
+  ])
 })
