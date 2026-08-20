@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect, useRouter } from 'expo-router'
+import * as DocumentPicker from 'expo-document-picker'
 import { useTrailsStore } from '../../src/store/trailsStore'
 import { TrailListItem } from '../../src/trails/TrailListItem'
 import { useTheme } from '../../src/theme/useTheme'
@@ -43,6 +44,17 @@ export default function TrailsScreen() {
     [removeTrail],
   )
 
+  const pickGpx = useCallback(async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['application/gpx+xml', 'application/octet-stream', 'application/xml', 'text/xml', '*/*'],
+      copyToCacheDirectory: true,
+    })
+    if (result.canceled) return
+    const asset = result.assets[0]
+    const fallback = asset.name?.replace(/\.[^.]+$/, '')
+    router.push({ pathname: '/trail/new', params: { uri: asset.uri, name: fallback ?? '' } })
+  }, [router])
+
   return (
     <View style={[styles.screen, { backgroundColor: c.background, paddingTop: insets.top }]}>
       <Text style={[styles.title, { color: c.onSurface }]}>Trails</Text>
@@ -62,7 +74,7 @@ export default function TrailsScreen() {
         <Pressable
           accessibilityLabel="Add a GPX file"
           disabled={pending}
-          onPress={() => router.push('/trail/new')}
+          onPress={pickGpx}
           style={[styles.addButton, { backgroundColor: c.controlAccent, opacity: pending ? 0.6 : 1 }]}
         >
           <Text style={[styles.addLabel, { color: c.surface }]}>Add a GPX file</Text>
