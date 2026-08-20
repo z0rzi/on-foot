@@ -41,18 +41,13 @@ export interface TerrainProps {
 
 export interface MapViewProps {
   styleURL: string
-  onCameraChanged?: (e: { isUserInteraction: boolean; heading: number; pitch: number }) => void
   children?: React.ReactNode
   style?: any
 }
 
-export interface CameraHandle {
-  setCamera(cfg: CameraProps): void
-}
-
 export interface MapComponents {
   View: React.ComponentType<MapViewProps>
-  Camera: React.ForwardRefExoticComponent<CameraProps & React.RefAttributes<CameraHandle>>
+  Camera: React.ComponentType<CameraProps>
   Terrain: React.ComponentType<TerrainProps>
   UserPuck: React.ComponentType<{}>
 }

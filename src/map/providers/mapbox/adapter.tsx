@@ -1,7 +1,7 @@
-import React, { forwardRef, useImperativeHandle, useRef } from 'react'
-import Mapbox, { type MapState } from '@rnmapbox/maps'
+import React from 'react'
+import Mapbox from '@rnmapbox/maps'
 import type {
-  MapProvider, MapViewProps, CameraProps, TerrainProps, CameraHandle,
+  MapProvider, MapViewProps, CameraProps, TerrainProps,
 } from '../../provider/types'
 import { mapboxCapabilities } from './capabilities'
 import { TERRAIN_DEM } from './styles'
@@ -9,7 +9,7 @@ import { MAPBOX_ACCESS_TOKEN } from './token'
 
 Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN)
 
-const View = ({ styleURL, onCameraChanged, style, children }: MapViewProps) => (
+const View = ({ styleURL, style, children }: MapViewProps) => (
   <Mapbox.MapView
     style={style}
     styleURL={styleURL}
@@ -17,45 +17,24 @@ const View = ({ styleURL, onCameraChanged, style, children }: MapViewProps) => (
     logoEnabled={false}
     attributionEnabled={false}
     compassEnabled={false}
-    onCameraChanged={(e: MapState) =>
-      onCameraChanged?.({
-        isUserInteraction: !!e?.gestures?.isGestureActive,
-        heading: e?.properties?.heading ?? 0,
-        pitch: e?.properties?.pitch ?? 0,
-      })
-    }
   >
     {children}
   </Mapbox.MapView>
 )
 
-const Camera = forwardRef<CameraHandle, CameraProps>((props, ref) => {
-  const inner = useRef<Mapbox.Camera>(null)
-  useImperativeHandle(ref, () => ({
-    setCamera: (cfg: CameraProps) =>
-      inner.current?.setCamera({
-        centerCoordinate: cfg.centerCoordinate,
-        zoomLevel: cfg.zoomLevel,
-        pitch: cfg.pitch,
-        heading: cfg.heading,
-        animationDuration: cfg.animationDuration ?? 0,
-      }),
-  }))
-  // Pull out fields whose neutral shape differs from rnmapbox's before spreading the rest.
-  const { followUserMode, onUserTrackingModeChange, ...rest } = props
-  return (
-    <Mapbox.Camera
-      ref={inner}
-      {...rest}
-      followUserMode={followUserMode as unknown as Mapbox.UserTrackingMode | undefined}
-      onUserTrackingModeChange={
-        onUserTrackingModeChange
-          ? (e) => onUserTrackingModeChange(!!e?.nativeEvent?.payload?.followUserLocation)
-          : undefined
-      }
-    />
-  )
-})
+// The camera is driven declaratively (follow props / pitch) — see MapCanvas. Pull out fields
+// whose neutral shape differs from rnmapbox's before spreading the rest.
+const Camera = ({ followUserMode, onUserTrackingModeChange, ...rest }: CameraProps) => (
+  <Mapbox.Camera
+    {...rest}
+    followUserMode={followUserMode as unknown as Mapbox.UserTrackingMode | undefined}
+    onUserTrackingModeChange={
+      onUserTrackingModeChange
+        ? (e) => onUserTrackingModeChange(!!e?.nativeEvent?.payload?.followUserLocation)
+        : undefined
+    }
+  />
+)
 
 const Terrain = ({ exaggeration }: TerrainProps) => (
   <Mapbox.RasterDemSource id="terrain-dem" url={TERRAIN_DEM.url} tileSize={TERRAIN_DEM.tileSize}>
