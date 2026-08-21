@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Trail, trailsRepository } from '../data/trails'
 import { useMapStore } from '../store/mapStore'
+import { useTrailsStore } from '../store/trailsStore'
 
 export function useSelectedTrail(): Trail | null {
   const selectedTrailId = useMapStore((s) => s.selectedTrailId)
+  const trails = useTrailsStore((s) => s.trails)
   const [trail, setTrail] = useState<Trail | null>(null)
 
   useEffect(() => {
@@ -18,7 +20,7 @@ export function useSelectedTrail(): Trail | null {
     return () => {
       active = false
     }
-  }, [selectedTrailId])
+  }, [selectedTrailId, trails])
 
   return trail
 }

@@ -8,10 +8,12 @@ import { DifficultyBadge } from './DifficultyBadge'
 export function TrailListItem({
   trail,
   onSelect,
+  onEdit,
   onDelete,
 }: {
   trail: TrailSummary
   onSelect: (id: number) => void
+  onEdit: (id: number) => void
   onDelete: (id: number) => void
 }) {
   const c = useTheme()
@@ -33,7 +35,10 @@ export function TrailListItem({
           </Text>
         </View>
       </Pressable>
-      <Pressable accessibilityLabel="Delete trail" onPress={() => onDelete(trail.id)} hitSlop={8} style={styles.delete}>
+      <Pressable accessibilityLabel="Edit trail" onPress={() => onEdit(trail.id)} hitSlop={8} style={styles.action}>
+        <Ionicons name="create-outline" size={22} color={c.onSurfaceVariant} />
+      </Pressable>
+      <Pressable accessibilityLabel="Delete trail" onPress={() => onDelete(trail.id)} hitSlop={8} style={styles.action}>
         <Ionicons name="trash-outline" size={22} color={c.danger} />
       </Pressable>
     </View>
@@ -47,5 +52,5 @@ const styles = StyleSheet.create({
   info: { flex: 1, marginLeft: 12, gap: 4 },
   name: { fontSize: 16, fontWeight: '700' },
   metrics: { fontSize: 13 },
-  delete: { padding: 8, marginLeft: 4 },
+  action: { padding: 8, marginLeft: 4 },
 })

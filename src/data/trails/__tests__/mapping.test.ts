@@ -1,5 +1,5 @@
-import { serializeGeometry, deserializeGeometry, rowToSummary, rowToTrail, inputToInsertValues, TrailRow } from '../mapping'
-import { NewTrailInput } from '../types'
+import { serializeGeometry, deserializeGeometry, rowToSummary, rowToTrail, inputToInsertValues, updateToValues, TrailRow } from '../mapping'
+import { NewTrailInput, TrailUpdate } from '../types'
 
 const ROW: TrailRow = {
   id: 7, name: 'Ridge', difficulty: 'hard',
@@ -47,4 +47,24 @@ test('inputToInsertValues serializes geometry and stamps both timestamps', () =>
     description: null, geometry: '{"points":[],"waypoints":[]}',
     createdAt: 555, updatedAt: 555,
   })
+})
+
+test('updateToValues maps editable fields and stamps updatedAt only', () => {
+  const update: TrailUpdate = { name: 'Renamed', difficulty: 'medium', description: 'now with notes' }
+  const v = updateToValues(update, 999)
+  expect(v).toEqual({
+    name: 'Renamed', difficulty: 'medium', description: 'now with notes', updatedAt: 999,
+  })
+})
+
+test('updateToValues carries a null description through', () => {
+  const v = updateToValues({ name: 'A', difficulty: 'easy', description: null }, 5)
+  expect(v.description).toBeNull()
+})
+
+test('updateToValues never emits createdAt, geometry, or metric columns', () => {
+  const v = updateToValues({ name: 'A', difficulty: 'hard', description: null }, 5)
+  expect(v).not.toHaveProperty('createdAt')
+  expect(v).not.toHaveProperty('geometry')
+  expect(v).not.toHaveProperty('distanceMeters')
 })

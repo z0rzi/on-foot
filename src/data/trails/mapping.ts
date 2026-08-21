@@ -1,4 +1,4 @@
-import { Difficulty, NewTrailInput, Trail, TrailGeometry, TrailSummary } from './types'
+import { Difficulty, NewTrailInput, Trail, TrailGeometry, TrailSummary, TrailUpdate } from './types'
 
 export interface TrailRow {
   id: number
@@ -67,6 +67,22 @@ export function inputToInsertValues(input: NewTrailInput, now: number): TrailIns
     description: input.description,
     geometry: serializeGeometry(input.geometry),
     createdAt: now,
+    updatedAt: now,
+  }
+}
+
+export interface TrailUpdateValues {
+  name: string
+  difficulty: string
+  description: string | null
+  updatedAt: number
+}
+
+export function updateToValues(update: TrailUpdate, now: number): TrailUpdateValues {
+  return {
+    name: update.name,
+    difficulty: update.difficulty,
+    description: update.description,
     updatedAt: now,
   }
 }
