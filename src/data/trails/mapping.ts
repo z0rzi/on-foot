@@ -5,8 +5,8 @@ export interface TrailRow {
   name: string
   difficulty: string
   distanceMeters: number
-  elevationGainMeters: number
-  elevationLossMeters: number
+  elevationGainMeters: number | null
+  elevationLossMeters: number | null
   description: string | null
   geometry: string
   createdAt: number
@@ -17,8 +17,8 @@ export interface TrailInsertValues {
   name: string
   difficulty: string
   distanceMeters: number
-  elevationGainMeters: number
-  elevationLossMeters: number
+  elevationGainMeters: number | null
+  elevationLossMeters: number | null
   description: string | null
   geometry: string
   createdAt: number
