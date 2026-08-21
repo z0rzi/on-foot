@@ -133,7 +133,8 @@ interface MapStore {
   // The style shown before the current one, so a swipe on the layers button can A/B-toggle back.
   // Session-only (not persisted) — a fresh launch cold-starts into the satellite-toggle fallback.
   previousMapStyleId: string | null
-  // The currently-shown trail; drives the overlay + info card. Session-only.
+  // The currently-shown trail; drives the overlay + info card. Persisted, so the displayed
+  // trail survives a restart.
   selectedTrailId: number | null
   cameraPitch: number
   // Whether the next declarative pitch application should animate (tap toggle) or snap
