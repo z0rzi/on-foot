@@ -47,3 +47,9 @@ example
 # generated native folders
 /ios
 /android
+
+# personal task/idea notes
+/tasks.md
+
+# local expo module build outputs
+modules/**/build/
