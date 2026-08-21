@@ -1,6 +1,6 @@
 import { desc, eq } from 'drizzle-orm'
 import { TrailsRepository } from '../trails/repository'
-import { inputToInsertValues, rowToSummary, rowToTrail, TrailRow } from '../trails/mapping'
+import { inputToInsertValues, rowToSummary, rowToTrail, TrailRow, updateToValues } from '../trails/mapping'
 import { db } from './client'
 import { trails } from './schema'
 
@@ -19,6 +19,9 @@ export const sqliteTrailsRepository: TrailsRepository = {
       .values(inputToInsertValues(input, Date.now()))
       .returning({ id: trails.id })
     return inserted.id
+  },
+  async updateTrail(id, update) {
+    await db.update(trails).set(updateToValues(update, Date.now())).where(eq(trails.id, id))
   },
   async deleteTrail(id) {
     await db.delete(trails).where(eq(trails.id, id))
