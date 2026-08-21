@@ -12,6 +12,11 @@ export interface NewTrailInput {
   name: string; difficulty: Difficulty; description: string | null
   metrics: TrailMetrics; geometry: TrailGeometry
 }
+export interface TrailUpdate {
+  name: string
+  difficulty: Difficulty
+  description: string | null
+}
 export interface TrailSummary {
   id: number; name: string; difficulty: Difficulty
   metrics: TrailMetrics; createdAt: number
