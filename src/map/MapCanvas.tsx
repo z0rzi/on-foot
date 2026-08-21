@@ -29,6 +29,7 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
   const setCameraHeading = useMapStore((s) => s.setCameraHeading)
   const northResetNonce = useMapStore((s) => s.northResetNonce)
   const trailFitNonce = useMapStore((s) => s.trailFitNonce)
+  const selectedTrailId = useMapStore((s) => s.selectedTrailId)
   const cameraRef = useRef<CameraController>(null)
 
   useEffect(() => {
@@ -38,22 +39,23 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
   const points = trail?.geometry.points ?? []
   const hasTrail = points.length >= 2
 
-  // Frame the trail once per user-requested selection, after its geometry has loaded.
-  // selectTrail bumps trailFitNonce; fittedNonce records the last nonce that was fitted, so this
-  // fires once the geometry for that nonce is present (regardless of whether the nonce bump or
-  // the geometry arrival triggers the re-render) and does not re-fire on later re-renders. A
-  // restored selection starts with nonce 0 == fittedNonce, so it never fits — the camera keeps
-  // following the user.
+  // Frame the trail once per user-requested selection, after the selected trail's own geometry
+  // has loaded. selectTrail bumps trailFitNonce; fittedNonce records the last nonce that was
+  // fitted. The loaded trail prop lags the selection (getTrail resolves async), so the fit is
+  // held until trail.id matches selectedTrailId — switching A → B skips A's stale geometry and
+  // frames B once B loads. A restored selection starts with nonce 0 == fittedNonce, so it never
+  // fits — the camera keeps following the user.
   const fittedNonce = useRef(0)
   useEffect(() => {
     if (trailFitNonce === fittedNonce.current) return
+    if (trail?.id !== selectedTrailId) return
     if (!hasTrail) return
     const bounds = boundsForPoints(points)
     if (!bounds) return
     fittedNonce.current = trailFitNonce
     const { top, sides, bottom } = MapTokens.cameraPadding
     cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs)
-  }, [trail, trailFitNonce])
+  }, [trail, trailFitNonce, selectedTrailId])
 
   const follow = followCameraProps(followMode)
   const manualPitch =
