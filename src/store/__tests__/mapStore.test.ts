@@ -152,7 +152,7 @@ describe('store actions', () => {
       pitchAnimated: false,
       cameraHeading: 0,
       northResetNonce: 0,
-      trailFitNonce: 0,
+      pendingFitTrailId: null,
     })
   })
   test('defaults to position follow so the map centres on the user at launch', () => {
@@ -193,18 +193,25 @@ describe('store actions', () => {
     useMapStore.getState().setCameraHeading(42)
     expect(useMapStore.getState().cameraHeading).toBe(42)
   })
-  test('selectTrail selects the trail, turns follow off, and bumps the fit nonce', () => {
-    useMapStore.setState({ followMode: 'positionAndBearing', selectedTrailId: null, trailFitNonce: 3 })
+  test('selectTrail selects the trail, turns follow off, and marks it pending fit', () => {
+    useMapStore.setState({ followMode: 'positionAndBearing', selectedTrailId: null, pendingFitTrailId: null })
     useMapStore.getState().selectTrail(7)
     expect(useMapStore.getState().selectedTrailId).toBe(7)
     expect(useMapStore.getState().followMode).toBe('off')
-    expect(useMapStore.getState().trailFitNonce).toBe(4)
+    expect(useMapStore.getState().pendingFitTrailId).toBe(7)
   })
-  test('clearSelectedTrail clears the selection and leaves follow untouched', () => {
-    useMapStore.setState({ selectedTrailId: 7, followMode: 'position' })
+  test('clearSelectedTrail clears the selection and its pending fit, leaving follow untouched', () => {
+    useMapStore.setState({ selectedTrailId: 7, pendingFitTrailId: 7, followMode: 'position' })
     useMapStore.getState().clearSelectedTrail()
     expect(useMapStore.getState().selectedTrailId).toBeNull()
+    expect(useMapStore.getState().pendingFitTrailId).toBeNull()
     expect(useMapStore.getState().followMode).toBe('position')
+  })
+  test('clearPendingFit clears the pending fit without touching the selection', () => {
+    useMapStore.setState({ selectedTrailId: 7, pendingFitTrailId: 7 })
+    useMapStore.getState().clearPendingFit()
+    expect(useMapStore.getState().pendingFitTrailId).toBeNull()
+    expect(useMapStore.getState().selectedTrailId).toBe(7)
   })
   test('northPressed from compass follow demotes to position, flattening pitch, without bumping the nonce', () => {
     useMapStore.setState({ followMode: 'positionAndBearing', cameraPitch: 60, northResetNonce: 0 })
@@ -264,7 +271,7 @@ describe('store actions', () => {
     const partial = partialize({ ...useMapStore.getState() } as any)
     expect(partial).toEqual({ mapStyleId: useMapStore.getState().mapStyleId, selectedTrailId: 7 })
     expect(partial).not.toHaveProperty('previousMapStyleId')
-    expect(partial).not.toHaveProperty('trailFitNonce')
+    expect(partial).not.toHaveProperty('pendingFitTrailId')
     expect(partial).not.toHaveProperty('followMode')
   })
 })
