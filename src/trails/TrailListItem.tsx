@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { TrailSummary } from '../data/trails/types'
-import { formatDistance, formatElevation } from '../data/trails/gpx/metrics'
+import { formatMetricsSummary } from '../data/trails/gpx/metrics'
 import { useTheme } from '../theme/useTheme'
 import { DifficultyBadge } from './DifficultyBadge'
 
@@ -29,7 +29,7 @@ export function TrailListItem({
           <Text style={[styles.name, { color: c.onSurface }]} numberOfLines={1}>{trail.name}</Text>
           <DifficultyBadge difficulty={trail.difficulty} />
           <Text style={[styles.metrics, { color: c.onSurfaceVariant }]}>
-            {formatDistance(trail.metrics.distanceMeters)} • {formatElevation(trail.metrics.elevationGainMeters)} gain
+            {formatMetricsSummary(trail.metrics)}
           </Text>
         </View>
       </Pressable>

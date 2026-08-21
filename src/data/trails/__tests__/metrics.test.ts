@@ -1,4 +1,4 @@
-import { haversineMeters, computeMetrics, formatDistance, formatElevation } from '../gpx/metrics'
+import { haversineMeters, computeMetrics, formatDistance, formatElevation, formatMetricsSummary } from '../gpx/metrics'
 import { GpxPoint } from '../types'
 
 const p = (lat: number, lng: number, ele: number | null = null): GpxPoint => ({ lat, lng, ele })
@@ -13,9 +13,17 @@ describe('haversineMeters', () => {
 })
 
 describe('computeMetrics', () => {
-  test('empty and single-point lists yield zeros', () => {
-    expect(computeMetrics([])).toEqual({ distanceMeters: 0, elevationGainMeters: 0, elevationLossMeters: 0 })
+  test('empty list has no elevation data', () => {
+    expect(computeMetrics([])).toEqual({ distanceMeters: 0, elevationGainMeters: null, elevationLossMeters: null })
+  })
+  test('single point with elevation yields zero gain and loss', () => {
     expect(computeMetrics([p(1, 1, 10)])).toEqual({ distanceMeters: 0, elevationGainMeters: 0, elevationLossMeters: 0 })
+  })
+  test('track without any elevation samples reports null gain and loss', () => {
+    const m = computeMetrics([p(0, 0, null), p(0, 1, null), p(0, 2, null)])
+    expect(m.distanceMeters).toBeGreaterThan(0)
+    expect(m.elevationGainMeters).toBeNull()
+    expect(m.elevationLossMeters).toBeNull()
   })
   test('sums distance and splits elevation into gain and loss', () => {
     const m = computeMetrics([p(0, 0, 100), p(0, 0, 130), p(0, 0, 110)])
@@ -38,5 +46,16 @@ describe('formatters', () => {
   })
   test('formatElevation rounds to whole metres', () => {
     expect(formatElevation(250.4)).toBe('250 m')
+  })
+  test('formatElevation shows a dash when elevation is unknown', () => {
+    expect(formatElevation(null)).toBe('—')
+  })
+  test('formatMetricsSummary includes gain when known', () => {
+    expect(formatMetricsSummary({ distanceMeters: 1500, elevationGainMeters: 340, elevationLossMeters: 300 }))
+      .toBe('1.5 km • 340 m gain')
+  })
+  test('formatMetricsSummary states when elevation is missing', () => {
+    expect(formatMetricsSummary({ distanceMeters: 1500, elevationGainMeters: null, elevationLossMeters: null }))
+      .toBe('1.5 km • no elevation data')
   })
 })

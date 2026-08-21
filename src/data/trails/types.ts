@@ -5,7 +5,7 @@ export interface GpxWaypoint {
 }
 export type Difficulty = 'easy' | 'medium' | 'hard'
 export interface TrailMetrics {
-  distanceMeters: number; elevationGainMeters: number; elevationLossMeters: number
+  distanceMeters: number; elevationGainMeters: number | null; elevationLossMeters: number | null
 }
 export interface TrailGeometry { points: GpxPoint[]; waypoints: GpxWaypoint[] }
 export interface NewTrailInput {

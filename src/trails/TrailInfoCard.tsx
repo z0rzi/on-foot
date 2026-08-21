@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Trail } from '../data/trails/types'
-import { formatDistance, formatElevation } from '../data/trails/gpx/metrics'
+import { formatMetricsSummary } from '../data/trails/gpx/metrics'
 import { useTheme } from '../theme/useTheme'
 import { DifficultyBadge } from './DifficultyBadge'
 
@@ -31,7 +31,7 @@ export function TrailInfoCard({
           <Text style={[styles.name, { color: c.panelContent }]} numberOfLines={1}>{trail.name}</Text>
           <DifficultyBadge difficulty={trail.difficulty} />
           <Text style={[styles.metrics, { color: c.onSurfaceVariant }]}>
-            {formatDistance(trail.metrics.distanceMeters)} • {formatElevation(trail.metrics.elevationGainMeters)} gain
+            {formatMetricsSummary(trail.metrics)}
           </Text>
         </View>
         <Pressable accessibilityLabel="Close trail info" onPress={onClose} hitSlop={8} style={styles.close}>

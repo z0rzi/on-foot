@@ -32,6 +32,17 @@ const config: ExpoConfig = {
           { scheme: "content", mimeType: "*/*", pathPattern: ".*\\.gpx" },
         ],
       },
+      {
+        action: "SEND",
+        category: ["DEFAULT"],
+        data: [
+          { mimeType: "application/gpx+xml" },
+          { mimeType: "application/octet-stream" },
+          { mimeType: "application/xml" },
+          { mimeType: "text/xml" },
+          { mimeType: "text/plain" },
+        ],
+      },
     ],
   },
   web: {
