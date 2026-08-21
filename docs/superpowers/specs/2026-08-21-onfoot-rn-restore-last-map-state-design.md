@@ -87,42 +87,55 @@ Fix by separating the "fit" signal from the "selected" state, mirroring the exis
     set((s) => ({ selectedTrailId: id, followMode: 'off', trailFitNonce: s.trailFitNonce + 1 })),
   ```
 
-- `MapCanvas`'s fit effect keys on `trailFitNonce` instead of `trail`, and guards on the
-  nonce being > 0 (so it never fires on the initial mount), mirroring the `northResetNonce`
-  effect directly above it:
+- `MapCanvas`'s fit effect must fire once per user-requested selection **after the selected
+  trail's own geometry has loaded**, and never on restore. The nonce alone cannot express
+  this: `selectTrail` bumps `trailFitNonce` synchronously, but the geometry loads
+  asynchronously (`useSelectedTrail` → `getTrail`), and `TrailSummary` carries no geometry —
+  so at nonce-bump time `points` is empty or still belongs to the previously-shown trail.
+  The effect therefore combines three gates: a `useRef` recording the last-fitted nonce (so
+  a restore, whose nonce stays `0`, never fits), a selection-identity check (so a stale
+  previously-shown trail is skipped without consuming the nonce), and the geometry check:
 
   ```ts
   const trailFitNonce = useMapStore((s) => s.trailFitNonce)
+  const selectedTrailId = useMapStore((s) => s.selectedTrailId)
+  const fittedNonce = useRef(0)
   useEffect(() => {
-    if (trailFitNonce === 0) return
+    if (trailFitNonce === fittedNonce.current) return   // no pending user-requested fit (incl. restore)
+    if (trail?.id !== selectedTrailId) return            // wait for the SELECTED trail's own geometry
     if (!hasTrail) return
     const bounds = boundsForPoints(points)
     if (!bounds) return
+    fittedNonce.current = trailFitNonce
     const { top, sides, bottom } = MapTokens.cameraPadding
     cameraRef.current?.fitBounds(
       bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs,
     )
-  }, [trailFitNonce])
+  }, [trail, trailFitNonce, selectedTrailId])
   ```
 
 Result:
-- **User tap** → `selectTrail` sets id + `followMode:'off'` + bumps nonce → overlay shows,
-  camera fits (unchanged behavior).
+- **User tap (clean → A)** → `selectTrail` sets id + `followMode:'off'` + bumps nonce; the
+  effect waits until A's geometry loads (`trail.id === selectedTrailId`), then fits once and
+  records the nonce.
+- **Switch A → B** → the intermediate render (nonce bumped, `trail` still A) is skipped by
+  the identity gate without consuming the nonce; when B loads, it fits B. (A plain
+  `[trailFitNonce]`-only effect would fit stale A here — the regression this design avoids.)
 - **Restore** → persist rehydrates `selectedTrailId` only; `followMode` stays default
-  `'position'`; `trailFitNonce` stays `0` → overlay + card show, camera follows the user.
-  Exactly the locked behavior.
+  `'position'`; `trailFitNonce` stays `0` == `fittedNonce` → overlay + card show, camera
+  follows the user. Exactly the locked behavior.
 
 This is a deliberate de-conflation of an existing single function (the kind AGENTS.md calls
 for — change the pattern everywhere, don't fork it), not a workaround. It is also the seam
 slice 2 reuses: a recording overlay must not fight the fit either.
 
-> **Reviewer note / cross-task:** `points` and `hasTrail` are derived from `trail` but the
-> effect deps list is `[trailFitNonce]` only. This is intentional and matches the
-> `northResetNonce` effect: the nonce is bumped synchronously by the same user action that
-> selects the trail, and by the time the nonce-driven effect needs geometry the trail has
-> loaded. Do not add `trail`/`points` to the deps — that would reintroduce the
-> identity-driven fit on restore. This mirrors the existing exhaustive-deps posture of the
-> `northResetNonce` effect in the same file.
+> **Cross-task note:** the fit is driven by three signals together — the fit nonce (user
+> intent), the selected id, and the loaded geometry — because the geometry arrives
+> asynchronously *after* `selectTrail` bumps the nonce. The `northResetNonce` effect is
+> **not** a valid analogy for the deps: `resetNorth()` needs no data and can fire at
+> nonce-bump time, whereas `fitBounds()` needs geometry that is provably not yet present
+> then. Keep `trail` and `selectedTrailId` in the deps; the `fittedNonce` ref (not the deps)
+> is what prevents a restore or a re-render from re-firing the fit.
 
 ### 3. Self-heal a deleted trail on restore
 
@@ -153,11 +166,13 @@ app launch
               ├─ id == null            → trail = null → clean map
               ├─ getTrail(id) == null  → clearSelectedTrail() + trail = null → clean map (self-healed)
               └─ getTrail(id) == trail → trail set → overlay + info card render
-                    └─ trailFitNonce == 0 → no fit → camera follows user (followMode 'position')
+                    └─ trailFitNonce (0) == fittedNonce (0) → no fit → camera follows user (followMode 'position')
 
 user taps a trail card
-  └─ selectTrail(id): selectedTrailId=id, followMode='off', trailFitNonce++
-        └─ MapCanvas fit effect [trailFitNonce] → fitBounds once
+  └─ selectTrail(id): selectedTrailId=id, followMode='off', trailFitNonce++   (synchronous)
+        └─ getTrail(id) resolves async → trail set (trail.id == selectedTrailId)
+              └─ MapCanvas fit effect [trail, trailFitNonce, selectedTrailId]:
+                    nonce != fittedNonce AND trail.id == selectedTrailId → fitBounds once, record nonce
 ```
 
 ## Error handling
