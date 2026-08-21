@@ -2,6 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Post-implementation note (design of record is the spec).** This plan's Task 2 originally
+> drove the camera fit with a session-only `trailFitNonce` (+ a `fittedNonce` ref + a
+> selection-identity gate). Review found the nonce is the wrong model for a fit that depends on
+> *asynchronously-loaded* geometry, and the shipped code instead uses a `pendingFitTrailId:
+> number | null` intent field consumed by `clearPendingFit()` — simpler, with an honest effect
+> dependency array. The task steps below are kept as executed for history; the accurate final
+> design is in `docs/superpowers/specs/2026-08-21-onfoot-rn-restore-last-map-state-design.md`
+> §"Split 'trail is selected' from 'fit the camera to it'".
+
 **Goal:** Persist which trail is displayed (or that none is) across an app close/reopen, restoring its overlay + info card on launch while the camera keeps following the user's live position.
 
 **Architecture:** Add `selectedTrailId` to the map store's persisted state. De-conflate `selectTrail` so a session-only `trailFitNonce` (mirroring the existing `northResetNonce`) drives the one-shot camera fit, which then fires only on a real user tap — never on restore. Two native consumers (`MapCanvas`, `useSelectedTrail`) are rewired: the fit effect keys on the nonce, and `useSelectedTrail` self-heals a persisted id whose trail was deleted.
