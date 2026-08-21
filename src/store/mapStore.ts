@@ -133,7 +133,8 @@ interface MapStore {
   // The style shown before the current one, so a swipe on the layers button can A/B-toggle back.
   // Session-only (not persisted) — a fresh launch cold-starts into the satellite-toggle fallback.
   previousMapStyleId: string | null
-  // The currently-shown trail; drives the overlay + info card. Session-only.
+  // The currently-shown trail; drives the overlay + info card. Persisted, so the displayed
+  // trail survives a restart.
   selectedTrailId: number | null
   cameraPitch: number
   // Whether the next declarative pitch application should animate (tap toggle) or snap
@@ -145,6 +146,10 @@ interface MapStore {
   // Bumped by northPressed in the off/manually-rotated case to signal MapCanvas to fire a
   // one-shot imperative rotate-to-north. Session-only.
   northResetNonce: number
+  // The trail a user tap has requested the camera to frame, consumed once its geometry loads.
+  // selectTrail sets it; a restored selection leaves it null, so restore shows the overlay
+  // without fitting. Session-only.
+  pendingFitTrailId: number | null
   cycleFollowMode: () => void
   disableFollow: () => void
   northPressed: () => void
@@ -152,6 +157,7 @@ interface MapStore {
   quickSwitchMapStyle: (styles: StyleChoice[]) => void
   selectTrail: (id: number) => void
   clearSelectedTrail: () => void
+  clearPendingFit: () => void
   setCameraPitch: (p: number) => void
   setCameraPitchAnimated: (p: number) => void
   setCameraHeading: (h: number) => void
@@ -171,6 +177,7 @@ export const useMapStore = create<MapStore>()(
       pitchAnimated: false,
       cameraHeading: 0,
       northResetNonce: 0,
+      pendingFitTrailId: null,
       cycleFollowMode: () => set((s) => followModeChange(nextFollowMode(s.followMode), s.cameraPitch)),
       disableFollow: () => set({ followMode: 'off' }),
       // Compass-follow → demote to north-up Position (follow viewport snaps bearing to north, and
@@ -193,8 +200,9 @@ export const useMapStore = create<MapStore>()(
           const target = resolveQuickSwitch(s.mapStyleId, s.previousMapStyleId, styles)
           return target === s.mapStyleId ? {} : { mapStyleId: target, previousMapStyleId: s.mapStyleId }
         }),
-      selectTrail: (id) => set({ selectedTrailId: id, followMode: 'off' }),
-      clearSelectedTrail: () => set({ selectedTrailId: null }),
+      selectTrail: (id) => set({ selectedTrailId: id, followMode: 'off', pendingFitTrailId: id }),
+      clearSelectedTrail: () => set({ selectedTrailId: null, pendingFitTrailId: null }),
+      clearPendingFit: () => set({ pendingFitTrailId: null }),
       setCameraPitch: (p) => set({ cameraPitch: p, pitchAnimated: false }),
       setCameraPitchAnimated: (p) => set({ cameraPitch: p, pitchAnimated: true }),
       setCameraHeading: (h) => set({ cameraHeading: h }),
@@ -202,7 +210,7 @@ export const useMapStore = create<MapStore>()(
     {
       name: 'onfoot-map',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (s) => ({ mapStyleId: s.mapStyleId }),
+      partialize: (s) => ({ mapStyleId: s.mapStyleId, selectedTrailId: s.selectedTrailId }),
     }
   )
 )

@@ -75,54 +75,67 @@ On restore, `selectedTrailId` rehydrates → `useSelectedTrail` loads the trail 
 `[trail]` effect fires → the camera wrongly fits the trail. That contradicts the locked
 decision.
 
-Fix by separating the "fit" signal from the "selected" state, mirroring the existing
-`northResetNonce` one-shot pattern already in this store:
+Fix by modelling the fit *intent* as its own session-only state that names the trail to be
+framed — distinct from `selectedTrailId`, which describes only *what is shown* and is now
+also set by restore:
 
-- Add session-only state `trailFitNonce: number` (initial `0`, **not** in `partialize`).
-- `selectTrail(id)` (only ever called by a user tap) sets the id, drops follow, **and**
-  bumps the nonce:
+- Add session-only state `pendingFitTrailId: number | null` (initial `null`, **not** in
+  `partialize`), plus a `clearPendingFit()` action.
+- `selectTrail(id)` (only ever called by a user tap) sets the id, drops follow, **and** marks
+  the pending fit; `clearSelectedTrail` also cancels any pending fit:
 
   ```ts
-  selectTrail: (id) =>
-    set((s) => ({ selectedTrailId: id, followMode: 'off', trailFitNonce: s.trailFitNonce + 1 })),
+  selectTrail: (id) => set({ selectedTrailId: id, followMode: 'off', pendingFitTrailId: id }),
+  clearSelectedTrail: () => set({ selectedTrailId: null, pendingFitTrailId: null }),
+  clearPendingFit: () => set({ pendingFitTrailId: null }),
   ```
 
-- `MapCanvas`'s fit effect keys on `trailFitNonce` instead of `trail`, and guards on the
-  nonce being > 0 (so it never fires on the initial mount), mirroring the `northResetNonce`
-  effect directly above it:
+- `MapCanvas`'s fit effect fires once per user-requested selection **after that trail's own
+  geometry has loaded**, and never on restore. The geometry loads asynchronously
+  (`useSelectedTrail` → `getTrail`) and `TrailSummary` carries no geometry, so the loaded
+  `trail` prop lags the synchronous `selectTrail`. The pending-fit field carries exactly the
+  information needed to bridge that gap — *which* trail to fit — so the effect simply waits
+  until the loaded geometry belongs to it, then consumes the request by clearing it:
 
   ```ts
-  const trailFitNonce = useMapStore((s) => s.trailFitNonce)
+  const pendingFitTrailId = useMapStore((s) => s.pendingFitTrailId)
+  const clearPendingFit = useMapStore((s) => s.clearPendingFit)
   useEffect(() => {
-    if (trailFitNonce === 0) return
-    if (!hasTrail) return
-    const bounds = boundsForPoints(points)
+    if (trail == null || trail.id !== pendingFitTrailId) return  // no pending fit (incl. restore) / geometry not for this trail yet
+    if (trail.geometry.points.length < 2) return
+    const bounds = boundsForPoints(trail.geometry.points)
     if (!bounds) return
+    clearPendingFit()
     const { top, sides, bottom } = MapTokens.cameraPadding
     cameraRef.current?.fitBounds(
       bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs,
     )
-  }, [trailFitNonce])
+  }, [trail, pendingFitTrailId, clearPendingFit])
   ```
 
 Result:
-- **User tap** → `selectTrail` sets id + `followMode:'off'` + bumps nonce → overlay shows,
-  camera fits (unchanged behavior).
+- **User tap (clean → A)** → `selectTrail` sets id + `followMode:'off'` + `pendingFitTrailId=A`;
+  the effect waits until A's geometry loads (`trail.id === pendingFitTrailId`), then fits once
+  and clears the pending fit.
+- **Switch A → B** → the intermediate render (`pendingFitTrailId=B`, `trail` still A) fails
+  `trail.id === pendingFitTrailId` and is skipped without consuming the request; when B loads,
+  it fits B.
 - **Restore** → persist rehydrates `selectedTrailId` only; `followMode` stays default
-  `'position'`; `trailFitNonce` stays `0` → overlay + card show, camera follows the user.
-  Exactly the locked behavior.
+  `'position'`; `pendingFitTrailId` stays `null` → overlay + card show, camera follows the
+  user. Exactly the locked behavior.
 
-This is a deliberate de-conflation of an existing single function (the kind AGENTS.md calls
-for — change the pattern everywhere, don't fork it), not a workaround. It is also the seam
-slice 2 reuses: a recording overlay must not fight the fit either.
+Modelling intent directly (rather than a fire-and-forget nonce) keeps the effect's dependency
+array honest — it depends on exactly the state it reads — and makes "restore doesn't fit" fall
+out for free (there is simply no pending fit). It is also the seam slice 2 reuses: a recording
+overlay must not fight the fit either.
 
-> **Reviewer note / cross-task:** `points` and `hasTrail` are derived from `trail` but the
-> effect deps list is `[trailFitNonce]` only. This is intentional and matches the
-> `northResetNonce` effect: the nonce is bumped synchronously by the same user action that
-> selects the trail, and by the time the nonce-driven effect needs geometry the trail has
-> loaded. Do not add `trail`/`points` to the deps — that would reintroduce the
-> identity-driven fit on restore. This mirrors the existing exhaustive-deps posture of the
-> `northResetNonce` effect in the same file.
+> **Cross-task note:** `pendingFitTrailId` is intent (a user tap asked to frame this trail),
+> deliberately separate from `selectedTrailId` (what is shown, which restore also sets). The
+> `northResetNonce` nonce pattern was **not** a fit for this: `resetNorth()` needs no data and
+> can fire the instant its nonce bumps, whereas `fitBounds()` needs geometry that arrives
+> asynchronously *after* the tap — so the fit signal must name *which* trail, not just *when*.
+> Consuming the request via `clearPendingFit()` is what makes it one-shot; the effect never
+> re-fires because the field is null afterwards.
 
 ### 3. Self-heal a deleted trail on restore
 
@@ -153,11 +166,13 @@ app launch
               ├─ id == null            → trail = null → clean map
               ├─ getTrail(id) == null  → clearSelectedTrail() + trail = null → clean map (self-healed)
               └─ getTrail(id) == trail → trail set → overlay + info card render
-                    └─ trailFitNonce == 0 → no fit → camera follows user (followMode 'position')
+                    └─ pendingFitTrailId == null → no fit → camera follows user (followMode 'position')
 
 user taps a trail card
-  └─ selectTrail(id): selectedTrailId=id, followMode='off', trailFitNonce++
-        └─ MapCanvas fit effect [trailFitNonce] → fitBounds once
+  └─ selectTrail(id): selectedTrailId=id, followMode='off', pendingFitTrailId=id   (synchronous)
+        └─ getTrail(id) resolves async → trail set (trail.id == id)
+              └─ MapCanvas fit effect [trail, pendingFitTrailId, clearPendingFit]:
+                    trail.id == pendingFitTrailId → clearPendingFit() + fitBounds once
 ```
 
 ## Error handling
@@ -170,11 +185,12 @@ user taps a trail card
 
 **Pure logic (Jest, TDD, in `src/store/__tests__/mapStore.test.ts`, mirroring existing
 cases):**
-- `selectTrail(id)` sets `selectedTrailId`, sets `followMode:'off'`, and increments
-  `trailFitNonce`.
-- `clearSelectedTrail()` sets `selectedTrailId` back to `null`.
+- `selectTrail(id)` sets `selectedTrailId`, sets `followMode:'off'`, and sets
+  `pendingFitTrailId` to the id.
+- `clearSelectedTrail()` sets `selectedTrailId` and `pendingFitTrailId` back to `null`.
+- `clearPendingFit()` nulls `pendingFitTrailId` without touching `selectedTrailId`.
 - `partialize` includes both `mapStyleId` and `selectedTrailId` (and still excludes
-  `followMode`, `trailFitNonce`, and the other session-only fields).
+  `followMode`, `pendingFitTrailId`, and the other session-only fields).
 
 **Device-verified (native, not unit-tested):**
 - Display a trail → kill the app → reopen → the trail's overlay + info card are restored

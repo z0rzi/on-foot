@@ -2,6 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Post-implementation note (design of record is the spec).** This plan's Task 2 originally
+> drove the camera fit with a session-only `trailFitNonce` (+ a `fittedNonce` ref + a
+> selection-identity gate). Review found the nonce is the wrong model for a fit that depends on
+> *asynchronously-loaded* geometry, and the shipped code instead uses a `pendingFitTrailId:
+> number | null` intent field consumed by `clearPendingFit()` — simpler, with an honest effect
+> dependency array. The task steps below are kept as executed for history; the accurate final
+> design is in `docs/superpowers/specs/2026-08-21-onfoot-rn-restore-last-map-state-design.md`
+> §"Split 'trail is selected' from 'fit the camera to it'".
+
 **Goal:** Persist which trail is displayed (or that none is) across an app close/reopen, restoring its overlay + info card on launch while the camera keeps following the user's live position.
 
 **Architecture:** Add `selectedTrailId` to the map store's persisted state. De-conflate `selectTrail` so a session-only `trailFitNonce` (mirroring the existing `northResetNonce`) drives the one-shot camera fit, which then fires only on a real user tap — never on restore. Two native consumers (`MapCanvas`, `useSelectedTrail`) are rewired: the fit effect keys on the nonce, and `useSelectedTrail` self-heals a persisted id whose trail was deleted.
@@ -166,10 +175,11 @@ git commit -m "feat: persist selectedTrailId and add trailFitNonce to map store"
 
 - [ ] **Step 1: Drive the camera fit from the nonce in `MapCanvas`**
 
-In `src/map/MapCanvas.tsx`, add a selector for the nonce next to the existing `northResetNonce` selector (around line 30):
+In `src/map/MapCanvas.tsx`, add selectors for the nonce and the selected id next to the existing `northResetNonce` selector (around line 30):
 
 ```ts
   const trailFitNonce = useMapStore((s) => s.trailFitNonce)
+  const selectedTrailId = useMapStore((s) => s.selectedTrailId)
 ```
 
 Then **replace** the existing trail-fit effect (currently lines ~40-47):
@@ -185,23 +195,38 @@ Then **replace** the existing trail-fit effect (currently lines ~40-47):
   }, [trail])
 ```
 
-with a nonce-driven version (mirrors the `northResetNonce` effect directly above it — one-shot, keyed on the nonce, guarded against the initial mount):
+with a version driven by three signals together — the fit nonce (user intent), the selected
+id, and the loaded geometry. The nonce is bumped **synchronously** by `selectTrail`, but the
+geometry loads **asynchronously** (`useSelectedTrail` → `getTrail`), so the fit must wait until
+the loaded `trail` belongs to the currently-selected id. A `fittedNonce` ref records the last
+nonce fitted, so a restore (nonce stays `0`) never fits and a re-render never re-fires:
 
 ```ts
-  // Frame the trail once per user tap. selectTrail bumps trailFitNonce; a restored selection
-  // does not, so reopening the app shows the overlay without re-fitting (the camera keeps
-  // following the user). Guarded on > 0 so a fresh mount never fits.
+  // Frame the trail once per user-requested selection, after the selected trail's own geometry
+  // has loaded. selectTrail bumps trailFitNonce; fittedNonce records the last nonce that was
+  // fitted. The loaded trail prop lags the selection (getTrail resolves async), so the fit is
+  // held until trail.id matches selectedTrailId — switching A → B skips A's stale geometry and
+  // frames B once B loads. A restored selection starts with nonce 0 == fittedNonce, so it never
+  // fits — the camera keeps following the user.
+  const fittedNonce = useRef(0)
   useEffect(() => {
-    if (trailFitNonce === 0) return
+    if (trailFitNonce === fittedNonce.current) return
+    if (trail?.id !== selectedTrailId) return
     if (!hasTrail) return
     const bounds = boundsForPoints(points)
     if (!bounds) return
+    fittedNonce.current = trailFitNonce
     const { top, sides, bottom } = MapTokens.cameraPadding
     cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs)
-  }, [trailFitNonce])
+  }, [trail, trailFitNonce, selectedTrailId])
 ```
 
-Leave `points`/`hasTrail` intentionally out of the deps: the nonce is bumped by the same synchronous user action that selects the trail, and the geometry has loaded by the time a nonce-driven fit runs. Adding `trail`/`points` back would reintroduce the identity-driven fit on restore. This matches the exhaustive-deps posture of the existing `northResetNonce` effect in the same file.
+`useRef` is already imported in this file (used for `cameraRef`). Keep `trail` and
+`selectedTrailId` in the deps: the geometry arrives asynchronously *after* the nonce bump, so
+the effect must re-run when `trail` loads. The `northResetNonce` effect is **not** a valid
+deps analogy — `resetNorth()` needs no data and can fire at nonce-bump time, whereas
+`fitBounds()` needs geometry that is provably not yet present then. The `fittedNonce` ref (not
+the deps list) is what makes the fit one-shot per user selection.
 
 - [ ] **Step 2: Self-heal a deleted trail in `useSelectedTrail`**
 
@@ -266,4 +291,4 @@ git commit -m "feat: restore displayed trail on launch without re-fitting the ca
 
 - This slice adds **no** new files, **no** new dependencies, and **no** native/config changes — so no prebuild is required.
 - Do not persist `followMode` or any camera state; the "follow me on restore" behavior depends on `followMode` defaulting to `'position'` every launch.
-- The `trailFitNonce` guard (`=== 0`) is load-bearing: without it, a fresh mount (nonce 0) is fine, but any future code that sets a nonce before geometry loads would fit prematurely. Keep the guard.
+- The three gates in the fit effect are all load-bearing and must stay together: `trailFitNonce === fittedNonce.current` (no restore/re-render re-fit), `trail?.id !== selectedTrailId` (skip stale geometry when switching trails, without consuming the nonce), and `!hasTrail` (need ≥2 points for bounds). Dropping any one reintroduces a real bug — restore-fits, wrong-trail-fits, or a crash on empty geometry.
