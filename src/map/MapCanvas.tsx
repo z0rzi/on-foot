@@ -80,7 +80,7 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
           arrowSpacing={MapTokens.arrowSpacing}
           arrowSize={MapTokens.arrowSize}
           endpointRadius={MapTokens.endpointRadius}
-          endpointStrokeColor="#FFFFFF"
+          endpointStrokeColor={c.trailEndpointStroke}
           endpointStrokeWidth={MapTokens.endpointStrokeWidth}
         />
       )}

@@ -12,7 +12,13 @@ import { LayersIcon } from '../assets/icons/layers'
 import { PositionIcon } from '../assets/icons/position'
 import { PositionFollowIcon } from '../assets/icons/position-follow'
 
-export function MapControls({ onOpenLayers }: { onOpenLayers: () => void }) {
+export function MapControls({
+  onOpenLayers,
+  extraBottom = 0,
+}: {
+  onOpenLayers: () => void
+  extraBottom?: number
+}) {
   const c = useTheme()
   const insets = useSafeAreaInsets()
   const caps = useMapCapabilities()
@@ -95,7 +101,7 @@ export function MapControls({ onOpenLayers }: { onOpenLayers: () => void }) {
     <View
       style={[
         styles.col,
-        { bottom: insets.bottom + MapTokens.overlayPadding, right: MapTokens.overlayPadding },
+        { bottom: insets.bottom + MapTokens.overlayPadding + extraBottom, right: MapTokens.overlayPadding },
       ]}
     >
       {showNorth && (

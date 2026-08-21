@@ -15,7 +15,7 @@ export const MapTokens = {
   terrainExaggeration: 1.0,
   trailLineWidth: 4,
   arrowSpacing: 100,
-  arrowSize: 0.8,
+  arrowSize: 0.4,
   endpointRadius: 8,
   endpointStrokeWidth: 2.5,
   cameraPadding: { top: 100, sides: 100, bottom: 300 },

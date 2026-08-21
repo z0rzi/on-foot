@@ -6,11 +6,23 @@ import { formatDistance, formatElevation } from '../data/trails/gpx/metrics'
 import { useTheme } from '../theme/useTheme'
 import { DifficultyBadge } from './DifficultyBadge'
 
-export function TrailInfoCard({ trail, onClose }: { trail: Trail; onClose: () => void }) {
+export function TrailInfoCard({
+  trail,
+  onClose,
+  onHeightChange,
+}: {
+  trail: Trail
+  onClose: () => void
+  onHeightChange?: (height: number) => void
+}) {
   const c = useTheme()
   const insets = useSafeAreaInsets()
   return (
-    <View style={[styles.container, { bottom: insets.bottom + 16 }]} pointerEvents="box-none">
+    <View
+      style={[styles.container, { bottom: (insets.bottom + 16) / 2 }]}
+      pointerEvents="box-none"
+      onLayout={(e) => onHeightChange?.(e.nativeEvent.layout.height)}
+    >
       <View style={[styles.card, { backgroundColor: c.panelBackground }]}>
         <View style={[styles.thumb, { backgroundColor: c.background }]}>
           <Ionicons name="walk-outline" size={28} color={c.onSurfaceVariant} />

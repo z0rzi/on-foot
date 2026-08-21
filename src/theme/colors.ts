@@ -5,6 +5,7 @@ export interface AppColors {
   onSurface: string
   onSurfaceVariant: string
   trailLine: string
+  trailEndpointStroke: string
   panelBackground: string
   panelContent: string
   panelDivider: string
@@ -26,6 +27,7 @@ export const lightColors: AppColors = {
   onSurface: '#1C1B1F',
   onSurfaceVariant: '#49454F',
   trailLine: '#9C27B0',
+  trailEndpointStroke: '#FFFFFF',
   panelBackground: '#FFFFFF',
   panelContent: '#000000',
   panelDivider: '#D3D3D3',
@@ -47,6 +49,7 @@ export const darkColors: AppColors = {
   onSurface: '#E1E1E1',
   onSurfaceVariant: '#B0B0B0',
   trailLine: '#9C27B0',
+  trailEndpointStroke: '#FFFFFF',
   panelBackground: '#1E1E1E',
   panelContent: '#FFFFFF',
   panelDivider: '#424242',
