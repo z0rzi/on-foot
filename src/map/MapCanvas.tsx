@@ -28,6 +28,7 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
   const disableFollow = useMapStore((s) => s.disableFollow)
   const setCameraHeading = useMapStore((s) => s.setCameraHeading)
   const northResetNonce = useMapStore((s) => s.northResetNonce)
+  const trailFitNonce = useMapStore((s) => s.trailFitNonce)
   const cameraRef = useRef<CameraController>(null)
 
   useEffect(() => {
@@ -37,14 +38,17 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
   const points = trail?.geometry.points ?? []
   const hasTrail = points.length >= 2
 
-  // Frame the selected trail once when it loads (follow is already off — selectTrail set it).
+  // Frame the trail once per user tap. selectTrail bumps trailFitNonce; a restored selection
+  // does not, so reopening the app shows the overlay without re-fitting (the camera keeps
+  // following the user). Guarded on > 0 so a fresh mount never fits.
   useEffect(() => {
+    if (trailFitNonce === 0) return
     if (!hasTrail) return
     const bounds = boundsForPoints(points)
     if (!bounds) return
     const { top, sides, bottom } = MapTokens.cameraPadding
     cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs)
-  }, [trail])
+  }, [trailFitNonce])
 
   const follow = followCameraProps(followMode)
   const manualPitch =
