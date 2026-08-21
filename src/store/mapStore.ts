@@ -133,6 +133,7 @@ interface MapStore {
   // The style shown before the current one, so a swipe on the layers button can A/B-toggle back.
   // Session-only (not persisted) — a fresh launch cold-starts into the satellite-toggle fallback.
   previousMapStyleId: string | null
+  // The currently-shown trail; drives the overlay + info card. Session-only.
   selectedTrailId: number | null
   cameraPitch: number
   // Whether the next declarative pitch application should animate (tap toggle) or snap
@@ -149,7 +150,8 @@ interface MapStore {
   northPressed: () => void
   setMapStyle: (id: string) => void
   quickSwitchMapStyle: (styles: StyleChoice[]) => void
-  setSelectedTrailId: (id: number | null) => void
+  selectTrail: (id: number) => void
+  clearSelectedTrail: () => void
   setCameraPitch: (p: number) => void
   setCameraPitchAnimated: (p: number) => void
   setCameraHeading: (h: number) => void
@@ -191,7 +193,8 @@ export const useMapStore = create<MapStore>()(
           const target = resolveQuickSwitch(s.mapStyleId, s.previousMapStyleId, styles)
           return target === s.mapStyleId ? {} : { mapStyleId: target, previousMapStyleId: s.mapStyleId }
         }),
-      setSelectedTrailId: (id) => set({ selectedTrailId: id }),
+      selectTrail: (id) => set({ selectedTrailId: id, followMode: 'off' }),
+      clearSelectedTrail: () => set({ selectedTrailId: null }),
       setCameraPitch: (p) => set({ cameraPitch: p, pitchAnimated: false }),
       setCameraPitchAnimated: (p) => set({ cameraPitch: p, pitchAnimated: true }),
       setCameraHeading: (h) => set({ cameraHeading: h }),

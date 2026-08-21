@@ -1,51 +1,53 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { TrailSummary } from '../data/trails/types'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Trail } from '../data/trails/types'
 import { formatDistance, formatElevation } from '../data/trails/gpx/metrics'
 import { useTheme } from '../theme/useTheme'
 import { DifficultyBadge } from './DifficultyBadge'
 
-export function TrailListItem({
+export function TrailInfoCard({
   trail,
-  onSelect,
-  onDelete,
+  onClose,
+  onHeightChange,
 }: {
-  trail: TrailSummary
-  onSelect: (id: number) => void
-  onDelete: (id: number) => void
+  trail: Trail
+  onClose: () => void
+  onHeightChange?: (height: number) => void
 }) {
   const c = useTheme()
+  const insets = useSafeAreaInsets()
   return (
-    <View style={[styles.card, { backgroundColor: c.surface }]}>
-      <Pressable
-        accessibilityLabel={`Show ${trail.name} on map`}
-        onPress={() => onSelect(trail.id)}
-        style={styles.body}
-      >
+    <View
+      style={[styles.container, { bottom: (insets.bottom + 16) / 2 }]}
+      pointerEvents="box-none"
+      onLayout={(e) => onHeightChange?.(e.nativeEvent.layout.height)}
+    >
+      <View style={[styles.card, { backgroundColor: c.panelBackground }]}>
         <View style={[styles.thumb, { backgroundColor: c.background }]}>
           <Ionicons name="walk-outline" size={28} color={c.onSurfaceVariant} />
         </View>
         <View style={styles.info}>
-          <Text style={[styles.name, { color: c.onSurface }]} numberOfLines={1}>{trail.name}</Text>
+          <Text style={[styles.name, { color: c.panelContent }]} numberOfLines={1}>{trail.name}</Text>
           <DifficultyBadge difficulty={trail.difficulty} />
           <Text style={[styles.metrics, { color: c.onSurfaceVariant }]}>
             {formatDistance(trail.metrics.distanceMeters)} • {formatElevation(trail.metrics.elevationGainMeters)} gain
           </Text>
         </View>
-      </Pressable>
-      <Pressable accessibilityLabel="Delete trail" onPress={() => onDelete(trail.id)} hitSlop={8} style={styles.delete}>
-        <Ionicons name="trash-outline" size={22} color={c.danger} />
-      </Pressable>
+        <Pressable accessibilityLabel="Close trail info" onPress={onClose} hitSlop={8} style={styles.close}>
+          <Ionicons name="close" size={22} color={c.panelContent} />
+        </Pressable>
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginHorizontal: 16 },
-  body: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  container: { position: 'absolute', left: 0, right: 0 },
+  card: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginHorizontal: 16, elevation: 8 },
   thumb: { width: 64, height: 64, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1, marginLeft: 12, gap: 4 },
   name: { fontSize: 16, fontWeight: '700' },
   metrics: { fontSize: 13 },
-  delete: { padding: 8, marginLeft: 4 },
+  close: { padding: 8 },
 })

@@ -32,6 +32,22 @@ export interface CameraProps {
   onUserTrackingModeChange?: (following: boolean) => void
 }
 
+export interface TrailOverlayProps {
+  // Trail polyline as [lng, lat] pairs, in trail order.
+  line: [number, number][]
+  // [start, end] as [lng, lat]; drawn as dot markers.
+  endpoints: [number, number][]
+  color: string
+  lineWidth: number
+  // require()'d PNG handle for the directional arrow icon (RN-neutral).
+  arrowImage: number
+  arrowSpacing: number
+  arrowSize: number
+  endpointRadius: number
+  endpointStrokeColor: string
+  endpointStrokeWidth: number
+}
+
 export interface TerrainProps {
   exaggeration: number
 }
@@ -48,6 +64,15 @@ export interface MapViewProps {
 // follow is off (a declarative follow demote handles the compass-follow case).
 export interface CameraController {
   resetNorth(animated: boolean): void
+  // One-shot fit to a geographic box (used to frame a selected trail). padding is
+  // [top, right, bottom, left] in points; duration in ms. Like resetNorth, only meaningful
+  // when follow is off (an imperative camera move is a no-op while rnmapbox is following).
+  fitBounds(
+    ne: [number, number],
+    sw: [number, number],
+    padding: [number, number, number, number],
+    duration: number,
+  ): void
 }
 
 export interface MapComponents {
@@ -55,6 +80,7 @@ export interface MapComponents {
   Camera: React.ForwardRefExoticComponent<CameraProps & React.RefAttributes<CameraController>>
   Terrain: React.ComponentType<TerrainProps>
   UserPuck: React.ComponentType<{}>
+  TrailOverlay: React.ComponentType<TrailOverlayProps>
 }
 
 export interface MapProvider {

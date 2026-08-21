@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect, useRouter } from 'expo-router'
 import * as DocumentPicker from 'expo-document-picker'
 import { useTrailsStore } from '../../src/store/trailsStore'
+import { useMapStore } from '../../src/store/mapStore'
 import { TrailListItem } from '../../src/trails/TrailListItem'
 import { useTheme } from '../../src/theme/useTheme'
 import { TrailSummary } from '../../src/data/trails/types'
@@ -15,6 +16,7 @@ export default function TrailsScreen() {
   const trails = useTrailsStore((s) => s.trails)
   const loadTrails = useTrailsStore((s) => s.loadTrails)
   const removeTrail = useTrailsStore((s) => s.removeTrail)
+  const selectTrail = useMapStore((s) => s.selectTrail)
   const [pending, setPending] = useState(false)
 
   useFocusEffect(useCallback(() => { loadTrails() }, [loadTrails]))
@@ -44,6 +46,14 @@ export default function TrailsScreen() {
     [removeTrail],
   )
 
+  const onSelect = useCallback(
+    (id: number) => {
+      selectTrail(id)
+      router.navigate('/')
+    },
+    [selectTrail, router],
+  )
+
   const pickGpx = useCallback(async () => {
     const result = await DocumentPicker.getDocumentAsync({
       type: ['application/gpx+xml', 'application/octet-stream', 'application/xml', 'text/xml', '*/*'],
@@ -66,7 +76,9 @@ export default function TrailsScreen() {
         <FlatList
           data={trails}
           keyExtractor={(t) => String(t.id)}
-          renderItem={({ item }) => <TrailListItem trail={item} onDelete={() => confirmDelete(item)} />}
+          renderItem={({ item }) => (
+            <TrailListItem trail={item} onSelect={onSelect} onDelete={() => confirmDelete(item)} />
+          )}
           contentContainerStyle={styles.list}
         />
       )}
