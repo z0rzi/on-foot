@@ -145,6 +145,10 @@ interface MapStore {
   // Bumped by northPressed in the off/manually-rotated case to signal MapCanvas to fire a
   // one-shot imperative rotate-to-north. Session-only.
   northResetNonce: number
+  // Bumped by selectTrail (a user tap) to signal MapCanvas to fire the one-shot camera fit. A
+  // restored selection does not bump it, so restore shows the overlay without re-fitting the
+  // camera. Session-only.
+  trailFitNonce: number
   cycleFollowMode: () => void
   disableFollow: () => void
   northPressed: () => void
@@ -171,6 +175,7 @@ export const useMapStore = create<MapStore>()(
       pitchAnimated: false,
       cameraHeading: 0,
       northResetNonce: 0,
+      trailFitNonce: 0,
       cycleFollowMode: () => set((s) => followModeChange(nextFollowMode(s.followMode), s.cameraPitch)),
       disableFollow: () => set({ followMode: 'off' }),
       // Compass-follow → demote to north-up Position (follow viewport snaps bearing to north, and
@@ -193,7 +198,8 @@ export const useMapStore = create<MapStore>()(
           const target = resolveQuickSwitch(s.mapStyleId, s.previousMapStyleId, styles)
           return target === s.mapStyleId ? {} : { mapStyleId: target, previousMapStyleId: s.mapStyleId }
         }),
-      selectTrail: (id) => set({ selectedTrailId: id, followMode: 'off' }),
+      selectTrail: (id) =>
+        set((s) => ({ selectedTrailId: id, followMode: 'off', trailFitNonce: s.trailFitNonce + 1 })),
       clearSelectedTrail: () => set({ selectedTrailId: null }),
       setCameraPitch: (p) => set({ cameraPitch: p, pitchAnimated: false }),
       setCameraPitchAnimated: (p) => set({ cameraPitch: p, pitchAnimated: true }),
@@ -202,7 +208,7 @@ export const useMapStore = create<MapStore>()(
     {
       name: 'onfoot-map',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (s) => ({ mapStyleId: s.mapStyleId }),
+      partialize: (s) => ({ mapStyleId: s.mapStyleId, selectedTrailId: s.selectedTrailId }),
     }
   )
 )

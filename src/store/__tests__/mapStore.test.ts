@@ -152,6 +152,7 @@ describe('store actions', () => {
       pitchAnimated: false,
       cameraHeading: 0,
       northResetNonce: 0,
+      trailFitNonce: 0,
     })
   })
   test('defaults to position follow so the map centres on the user at launch', () => {
@@ -192,11 +193,12 @@ describe('store actions', () => {
     useMapStore.getState().setCameraHeading(42)
     expect(useMapStore.getState().cameraHeading).toBe(42)
   })
-  test('selectTrail selects the trail and turns follow off', () => {
-    useMapStore.setState({ followMode: 'positionAndBearing', selectedTrailId: null })
+  test('selectTrail selects the trail, turns follow off, and bumps the fit nonce', () => {
+    useMapStore.setState({ followMode: 'positionAndBearing', selectedTrailId: null, trailFitNonce: 3 })
     useMapStore.getState().selectTrail(7)
     expect(useMapStore.getState().selectedTrailId).toBe(7)
     expect(useMapStore.getState().followMode).toBe('off')
+    expect(useMapStore.getState().trailFitNonce).toBe(4)
   })
   test('clearSelectedTrail clears the selection and leaves follow untouched', () => {
     useMapStore.setState({ selectedTrailId: 7, followMode: 'position' })
@@ -256,10 +258,13 @@ describe('store actions', () => {
     expect(useMapStore.getState().mapStyleId).toBe('standard')
     expect(useMapStore.getState().previousMapStyleId).toBeNull()
   })
-  test('previousMapStyleId is session-only (not persisted)', () => {
+  test('partialize persists only mapStyleId and selectedTrailId', () => {
     const partialize = useMapStore.persist.getOptions().partialize!
+    useMapStore.setState({ selectedTrailId: 7 })
     const partial = partialize({ ...useMapStore.getState() } as any)
+    expect(partial).toEqual({ mapStyleId: useMapStore.getState().mapStyleId, selectedTrailId: 7 })
     expect(partial).not.toHaveProperty('previousMapStyleId')
-    expect(partial).toEqual({ mapStyleId: useMapStore.getState().mapStyleId })
+    expect(partial).not.toHaveProperty('trailFitNonce')
+    expect(partial).not.toHaveProperty('followMode')
   })
 })
