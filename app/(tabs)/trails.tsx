@@ -77,7 +77,7 @@ export default function TrailsScreen() {
           data={trails}
           keyExtractor={(t) => String(t.id)}
           renderItem={({ item }) => (
-            <TrailListItem trail={item} onSelect={onSelect} onDelete={() => confirmDelete(item)} />
+            <TrailListItem trail={item} onSelect={onSelect} onEdit={(id) => router.push(`/trail/${id}/edit`)} onDelete={() => confirmDelete(item)} />
           )}
           contentContainerStyle={styles.list}
         />
