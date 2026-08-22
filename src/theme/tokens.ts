@@ -14,10 +14,13 @@ export const MapTokens = {
   bearingThreshold: 1,
   terrainExaggeration: 1.0,
   trailLineWidth: 4,
+  recordingLineWidth: 5,
   arrowSpacing: 100,
   arrowSize: 0.4,
   endpointRadius: 8,
   endpointStrokeWidth: 2.5,
   cameraPadding: { top: 100, sides: 100, bottom: 300 },
   trailFitDurationMs: 1000,
+  holdToStopMs: 1000,
+  recordRingWidth: 3,
 } as const

@@ -5,6 +5,7 @@ import { MapProviderProvider } from './provider'
 import { mapboxProvider } from './providers/mapbox'
 import { MapCanvas } from './MapCanvas'
 import { MapControls } from './MapControls'
+import { RecordButton } from './RecordButton'
 import { LayersSheet } from './LayersSheet'
 import { useLocationPermission } from './useLocationPermission'
 import { useSelectedTrail } from './useSelectedTrail'
@@ -25,6 +26,7 @@ export function MapScreen() {
       <BottomSheetModalProvider>
         <View style={{ flex: 1 }}>
           <MapCanvas trail={trail} />
+          <RecordButton extraBottom={trail ? cardHeight + MapTokens.controlsSpacing : 0} />
           <MapControls
             onOpenLayers={() => sheetRef.current?.present()}
             extraBottom={trail ? cardHeight + MapTokens.controlsSpacing : 0}

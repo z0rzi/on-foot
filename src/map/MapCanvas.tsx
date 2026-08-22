@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import { StyleSheet } from 'react-native'
 import { useMapProvider, useMapCapabilities } from './provider'
 import type { CameraController } from './provider/types'
 import { useMapStore, followCameraProps } from '../store/mapStore'
+import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
 import { MapTokens } from '../theme/tokens'
 import { useTheme } from '../theme/useTheme'
 import { Trail } from '../data/trails'
@@ -16,7 +17,7 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
   const c = useTheme()
   const styleId = useMapStore((s) => s.mapStyleId)
   const style = caps.styles.find((s) => s.id === styleId) ?? caps.styles[0]
-  const { View: MapView, Camera, Terrain, UserPuck, TrailOverlay } = components
+  const { View: MapView, Camera, Terrain, UserPuck, TrailOverlay, RouteLine } = components
 
   // The camera is driven declaratively from the store. When a follow mode is active, rnmapbox
   // owns the camera (centres/zooms/tilts to the puck) — this is what auto-zooms to the user on
@@ -38,6 +39,11 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
 
   const points = trail?.geometry.points ?? []
   const hasTrail = points.length >= 2
+
+  const recording = useRecordingStore((s) => recordingPhase(s.session) === 'recording')
+  const livePoints = useRecordingStore((s) => s.liveGeometry.points)
+  const showLiveTrack = recording && livePoints.length >= 2
+  const liveLine = useMemo(() => toLineCoordinates(livePoints), [livePoints])
 
   // Frame the trail a user tap requested, once that trail's own geometry has loaded. selectTrail
   // sets pendingFitTrailId; the loaded trail prop lags it (getTrail resolves async), so the fit
@@ -78,6 +84,9 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
       />
       {caps.supportsTerrain && <Terrain exaggeration={MapTokens.terrainExaggeration} />}
       <UserPuck />
+      {showLiveTrack && (
+        <RouteLine line={liveLine} color={c.recordingLine} lineWidth={MapTokens.recordingLineWidth} />
+      )}
       {hasTrail && (
         <TrailOverlay
           line={toLineCoordinates(points)}

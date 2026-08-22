@@ -3,12 +3,16 @@
 import journal from './meta/_journal.json';
 import m0000 from './0000_dazzling_randall_flagg.sql';
 import m0001 from './0001_cloudy_wolverine.sql';
+import m0002 from './0002_short_cannonball.sql';
+import m0003 from './0003_odd_impossible_man.sql';
 
   export default {
     journal,
     migrations: {
       m0000,
-m0001
+m0001,
+m0002,
+m0003
     }
   }
   

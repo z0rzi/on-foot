@@ -14,6 +14,9 @@ const config: ExpoConfig = {
   },
   android: {
     package: "com.zorzi.onfootrn",
+    // expo-task-manager delivers background location batches via a persisted JobScheduler job
+    // (survives reboot), which the OS only allows with RECEIVE_BOOT_COMPLETED.
+    permissions: ["android.permission.RECEIVE_BOOT_COMPLETED"],
     adaptiveIcon: {
       backgroundColor: "#E6F4FE",
       foregroundImage: "./assets/images/android-icon-foreground.png",
@@ -63,7 +66,15 @@ const config: ExpoConfig = {
       "@rnmapbox/maps",
       { RNMapboxMapsDownloadToken: process.env.MAPBOX_DOWNLOAD_TOKEN },
     ],
-    "expo-location",
+    [
+      "expo-location",
+      {
+        isAndroidBackgroundLocationEnabled: true,
+        isAndroidForegroundServiceEnabled: true,
+        locationAlwaysAndWhenInUsePermission:
+          "Allow On Foot to record your activity while the app is in the background.",
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,

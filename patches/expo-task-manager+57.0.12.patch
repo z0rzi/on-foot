@@ -1,0 +1,13 @@
+diff --git a/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskManagerUtils.java b/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskManagerUtils.java
+index 82bc0db..aa689a0 100644
+--- a/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskManagerUtils.java
++++ b/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskManagerUtils.java
+@@ -202,7 +202,7 @@ public class TaskManagerUtils implements TaskManagerUtilsInterface {
+   private JobInfo createJobInfo(int jobId, ComponentName jobService, PersistableBundle extras) {
+     JobInfo.Builder jobBuilder = new JobInfo.Builder(jobId, jobService)
+         .setExtras(extras)
+-        .setPersisted(true)
++        .setPersisted(false)
+         .setRequiresDeviceIdle(false);
+ 
+     if (Build.VERSION.SDK_INT < 28) {
