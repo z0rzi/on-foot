@@ -63,7 +63,15 @@ const config: ExpoConfig = {
       "@rnmapbox/maps",
       { RNMapboxMapsDownloadToken: process.env.MAPBOX_DOWNLOAD_TOKEN },
     ],
-    "expo-location",
+    [
+      "expo-location",
+      {
+        isAndroidBackgroundLocationEnabled: true,
+        isAndroidForegroundServiceEnabled: true,
+        locationAlwaysAndWhenInUsePermission:
+          "Allow On Foot to record your activity while the app is in the background.",
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,
