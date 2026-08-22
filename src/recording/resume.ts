@@ -1,4 +1,4 @@
-import { RecordingSession } from '../data/activities'
+import { RecordingSession } from '../data/activities/types'
 
 export type ResumeAction = 'none' | 'resume' | 'save'
 

@@ -1,5 +1,5 @@
 import { useRecordingStore } from '../recordingStore'
-import { TrackPoint } from '../../data/activities'
+import { TrackPoint } from '../../data/activities/types'
 
 const p = (t: number): TrackPoint => ({ lat: 0, lng: t, ele: null, t })
 

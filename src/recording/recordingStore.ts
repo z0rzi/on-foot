@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { ActivityGeometry, RecordingSession, TrackPoint } from '../data/activities'
+import { ActivityGeometry, RecordingSession, TrackPoint } from '../data/activities/types'
 
 export type RecordingPhase = 'idle' | 'recording' | 'saving'
 

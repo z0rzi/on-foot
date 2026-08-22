@@ -1,4 +1,4 @@
-import { TrackPoint } from '../data/activities'
+import { TrackPoint } from '../data/activities/types'
 
 export interface DeviceLocation {
   coords: { latitude: number; longitude: number; altitude: number | null }
