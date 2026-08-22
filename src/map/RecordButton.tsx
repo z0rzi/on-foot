@@ -35,8 +35,10 @@ export function RecordButton() {
         'Location permission needed',
         'To record your activity while the app is in the background, allow location access "All the time".',
       )
+    } else if (result === 'already-active') {
+      router.push('/activity/save')
     }
-  }, [])
+  }, [router])
 
   const doStop = useCallback(async () => {
     const linkedTrailId = useMapStore.getState().selectedTrailId

@@ -6,9 +6,11 @@ import { useRecordingStore } from './recordingStore'
 import { resumeActionFor, ResumeAction } from './resume'
 import { toTrackPoint } from './track'
 
-export type StartResult = 'started' | 'permission-denied'
+export type StartResult = 'started' | 'permission-denied' | 'already-active'
 
 export async function startRecording(): Promise<StartResult> {
+  const existing = await activitiesRepository.getActiveSession()
+  if (existing) return 'already-active'
   const foreground = await Location.requestForegroundPermissionsAsync()
   if (!foreground.granted) return 'permission-denied'
   const background = await Location.requestBackgroundPermissionsAsync()
@@ -57,6 +59,8 @@ export async function resumeIfActive(): Promise<{ action: ResumeAction; sessionI
     } catch {
       // No immediate fix available; the next background batch will connect the gap.
     }
+  } else if (action === 'save') {
+    useRecordingStore.getState().beginSaving()
   }
   return { action, sessionId: session?.id ?? null }
 }
