@@ -1,0 +1,13 @@
+import { Activity, ActivitySummary, NewActivityInput, RecordingSession, TrackPoint } from './types'
+
+export interface ActivitiesRepository {
+  startSession(startedAt: number): Promise<number>
+  getActiveSession(): Promise<RecordingSession | null>
+  appendPoints(sessionId: number, points: TrackPoint[]): Promise<void>
+  getSessionPoints(sessionId: number): Promise<TrackPoint[]>
+  markStopped(sessionId: number, endedAt: number, linkedTrailId: number | null): Promise<void>
+  discardSession(sessionId: number): Promise<void>
+  saveActivity(sessionId: number, input: NewActivityInput): Promise<number>
+  listSummaries(): Promise<ActivitySummary[]>
+  getActivity(id: number): Promise<Activity | null>
+}
