@@ -2,6 +2,7 @@ import React, { forwardRef, useImperativeHandle, useRef } from 'react'
 import Mapbox, { type MapState } from '@rnmapbox/maps'
 import type {
   MapProvider, MapViewProps, CameraProps, TerrainProps, CameraController, TrailOverlayProps,
+  RouteLineProps,
 } from '../../provider/types'
 import { mapboxCapabilities } from './capabilities'
 import { TERRAIN_DEM } from './styles'
@@ -113,7 +114,23 @@ const TrailOverlay = ({
   )
 }
 
+const RouteLine = ({ line, color, lineWidth }: RouteLineProps) => {
+  const shape = {
+    type: 'Feature' as const,
+    geometry: { type: 'LineString' as const, coordinates: line },
+    properties: {},
+  }
+  return (
+    <Mapbox.ShapeSource id="route-line-source" shape={shape}>
+      <Mapbox.LineLayer
+        id="route-line"
+        style={{ lineColor: color, lineWidth, lineCap: 'round', lineJoin: 'round' }}
+      />
+    </Mapbox.ShapeSource>
+  )
+}
+
 export const mapboxProvider: MapProvider = {
   capabilities: mapboxCapabilities,
-  components: { View, Camera, Terrain, UserPuck, TrailOverlay },
+  components: { View, Camera, Terrain, UserPuck, TrailOverlay, RouteLine },
 }

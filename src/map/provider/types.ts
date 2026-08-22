@@ -48,6 +48,13 @@ export interface TrailOverlayProps {
   endpointStrokeWidth: number
 }
 
+export interface RouteLineProps {
+  // Polyline as [lng, lat] pairs, in order. A plain line — no arrows or endpoints.
+  line: [number, number][]
+  color: string
+  lineWidth: number
+}
+
 export interface TerrainProps {
   exaggeration: number
 }
@@ -81,6 +88,7 @@ export interface MapComponents {
   Terrain: React.ComponentType<TerrainProps>
   UserPuck: React.ComponentType<{}>
   TrailOverlay: React.ComponentType<TrailOverlayProps>
+  RouteLine: React.ComponentType<RouteLineProps>
 }
 
 export interface MapProvider {

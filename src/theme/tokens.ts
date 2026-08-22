@@ -14,6 +14,7 @@ export const MapTokens = {
   bearingThreshold: 1,
   terrainExaggeration: 1.0,
   trailLineWidth: 4,
+  recordingLineWidth: 5,
   arrowSpacing: 100,
   arrowSize: 0.4,
   endpointRadius: 8,
