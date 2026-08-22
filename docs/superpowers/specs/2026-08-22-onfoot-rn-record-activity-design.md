@@ -306,6 +306,12 @@ success and navigation readiness (same gating pattern as `useIncomingShare`).
   This adds `ACCESS_BACKGROUND_LOCATION` + the foreground-service permissions.
 - Add the `expo-task-manager` dependency (`npx expo install expo-task-manager`) — it is
   autolinked, so no `plugins` entry is needed.
+- Add `RECEIVE_BOOT_COMPLETED` to `android.permissions`. expo-task-manager delivers each
+  background location batch via a **persisted** `JobScheduler` job (so tracking can resume after
+  a reboot); the OS rejects a persisted job without this permission with
+  `IllegalArgumentException: requested job be persisted without holding RECEIVE_BOOT_COMPLETED`,
+  which hard-crashes the app on the first location fix. `android.permissions` is additive — it
+  merges with the expo-location plugin's permissions, it does not replace them.
 - Requires `npx expo prebuild --clean` (the `/android` dir already exists;
   permission/manifest changes only merge on a clean prebuild — a hard-won lesson from
   the intent-filter work) and a fresh native build.
