@@ -21,7 +21,7 @@ const R = (SIZE - RING) / 2
 const CENTER = SIZE / 2
 const CIRCUMFERENCE = 2 * Math.PI * R
 
-export function RecordButton() {
+export function RecordButton({ extraBottom = 0 }: { extraBottom?: number }) {
   const c = useTheme()
   const router = useRouter()
   const insets = useSafeAreaInsets()
@@ -29,14 +29,18 @@ export function RecordButton() {
   const progress = useSharedValue(0)
 
   const onPlay = useCallback(async () => {
-    const result = await startRecording()
-    if (result === 'permission-denied') {
-      Alert.alert(
-        'Location permission needed',
-        'To record your activity while the app is in the background, allow location access "All the time".',
-      )
-    } else if (result === 'already-active') {
-      router.push('/activity/save')
+    try {
+      const result = await startRecording()
+      if (result === 'permission-denied') {
+        Alert.alert(
+          'Location permission needed',
+          'To record your activity while the app is in the background, allow location access "All the time".',
+        )
+      } else if (result === 'already-active') {
+        router.push('/activity/save')
+      }
+    } catch {
+      Alert.alert('Could not start recording', 'Something went wrong. Please try again.')
     }
   }, [router])
 
@@ -73,7 +77,7 @@ export function RecordButton() {
   if (phase === 'saving') return null
 
   return (
-    <View style={[styles.anchor, { bottom: insets.bottom + MapTokens.overlayPadding, left: MapTokens.overlayPadding }]}>
+    <View style={[styles.anchor, { bottom: insets.bottom + MapTokens.overlayPadding + extraBottom, left: MapTokens.overlayPadding }]}>
       {phase === 'recording' ? (
         <GestureDetector gesture={hold}>
           <View
