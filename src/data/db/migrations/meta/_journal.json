@@ -15,6 +15,13 @@
       "when": 1787318010985,
       "tag": "0001_cloudy_wolverine",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787409907139,
+      "tag": "0002_short_cannonball",
+      "breakpoints": true
     }
   ]
 }
