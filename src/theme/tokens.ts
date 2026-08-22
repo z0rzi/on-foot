@@ -21,4 +21,6 @@ export const MapTokens = {
   endpointStrokeWidth: 2.5,
   cameraPadding: { top: 100, sides: 100, bottom: 300 },
   trailFitDurationMs: 1000,
+  holdToStopMs: 1000,
+  recordRingWidth: 3,
 } as const
