@@ -7,7 +7,7 @@ import Svg, { Circle } from 'react-native-svg'
 import { useRouter } from 'expo-router'
 import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
-import { useRecordingStore } from '../recording/recordingStore'
+import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
 import { startRecording, stopRecording } from '../recording/recordingController'
 import { useMapStore } from '../store/mapStore'
 import { PlayIcon } from '../assets/icons/play'
@@ -25,7 +25,7 @@ export function RecordButton() {
   const c = useTheme()
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const phase = useRecordingStore((s) => s.phase)
+  const phase = useRecordingStore((s) => recordingPhase(s.session))
   const progress = useSharedValue(0)
 
   const onPlay = useCallback(async () => {

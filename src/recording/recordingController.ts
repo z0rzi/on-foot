@@ -18,7 +18,7 @@ export async function startRecording(): Promise<StartResult> {
 
   const startedAt = Date.now()
   const sessionId = await activitiesRepository.startSession(startedAt)
-  useRecordingStore.getState().startRecording(sessionId, startedAt)
+  useRecordingStore.getState().beginSession({ id: sessionId, startedAt, endedAt: null, linkedTrailId: null })
   await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
   return 'started'
 }
@@ -29,9 +29,10 @@ export async function stopRecording(linkedTrailId: number | null): Promise<void>
     await Location.stopLocationUpdatesAsync(RECORDING_TASK)
   }
   if (session && session.endedAt == null) {
-    await activitiesRepository.markStopped(session.id, Date.now(), linkedTrailId)
+    const endedAt = Date.now()
+    await activitiesRepository.markStopped(session.id, endedAt, linkedTrailId)
+    useRecordingStore.getState().setSession({ ...session, endedAt, linkedTrailId })
   }
-  useRecordingStore.getState().beginSaving()
 }
 
 export async function discardRecording(sessionId: number): Promise<void> {
@@ -47,7 +48,7 @@ export async function resumeIfActive(): Promise<{ action: ResumeAction; sessionI
   const action = resumeActionFor(session)
   if (action === 'resume' && session) {
     const points = await activitiesRepository.getSessionPoints(session.id)
-    useRecordingStore.getState().hydrateFrom(session, points)
+    useRecordingStore.getState().hydrate(session, points)
     if (!(await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK))) {
       await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
     }
@@ -59,8 +60,10 @@ export async function resumeIfActive(): Promise<{ action: ResumeAction; sessionI
     } catch {
       // No immediate fix available; the next background batch will connect the gap.
     }
-  } else if (action === 'save') {
-    useRecordingStore.getState().beginSaving()
+  } else if (action === 'save' && session) {
+    // Reflect the stopped session so phase derives to 'saving' — the save page reads its own
+    // points from the DB, so the live geometry is not needed here.
+    useRecordingStore.getState().hydrate(session, [])
   }
   return { action, sessionId: session?.id ?? null }
 }

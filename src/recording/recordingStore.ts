@@ -3,31 +3,34 @@ import { ActivityGeometry, RecordingSession, TrackPoint } from '../data/activiti
 
 export type RecordingPhase = 'idle' | 'recording' | 'saving'
 
+// Phase is derived from the durable session — the single source of truth — so the UI can
+// never disagree with what is persisted: no session is idle, an open session (endedAt null)
+// is recording, a stopped one (endedAt set) is awaiting save.
+export function recordingPhase(session: RecordingSession | null): RecordingPhase {
+  if (!session) return 'idle'
+  return session.endedAt == null ? 'recording' : 'saving'
+}
+
 const EMPTY_GEOMETRY: ActivityGeometry = { points: [] }
 
 interface RecordingStore {
-  phase: RecordingPhase
-  sessionId: number | null
-  startedAt: number | null
+  // In-memory reflection of the durable recording_sessions row; set from it on every transition.
+  session: RecordingSession | null
   liveGeometry: ActivityGeometry
-  startRecording: (sessionId: number, startedAt: number) => void
-  hydrateFrom: (session: RecordingSession, points: TrackPoint[]) => void
+  beginSession: (session: RecordingSession) => void
+  hydrate: (session: RecordingSession, points: TrackPoint[]) => void
+  setSession: (session: RecordingSession) => void
   appendLivePoints: (points: TrackPoint[]) => void
-  beginSaving: () => void
   reset: () => void
 }
 
 export const useRecordingStore = create<RecordingStore>((set) => ({
-  phase: 'idle',
-  sessionId: null,
-  startedAt: null,
+  session: null,
   liveGeometry: EMPTY_GEOMETRY,
-  startRecording: (sessionId, startedAt) =>
-    set({ phase: 'recording', sessionId, startedAt, liveGeometry: EMPTY_GEOMETRY }),
-  hydrateFrom: (session, points) =>
-    set({ phase: 'recording', sessionId: session.id, startedAt: session.startedAt, liveGeometry: { points } }),
+  beginSession: (session) => set({ session, liveGeometry: EMPTY_GEOMETRY }),
+  hydrate: (session, points) => set({ session, liveGeometry: { points } }),
+  setSession: (session) => set({ session }),
   appendLivePoints: (points) =>
     set((s) => (points.length === 0 ? {} : { liveGeometry: { points: [...s.liveGeometry.points, ...points] } })),
-  beginSaving: () => set({ phase: 'saving' }),
-  reset: () => set({ phase: 'idle', sessionId: null, startedAt: null, liveGeometry: EMPTY_GEOMETRY }),
+  reset: () => set({ session: null, liveGeometry: EMPTY_GEOMETRY }),
 }))

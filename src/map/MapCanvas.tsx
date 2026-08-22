@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native'
 import { useMapProvider, useMapCapabilities } from './provider'
 import type { CameraController } from './provider/types'
 import { useMapStore, followCameraProps } from '../store/mapStore'
-import { useRecordingStore } from '../recording/recordingStore'
+import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
 import { MapTokens } from '../theme/tokens'
 import { useTheme } from '../theme/useTheme'
 import { Trail } from '../data/trails'
@@ -40,9 +40,9 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
   const points = trail?.geometry.points ?? []
   const hasTrail = points.length >= 2
 
-  const recordingPhase = useRecordingStore((s) => s.phase)
+  const recording = useRecordingStore((s) => recordingPhase(s.session) === 'recording')
   const livePoints = useRecordingStore((s) => s.liveGeometry.points)
-  const showLiveTrack = recordingPhase === 'recording' && livePoints.length >= 2
+  const showLiveTrack = recording && livePoints.length >= 2
   const liveLine = useMemo(() => toLineCoordinates(livePoints), [livePoints])
 
   // Frame the trail a user tap requested, once that trail's own geometry has loaded. selectTrail
