@@ -67,8 +67,11 @@ Three concerns, each its own module boundary:
 > **Seam note.** The map-provider port is about the map *render* SDK (`@rnmapbox/maps`);
 > `expo-location` is a device capability, already imported directly under `src/map/`
 > (`useLocationPermission`). Slice 2 concentrates all *capture* SDK use in
-> `src/recording/` — that module is the location-capture seam. The live overlay still
-> renders through the existing map-provider `TrailOverlay` port (no new SDK use in UI).
+> `src/recording/` — that module is the location-capture seam. The live overlay renders
+> through a new minimal map-provider `RouteLine` port component (a plain polyline),
+> implemented only in the mapbox adapter — no SDK use in shared UI. (`TrailOverlay`
+> requires arrow/endpoint props, so a dedicated line component is cleaner; slice 3's
+> activity-track rendering reuses `RouteLine` too.)
 
 ### 1. Data layer
 
@@ -157,7 +160,7 @@ export interface ActivitiesRepository {
   getSessionPoints(sessionId: number): Promise<TrackPoint[]>            // ordered by t
   markStopped(sessionId: number, endedAt: number, linkedTrailId: number | null): Promise<void>
   discardSession(sessionId: number): Promise<void>          // deletes session + its points
-  saveActivity(input: NewActivityInput): Promise<number>    // insert activity + delete session/points (one tx)
+  saveActivity(sessionId: number, input: NewActivityInput): Promise<number>  // insert activity + delete session/points (one tx)
   // activities (browse — mostly slice 3)
   listSummaries(): Promise<ActivitySummary[]>
   getActivity(id: number): Promise<Activity | null>
@@ -264,9 +267,10 @@ success and navigation readiness (same gating pattern as `useIncomingShare`).
   the hold. Hold duration + ring live in `MapTokens`. On successful hold → call
   `stopRecording(selectedTrailId)` then `router.push('/activity/save')`.
 - **Live overlay** — `MapCanvas` renders `recordingStore.liveGeometry` (when
-  `phase === 'recording'`) through the existing `TrailOverlay` port in a distinct theme
-  colour (`recordingLine`). Because delivery is batched (~15 s), overlay re-renders are
-  infrequent. Endpoints/arrows are omitted for the live track (just the line).
+  `phase === 'recording'`) through a new minimal `RouteLine` map-port component (plain
+  polyline: `line`, `color`, `lineWidth`) in a distinct theme colour (`recordingLine`).
+  Because delivery is batched (~15 s), overlay re-renders are infrequent. No
+  endpoints/arrows on the live track — just the line.
 
 ### 5. Save page + `ActivityForm`
 
@@ -300,7 +304,8 @@ success and navigation readiness (same gating pattern as `useIncomingShare`).
   }]
   ```
   This adds `ACCESS_BACKGROUND_LOCATION` + the foreground-service permissions.
-- Add `"expo-task-manager"` to `plugins` and the `expo-task-manager` dependency.
+- Add the `expo-task-manager` dependency (`npx expo install expo-task-manager`) — it is
+  autolinked, so no `plugins` entry is needed.
 - Requires `npx expo prebuild --clean` (the `/android` dir already exists;
   permission/manifest changes only merge on a clean prebuild — a hard-won lesson from
   the intent-filter work) and a fresh native build.
