@@ -1,0 +1,71 @@
+import { useEffect, useState } from 'react'
+import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import { useRouter } from 'expo-router'
+import { RecordingSession, TrackPoint, activitiesRepository } from '../../src/data/activities'
+import { activityMetricsFromPoints, buildNewActivityInput } from '../../src/data/activities/mapping'
+import { useActivitiesStore } from '../../src/store/activitiesStore'
+import { discardRecording } from '../../src/recording/recordingController'
+import { useRecordingStore } from '../../src/recording/recordingStore'
+import { ActivityForm } from '../../src/activities/ActivityForm'
+import { useTheme } from '../../src/theme/useTheme'
+
+export default function SaveActivityScreen() {
+  const c = useTheme()
+  const router = useRouter()
+  const saveActivity = useActivitiesStore((s) => s.saveActivity)
+  const resetRecording = useRecordingStore((s) => s.reset)
+
+  const [loading, setLoading] = useState(true)
+  const [session, setSession] = useState<RecordingSession | null>(null)
+  const [points, setPoints] = useState<TrackPoint[]>([])
+
+  useEffect(() => {
+    let active = true
+    activitiesRepository.getActiveSession().then(async (loaded) => {
+      if (!active) return
+      if (!loaded) {
+        router.replace('/')
+        return
+      }
+      const loadedPoints = await activitiesRepository.getSessionPoints(loaded.id)
+      if (!active) return
+      setSession(loaded)
+      setPoints(loadedPoints)
+      setLoading(false)
+    })
+    return () => { active = false }
+  }, [router])
+
+  if (loading || !session) {
+    return (
+      <View style={[styles.center, { backgroundColor: c.background }]}>
+        <ActivityIndicator size="large" color={c.controlAccent} />
+      </View>
+    )
+  }
+
+  const endedAt = session.endedAt ?? points[points.length - 1]?.t ?? session.startedAt
+  const metrics = activityMetricsFromPoints(points, session.startedAt, endedAt)
+
+  return (
+    <ActivityForm
+      metrics={metrics}
+      initialName=""
+      initialEffort={null}
+      initialComments=""
+      onSave={async ({ name, effort, comments }) => {
+        await saveActivity(session.id, buildNewActivityInput(session, points, { name, effort, comments }))
+        resetRecording()
+        router.replace('/')
+      }}
+      onDiscard={async () => {
+        await discardRecording(session.id)
+        router.replace('/')
+      }}
+    />
+  )
+}
+
+const styles = StyleSheet.create({
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+})
