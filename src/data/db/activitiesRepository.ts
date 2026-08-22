@@ -17,11 +17,8 @@ export const sqliteActivitiesRepository: ActivitiesRepository = {
     return inserted.id
   },
   async getActiveSession() {
-    const rows = await db
-      .select()
-      .from(recordingSessions)
-      .orderBy(desc(recordingSessions.id))
-      .limit(1)
+    // The singleton unique index caps this table at one row, so a single unordered read is it.
+    const rows = await db.select().from(recordingSessions).limit(1)
     return rows.length ? rowToSession(rows[0] as RecordingSessionRow) : null
   },
   async appendPoints(sessionId, points) {

@@ -52,6 +52,8 @@ export async function resumeIfActive(): Promise<{ action: ResumeAction; sessionI
     if (!(await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK))) {
       await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
     }
+    // Append an immediate fix so the overlay bridges the dead gap with a straight line to the
+    // current position. Non-fatal: if no fix is available, the next background batch connects it.
     try {
       const now = await Location.getCurrentPositionAsync({ accuracy: RECORDING_OPTIONS.accuracy })
       const point = toTrackPoint(now)

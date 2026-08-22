@@ -10,8 +10,13 @@ export function useResumeRecording() {
   useEffect(() => {
     if (handled.current || !navState?.key) return
     handled.current = true
-    resumeIfActive().then(({ action }) => {
-      if (action === 'save') router.push('/activity/save')
-    })
+    resumeIfActive()
+      .then(({ action }) => {
+        if (action === 'save') router.push('/activity/save')
+      })
+      .catch(() => {
+        // A resume failure (e.g. permission revoked while the app was dead) leaves the map as a
+        // normal launch; the durable session persists, so the next launch retries.
+      })
   }, [navState?.key, router])
 }

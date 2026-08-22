@@ -41,9 +41,13 @@ export function RecordButton() {
   }, [router])
 
   const doStop = useCallback(async () => {
-    const linkedTrailId = useMapStore.getState().selectedTrailId
-    await stopRecording(linkedTrailId)
-    router.push('/activity/save')
+    try {
+      const linkedTrailId = useMapStore.getState().selectedTrailId
+      await stopRecording(linkedTrailId)
+      router.push('/activity/save')
+    } catch {
+      Alert.alert('Could not stop recording', 'Something went wrong. Please try again.')
+    }
   }, [router])
 
   const hold = useMemo(
@@ -58,8 +62,7 @@ export function RecordButton() {
         })
         .onFinalize(() => {
           progress.value = withTiming(0, { duration: 150 })
-        })
-        .runOnJS(false),
+        }),
     [doStop, progress],
   )
 
@@ -73,7 +76,10 @@ export function RecordButton() {
     <View style={[styles.anchor, { bottom: insets.bottom + MapTokens.overlayPadding, left: MapTokens.overlayPadding }]}>
       {phase === 'recording' ? (
         <GestureDetector gesture={hold}>
-          <View style={[styles.btn, { backgroundColor: c.controlSurface }]}>
+          <View
+            accessibilityLabel="Stop recording (press and hold)"
+            style={[styles.btn, { backgroundColor: c.controlSurface }]}
+          >
             <Svg width={SIZE} height={SIZE} style={StyleSheet.absoluteFill}>
               <AnimatedCircle
                 cx={CENTER}
