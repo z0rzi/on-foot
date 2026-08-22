@@ -1,4 +1,4 @@
-import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 export const trails = sqliteTable('trails', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -29,12 +29,22 @@ export const activities = sqliteTable('activities', {
   createdAt: integer('created_at').notNull(),
 })
 
-export const recordingSessions = sqliteTable('recording_sessions', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  startedAt: integer('started_at').notNull(),
-  endedAt: integer('ended_at'),
-  linkedTrailId: integer('linked_trail_id'),
-})
+// The singleton column carries a constant 1 and is uniquely indexed, so at most one
+// recording session can ever exist — the durable "an unfinished activity exists" invariant
+// enforced structurally, not by convention.
+export const recordingSessions = sqliteTable(
+  'recording_sessions',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    startedAt: integer('started_at').notNull(),
+    endedAt: integer('ended_at'),
+    linkedTrailId: integer('linked_trail_id'),
+    singleton: integer('singleton').notNull().default(1),
+  },
+  (table) => ({
+    singletonUnique: uniqueIndex('recording_sessions_singleton_unique').on(table.singleton),
+  }),
+)
 
 export const recordingPoints = sqliteTable('recording_points', {
   id: integer('id').primaryKey({ autoIncrement: true }),

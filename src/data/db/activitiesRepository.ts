@@ -43,8 +43,10 @@ export const sqliteActivitiesRepository: ActivitiesRepository = {
       .where(eq(recordingSessions.id, sessionId))
   },
   async discardSession(sessionId) {
-    await db.delete(recordingPoints).where(eq(recordingPoints.sessionId, sessionId))
-    await db.delete(recordingSessions).where(eq(recordingSessions.id, sessionId))
+    await db.transaction((tx) => {
+      tx.delete(recordingPoints).where(eq(recordingPoints.sessionId, sessionId)).run()
+      tx.delete(recordingSessions).where(eq(recordingSessions.id, sessionId)).run()
+    })
   },
   async saveActivity(sessionId, input) {
     return db.transaction((tx) => {
