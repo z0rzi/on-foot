@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { Alert, FlatList, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect, useRouter } from 'expo-router'
