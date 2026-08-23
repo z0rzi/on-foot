@@ -72,7 +72,7 @@ const UserPuck = () => (
       puckBearingEnabled
       visible
       bearingImage="puck-bearing-arrow"
-      scale={0.5}
+      scale={0.4}
       pulsing={{ isEnabled: true }}
     />
   </>
