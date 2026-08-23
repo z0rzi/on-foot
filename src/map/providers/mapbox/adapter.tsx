@@ -59,8 +59,9 @@ const Terrain = ({ exaggeration }: TerrainProps) => (
 )
 
 // The default 2D puck is a radially symmetric dot, so heading rotation is invisible on it. A
-// custom bearingImage — a dot with a chevron above it, rendered at 3x and scaled back down —
-// makes the facing direction visible, mirroring the Kotlin app's LocationPuck2D bearing arrow.
+// custom bearingImage — a dot with a chevron above it — makes the facing direction visible,
+// mirroring the Kotlin app's LocationPuck2D bearing arrow. The image is high-resolution and
+// scaled down so it stays crisp.
 const puckBearingArrow = require('./puck-bearing-arrow.png')
 
 const UserPuck = () => (
@@ -71,7 +72,7 @@ const UserPuck = () => (
       puckBearingEnabled
       visible
       bearingImage="puck-bearing-arrow"
-      scale={1 / 3}
+      scale={0.5}
       pulsing={{ isEnabled: true }}
     />
   </>
