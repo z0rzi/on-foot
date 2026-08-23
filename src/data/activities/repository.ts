@@ -10,4 +10,5 @@ export interface ActivitiesRepository {
   saveActivity(sessionId: number, input: NewActivityInput): Promise<number>
   listSummaries(): Promise<ActivitySummary[]>
   getActivity(id: number): Promise<Activity | null>
+  deleteActivity(id: number): Promise<void>
 }

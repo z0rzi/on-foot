@@ -5,6 +5,7 @@ interface ActivitiesStore {
   activities: ActivitySummary[]
   loadActivities: () => Promise<void>
   saveActivity: (sessionId: number, input: NewActivityInput) => Promise<number>
+  removeActivity: (id: number) => Promise<void>
 }
 
 export const useActivitiesStore = create<ActivitiesStore>((set, get) => ({
@@ -16,5 +17,9 @@ export const useActivitiesStore = create<ActivitiesStore>((set, get) => ({
     const id = await activitiesRepository.saveActivity(sessionId, input)
     await get().loadActivities()
     return id
+  },
+  removeActivity: async (id) => {
+    await activitiesRepository.deleteActivity(id)
+    await get().loadActivities()
   },
 }))
