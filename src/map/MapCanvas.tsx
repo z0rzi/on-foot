@@ -29,7 +29,7 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
   const disableFollow = useMapStore((s) => s.disableFollow)
   const setCameraHeading = useMapStore((s) => s.setCameraHeading)
   const northResetNonce = useMapStore((s) => s.northResetNonce)
-  const pendingFitTrailId = useMapStore((s) => s.pendingFitTrailId)
+  const pendingFit = useMapStore((s) => s.pendingFit)
   const clearPendingFit = useMapStore((s) => s.clearPendingFit)
   const cameraRef = useRef<CameraController>(null)
 
@@ -46,19 +46,19 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
   const liveLine = useMemo(() => toLineCoordinates(livePoints), [livePoints])
 
   // Frame the trail a user tap requested, once that trail's own geometry has loaded. selectTrail
-  // sets pendingFitTrailId; the loaded trail prop lags it (getTrail resolves async), so the fit
-  // waits until trail.id matches — switching A → B skips A's stale geometry and frames B once B
-  // loads. Clearing pendingFitTrailId once fitted stops it re-firing. A restored selection leaves
-  // pendingFitTrailId null, so it never fits and the camera keeps following the user.
+  // sets pendingFit; the loaded trail prop lags it (getTrail resolves async), so the fit waits
+  // until trail.id matches — switching A → B skips A's stale geometry and frames B once B loads.
+  // Clearing pendingFit once fitted stops it re-firing. A restored selection leaves pendingFit
+  // null, so it never fits and the camera keeps following the user.
   useEffect(() => {
-    if (trail == null || trail.id !== pendingFitTrailId) return
+    if (trail == null || pendingFit?.kind !== 'trail' || pendingFit.id !== trail.id) return
     if (trail.geometry.points.length < 2) return
     const bounds = boundsForPoints(trail.geometry.points)
     if (!bounds) return
     clearPendingFit()
     const { top, sides, bottom } = MapTokens.cameraPadding
     cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs)
-  }, [trail, pendingFitTrailId, clearPendingFit])
+  }, [trail, pendingFit, clearPendingFit])
 
   const follow = followCameraProps(followMode)
   const manualPitch =
