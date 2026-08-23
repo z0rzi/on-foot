@@ -2,6 +2,7 @@ import React, { useMemo, useRef } from 'react'
 import { StyleSheet, View, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
+import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated'
 import { ControlButton } from '../components/ControlButton'
 import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
@@ -15,9 +16,13 @@ import { PositionFollowIcon } from '../assets/icons/position-follow'
 export function MapControls({
   onOpenLayers,
   extraBottom = 0,
+  animatedBottom,
 }: {
   onOpenLayers: () => void
   extraBottom?: number
+  // When set (Activity mode), the cluster tracks the sheet's animated top edge instead of a static
+  // lift, so it rides above the variable-height sheet. Otherwise it sits above the static overlay.
+  animatedBottom?: SharedValue<number>
 }) {
   const c = useTheme()
   const insets = useSafeAreaInsets()
@@ -97,13 +102,12 @@ export function MapControls({
     [quickSwitchMapStyle, styleChoices],
   )
 
+  const containerStyle = useAnimatedStyle(() => ({
+    bottom: animatedBottom ? animatedBottom.value : insets.bottom + MapTokens.overlayPadding + extraBottom,
+  }))
+
   return (
-    <View
-      style={[
-        styles.col,
-        { bottom: insets.bottom + MapTokens.overlayPadding + extraBottom, right: MapTokens.overlayPadding },
-      ]}
-    >
+    <Animated.View style={[styles.col, { right: MapTokens.overlayPadding }, containerStyle]}>
       {showNorth && (
         <ControlButton accessibilityLabel="Reset north" onPress={northPressed}>
           <View style={{ transform: [{ rotate: `${-cameraHeading}deg` }] }}>
@@ -131,7 +135,7 @@ export function MapControls({
       <ControlButton accessibilityLabel="Center on your location" onPress={cycleFollowMode}>
         <LocationIcon size={MapTokens.controlIconSize} color={following ? c.controlAccent : c.controlContent} />
       </ControlButton>
-    </View>
+    </Animated.View>
   )
 }
 

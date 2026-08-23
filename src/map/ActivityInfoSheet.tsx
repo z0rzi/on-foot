@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet'
+import type { SharedValue } from 'react-native-reanimated'
 import { Ionicons } from '@expo/vector-icons'
 import { Activity } from '../data/activities/types'
 import { useTheme } from '../theme/useTheme'
@@ -12,9 +13,11 @@ import { formatDistance, formatElevation } from '../data/trails/gpx/metrics'
 export function ActivityInfoSheet({
   activity,
   onViewLinkedTrail,
+  animatedPosition,
 }: {
   activity: Activity
   onViewLinkedTrail: (trailId: number) => void
+  animatedPosition?: SharedValue<number>
 }) {
   const c = useTheme()
   const snapPoints = useMemo(() => ['16%', '55%'], [])
@@ -31,6 +34,7 @@ export function ActivityInfoSheet({
       index={0}
       snapPoints={snapPoints}
       enablePanDownToClose={false}
+      animatedPosition={animatedPosition}
       backgroundStyle={{ backgroundColor: c.panelBackground }}
       handleIndicatorStyle={{ backgroundColor: c.onSurfaceVariant }}
     >
