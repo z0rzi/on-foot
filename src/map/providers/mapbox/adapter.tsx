@@ -2,7 +2,7 @@ import React, { forwardRef, useImperativeHandle, useRef } from 'react'
 import Mapbox, { type MapState } from '@rnmapbox/maps'
 import type {
   MapProvider, MapViewProps, CameraProps, TerrainProps, CameraController, TrailOverlayProps,
-  RouteLineProps,
+  RouteLineProps, UserPuckProps,
 } from '../../provider/types'
 import { mapboxCapabilities } from './capabilities'
 import { TERRAIN_DEM } from './styles'
@@ -64,7 +64,7 @@ const Terrain = ({ exaggeration }: TerrainProps) => (
 // scaled down so it stays crisp.
 const puckBearingArrow = require('./puck-bearing-arrow.png')
 
-const UserPuck = () => (
+const UserPuck = ({ scale }: UserPuckProps) => (
   <>
     <Mapbox.Images images={{ 'puck-bearing-arrow': puckBearingArrow }} />
     <Mapbox.LocationPuck
@@ -72,7 +72,7 @@ const UserPuck = () => (
       puckBearingEnabled
       visible
       bearingImage="puck-bearing-arrow"
-      scale={0.4}
+      scale={scale}
       pulsing={{ isEnabled: true }}
     />
   </>

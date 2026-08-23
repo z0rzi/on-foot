@@ -60,6 +60,11 @@ export interface TerrainProps {
   exaggeration: number
 }
 
+export interface UserPuckProps {
+  // Scale factor applied to the puck's bearing image (source is high-resolution, scaled down).
+  scale: number
+}
+
 export interface MapViewProps {
   styleURL: string
   // Fires as the camera moves; heading only (all the North button needs). SDK-neutral.
@@ -87,7 +92,7 @@ export interface MapComponents {
   View: React.ComponentType<MapViewProps>
   Camera: React.ForwardRefExoticComponent<CameraProps & React.RefAttributes<CameraController>>
   Terrain: React.ComponentType<TerrainProps>
-  UserPuck: React.ComponentType<{}>
+  UserPuck: React.ComponentType<UserPuckProps>
   TrailOverlay: React.ComponentType<TrailOverlayProps>
   RouteLine: React.ComponentType<RouteLineProps>
 }

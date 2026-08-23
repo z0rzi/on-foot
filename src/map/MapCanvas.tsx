@@ -97,7 +97,7 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
         }}
       />
       {caps.supportsTerrain && <Terrain exaggeration={MapTokens.terrainExaggeration} />}
-      <UserPuck />
+      <UserPuck scale={MapTokens.puckBearingScale} />
       {showLiveTrack && (
         <RouteLine line={liveLine} color={c.recordingLine} lineWidth={MapTokens.recordingLineWidth} />
       )}
