@@ -58,8 +58,23 @@ const Terrain = ({ exaggeration }: TerrainProps) => (
   </Mapbox.RasterDemSource>
 )
 
+// The default 2D puck is a radially symmetric dot, so heading rotation is invisible on it. A
+// custom bearingImage — a dot with a chevron above it, rendered at 3x and scaled back down —
+// makes the facing direction visible, mirroring the Kotlin app's LocationPuck2D bearing arrow.
+const puckBearingArrow = require('./puck-bearing-arrow.png')
+
 const UserPuck = () => (
-  <Mapbox.LocationPuck puckBearing="heading" puckBearingEnabled visible pulsing={{ isEnabled: true }} />
+  <>
+    <Mapbox.Images images={{ 'puck-bearing-arrow': puckBearingArrow }} />
+    <Mapbox.LocationPuck
+      puckBearing="heading"
+      puckBearingEnabled
+      visible
+      bearingImage="puck-bearing-arrow"
+      scale={1 / 3}
+      pulsing={{ isEnabled: true }}
+    />
+  </>
 )
 
 const TrailOverlay = ({
