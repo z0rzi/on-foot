@@ -1,11 +1,11 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet'
 import type { SharedValue } from 'react-native-reanimated'
 import { Ionicons } from '@expo/vector-icons'
 import { Activity } from '../data/activities/types'
+import { Trail, trailsRepository } from '../data/trails'
 import { useTheme } from '../theme/useTheme'
-import { useTrailsStore } from '../store/trailsStore'
 import { EffortBadge } from '../activities/EffortBadge'
 import { formatActivityDate, formatActivitySummary, formatDuration } from '../activities/format'
 import { formatDistance, formatElevation } from '../data/trails/gpx/metrics'
@@ -21,13 +21,22 @@ export function ActivityInfoSheet({
 }) {
   const c = useTheme()
   const snapPoints = useMemo(() => ['16%', '55%'], [])
-  const trails = useTrailsStore((s) => s.trails)
-  const loadTrails = useTrailsStore((s) => s.loadTrails)
+  const [linkedTrail, setLinkedTrail] = useState<Trail | null>(null)
 
-  useEffect(() => { loadTrails() }, [loadTrails])
-
-  const linkedTrail =
-    activity.linkedTrailId != null ? trails.find((t) => t.id === activity.linkedTrailId) : undefined
+  useEffect(() => {
+    const id = activity.linkedTrailId
+    if (id == null) {
+      setLinkedTrail(null)
+      return
+    }
+    let active = true
+    trailsRepository.getTrail(id).then((t) => {
+      if (active) setLinkedTrail(t)
+    })
+    return () => {
+      active = false
+    }
+  }, [activity.linkedTrailId])
 
   return (
     <BottomSheet
