@@ -79,25 +79,32 @@ const TrailOverlay = ({
       properties: {},
     })),
   }
+  const lineChildren = [
+    <Mapbox.LineLayer
+      key="line"
+      id="trail-line"
+      style={{ lineColor: color, lineWidth, lineCap: 'round', lineJoin: 'round' }}
+    />,
+    arrowImage != null ? (
+      <Mapbox.SymbolLayer
+        key="arrows"
+        id="trail-arrows"
+        style={{
+          symbolPlacement: 'line',
+          symbolSpacing: arrowSpacing,
+          iconImage: 'trail-arrow',
+          iconSize: arrowSize,
+          iconAllowOverlap: true,
+          iconRotationAlignment: 'map',
+        }}
+      />
+    ) : null,
+  ].filter((el): el is React.ReactElement => el != null)
   return (
     <>
-      <Mapbox.Images images={{ 'trail-arrow': arrowImage }} />
+      {arrowImage != null && <Mapbox.Images images={{ 'trail-arrow': arrowImage }} />}
       <Mapbox.ShapeSource id="trail-line-source" shape={lineShape}>
-        <Mapbox.LineLayer
-          id="trail-line"
-          style={{ lineColor: color, lineWidth, lineCap: 'round', lineJoin: 'round' }}
-        />
-        <Mapbox.SymbolLayer
-          id="trail-arrows"
-          style={{
-            symbolPlacement: 'line',
-            symbolSpacing: arrowSpacing,
-            iconImage: 'trail-arrow',
-            iconSize: arrowSize,
-            iconAllowOverlap: true,
-            iconRotationAlignment: 'map',
-          }}
-        />
+        {lineChildren}
       </Mapbox.ShapeSource>
       <Mapbox.ShapeSource id="trail-endpoints-source" shape={endpointShape}>
         <Mapbox.CircleLayer

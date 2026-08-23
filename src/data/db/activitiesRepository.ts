@@ -65,4 +65,7 @@ export const sqliteActivitiesRepository: ActivitiesRepository = {
     const rows = await db.select().from(activities).where(eq(activities.id, id)).limit(1)
     return rows.length ? rowToActivity(rows[0] as ActivityRow) : null
   },
+  async deleteActivity(id) {
+    await db.delete(activities).where(eq(activities.id, id))
+  },
 }

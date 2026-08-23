@@ -7,6 +7,7 @@ export interface AppColors {
   trailLine: string
   trailEndpointStroke: string
   recordingLine: string
+  activityLine: string
   panelBackground: string
   panelContent: string
   panelDivider: string
@@ -30,6 +31,7 @@ export const lightColors: AppColors = {
   trailLine: '#9C27B0',
   trailEndpointStroke: '#FFFFFF',
   recordingLine: '#FF5722',
+  activityLine: '#00897B',
   panelBackground: '#FFFFFF',
   panelContent: '#000000',
   panelDivider: '#D3D3D3',
@@ -53,6 +55,7 @@ export const darkColors: AppColors = {
   trailLine: '#9C27B0',
   trailEndpointStroke: '#FFFFFF',
   recordingLine: '#FF7043',
+  activityLine: '#4DB6AC',
   panelBackground: '#1E1E1E',
   panelContent: '#FFFFFF',
   panelDivider: '#424242',

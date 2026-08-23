@@ -7,11 +7,12 @@ import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
 import { MapTokens } from '../theme/tokens'
 import { useTheme } from '../theme/useTheme'
 import { Trail } from '../data/trails'
+import { Activity } from '../data/activities/types'
 import { boundsForPoints, toLineCoordinates, endpointCoordinates } from './geo'
 
 const trailArrow = require('../assets/trail-arrow.png')
 
-export function MapCanvas({ trail }: { trail: Trail | null }) {
+export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: Activity | null }) {
   const { components } = useMapProvider()
   const caps = useMapCapabilities()
   const c = useTheme()
@@ -29,7 +30,7 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
   const disableFollow = useMapStore((s) => s.disableFollow)
   const setCameraHeading = useMapStore((s) => s.setCameraHeading)
   const northResetNonce = useMapStore((s) => s.northResetNonce)
-  const pendingFitTrailId = useMapStore((s) => s.pendingFitTrailId)
+  const pendingFit = useMapStore((s) => s.pendingFit)
   const clearPendingFit = useMapStore((s) => s.clearPendingFit)
   const cameraRef = useRef<CameraController>(null)
 
@@ -40,25 +41,38 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
   const points = trail?.geometry.points ?? []
   const hasTrail = points.length >= 2
 
+  const activityPoints = activity?.geometry.points ?? []
+  const hasActivity = activityPoints.length >= 2
+
   const recording = useRecordingStore((s) => recordingPhase(s.session) === 'recording')
   const livePoints = useRecordingStore((s) => s.liveGeometry.points)
   const showLiveTrack = recording && livePoints.length >= 2
   const liveLine = useMemo(() => toLineCoordinates(livePoints), [livePoints])
 
-  // Frame the trail a user tap requested, once that trail's own geometry has loaded. selectTrail
-  // sets pendingFitTrailId; the loaded trail prop lags it (getTrail resolves async), so the fit
-  // waits until trail.id matches — switching A → B skips A's stale geometry and frames B once B
-  // loads. Clearing pendingFitTrailId once fitted stops it re-firing. A restored selection leaves
-  // pendingFitTrailId null, so it never fits and the camera keeps following the user.
+  // Frame the trail a user tap requested, once that trail's own geometry has loaded. select()
+  // sets pendingFit; the loaded trail prop lags it (getTrail resolves async), so the fit waits
+  // until trail.id matches — switching A → B skips A's stale geometry and frames B once B loads.
+  // Clearing pendingFit once fitted stops it re-firing. A restored selection leaves pendingFit
+  // null, so it never fits and the camera keeps following the user.
   useEffect(() => {
-    if (trail == null || trail.id !== pendingFitTrailId) return
+    if (trail == null || pendingFit?.kind !== 'trail' || pendingFit.id !== trail.id) return
     if (trail.geometry.points.length < 2) return
     const bounds = boundsForPoints(trail.geometry.points)
     if (!bounds) return
     clearPendingFit()
     const { top, sides, bottom } = MapTokens.cameraPadding
     cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs)
-  }, [trail, pendingFitTrailId, clearPendingFit])
+  }, [trail, pendingFit, clearPendingFit])
+
+  useEffect(() => {
+    if (activity == null || pendingFit?.kind !== 'activity' || pendingFit.id !== activity.id) return
+    if (activity.geometry.points.length < 2) return
+    const bounds = boundsForPoints(activity.geometry.points)
+    if (!bounds) return
+    clearPendingFit()
+    const { top, sides, bottom } = MapTokens.cameraPadding
+    cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs)
+  }, [activity, pendingFit, clearPendingFit])
 
   const follow = followCameraProps(followMode)
   const manualPitch =
@@ -87,7 +101,17 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
       {showLiveTrack && (
         <RouteLine line={liveLine} color={c.recordingLine} lineWidth={MapTokens.recordingLineWidth} />
       )}
-      {hasTrail && (
+      {hasActivity ? (
+        <TrailOverlay
+          line={toLineCoordinates(activityPoints)}
+          endpoints={endpointCoordinates(activityPoints)}
+          color={c.activityLine}
+          lineWidth={MapTokens.trailLineWidth}
+          endpointRadius={MapTokens.endpointRadius}
+          endpointStrokeColor={c.trailEndpointStroke}
+          endpointStrokeWidth={MapTokens.endpointStrokeWidth}
+        />
+      ) : hasTrail ? (
         <TrailOverlay
           line={toLineCoordinates(points)}
           endpoints={endpointCoordinates(points)}
@@ -100,7 +124,7 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
           endpointStrokeColor={c.trailEndpointStroke}
           endpointStrokeWidth={MapTokens.endpointStrokeWidth}
         />
-      )}
+      ) : null}
     </MapView>
   )
 }

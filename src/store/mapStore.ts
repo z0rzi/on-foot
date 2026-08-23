@@ -127,15 +127,41 @@ export function resolveQuickSwitch(
   return satelliteToggleTarget(currentId, styles)
 }
 
+export type MapMode = 'free' | 'trail' | 'recording' | 'activity'
+
+// The one thing shown on the map: a trail or an activity, never both. A single tagged field makes
+// that mutual exclusion true by construction — the store cannot represent "both selected".
+export interface Selection {
+  kind: 'trail' | 'activity'
+  id: number
+}
+
+// The single map's mode, derived (never stored) so it can't drift from reality. Recording takes
+// precedence over any selection.
+export function mapMode(input: { recording: boolean; selection: Selection | null }): MapMode {
+  if (input.recording) return 'recording'
+  if (input.selection?.kind === 'activity') return 'activity'
+  if (input.selection?.kind === 'trail') return 'trail'
+  return 'free'
+}
+
+// A pending one-shot camera fit for whichever selection requested it, consumed once its geometry
+// loads (see MapCanvas). Generalized over trail and activity so both frame identically.
+export interface PendingFit {
+  kind: 'trail' | 'activity'
+  id: number
+}
+
 interface MapStore {
   followMode: FollowMode
   mapStyleId: string
   // The style shown before the current one, so a swipe on the layers button can A/B-toggle back.
   // Session-only (not persisted) — a fresh launch cold-starts into the satellite-toggle fallback.
   previousMapStyleId: string | null
-  // The currently-shown trail; drives the overlay + info card. Persisted, so the displayed
-  // trail survives a restart.
-  selectedTrailId: number | null
+  // The trail or activity shown on the map; drives the overlay + info panel. Only a trail selection
+  // is persisted (see partialize), so the displayed trail survives a restart while an activity view
+  // never does.
+  selection: Selection | null
   cameraPitch: number
   // Whether the next declarative pitch application should animate (tap toggle) or snap
   // (live drag). Session-only; drives the <Camera> animationDuration in MapCanvas.
@@ -146,17 +172,17 @@ interface MapStore {
   // Bumped by northPressed in the off/manually-rotated case to signal MapCanvas to fire a
   // one-shot imperative rotate-to-north. Session-only.
   northResetNonce: number
-  // The trail a user tap has requested the camera to frame, consumed once its geometry loads.
-  // selectTrail sets it; a restored selection leaves it null, so restore shows the overlay
-  // without fitting. Session-only.
-  pendingFitTrailId: number | null
+  // The trail or activity a user tap has requested the camera to frame, consumed once its
+  // geometry loads. select() sets it; a restored trail selection leaves it null, so restore shows
+  // the overlay without fitting. Session-only.
+  pendingFit: PendingFit | null
   cycleFollowMode: () => void
   disableFollow: () => void
   northPressed: () => void
   setMapStyle: (id: string) => void
   quickSwitchMapStyle: (styles: StyleChoice[]) => void
-  selectTrail: (id: number) => void
-  clearSelectedTrail: () => void
+  select: (kind: 'trail' | 'activity', id: number) => void
+  clearSelection: () => void
   clearPendingFit: () => void
   setCameraPitch: (p: number) => void
   setCameraPitchAnimated: (p: number) => void
@@ -172,12 +198,12 @@ export const useMapStore = create<MapStore>()(
       followMode: 'position',
       mapStyleId: 'standard',
       previousMapStyleId: null,
-      selectedTrailId: null,
+      selection: null,
       cameraPitch: 0,
       pitchAnimated: false,
       cameraHeading: 0,
       northResetNonce: 0,
-      pendingFitTrailId: null,
+      pendingFit: null,
       cycleFollowMode: () => set((s) => followModeChange(nextFollowMode(s.followMode), s.cameraPitch)),
       disableFollow: () => set({ followMode: 'off' }),
       // Compass-follow → demote to north-up Position (follow viewport snaps bearing to north, and
@@ -200,9 +226,9 @@ export const useMapStore = create<MapStore>()(
           const target = resolveQuickSwitch(s.mapStyleId, s.previousMapStyleId, styles)
           return target === s.mapStyleId ? {} : { mapStyleId: target, previousMapStyleId: s.mapStyleId }
         }),
-      selectTrail: (id) => set({ selectedTrailId: id, followMode: 'off', pendingFitTrailId: id }),
-      clearSelectedTrail: () => set({ selectedTrailId: null, pendingFitTrailId: null }),
-      clearPendingFit: () => set({ pendingFitTrailId: null }),
+      select: (kind, id) => set({ selection: { kind, id }, followMode: 'off', pendingFit: { kind, id } }),
+      clearSelection: () => set({ selection: null, pendingFit: null }),
+      clearPendingFit: () => set({ pendingFit: null }),
       setCameraPitch: (p) => set({ cameraPitch: p, pitchAnimated: false }),
       setCameraPitchAnimated: (p) => set({ cameraPitch: p, pitchAnimated: true }),
       setCameraHeading: (h) => set({ cameraHeading: h }),
@@ -210,7 +236,10 @@ export const useMapStore = create<MapStore>()(
     {
       name: 'onfoot-map',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (s) => ({ mapStyleId: s.mapStyleId, selectedTrailId: s.selectedTrailId }),
+      partialize: (s) => ({
+        mapStyleId: s.mapStyleId,
+        selection: s.selection?.kind === 'trail' ? s.selection : null,
+      }),
     }
   )
 )
