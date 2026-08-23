@@ -7,11 +7,12 @@ import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
 import { MapTokens } from '../theme/tokens'
 import { useTheme } from '../theme/useTheme'
 import { Trail } from '../data/trails'
+import { Activity } from '../data/activities/types'
 import { boundsForPoints, toLineCoordinates, endpointCoordinates } from './geo'
 
 const trailArrow = require('../assets/trail-arrow.png')
 
-export function MapCanvas({ trail }: { trail: Trail | null }) {
+export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: Activity | null }) {
   const { components } = useMapProvider()
   const caps = useMapCapabilities()
   const c = useTheme()
@@ -40,6 +41,9 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
   const points = trail?.geometry.points ?? []
   const hasTrail = points.length >= 2
 
+  const activityPoints = activity?.geometry.points ?? []
+  const hasActivity = activityPoints.length >= 2
+
   const recording = useRecordingStore((s) => recordingPhase(s.session) === 'recording')
   const livePoints = useRecordingStore((s) => s.liveGeometry.points)
   const showLiveTrack = recording && livePoints.length >= 2
@@ -59,6 +63,16 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
     const { top, sides, bottom } = MapTokens.cameraPadding
     cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs)
   }, [trail, pendingFit, clearPendingFit])
+
+  useEffect(() => {
+    if (activity == null || pendingFit?.kind !== 'activity' || pendingFit.id !== activity.id) return
+    if (activity.geometry.points.length < 2) return
+    const bounds = boundsForPoints(activity.geometry.points)
+    if (!bounds) return
+    clearPendingFit()
+    const { top, sides, bottom } = MapTokens.cameraPadding
+    cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs)
+  }, [activity, pendingFit, clearPendingFit])
 
   const follow = followCameraProps(followMode)
   const manualPitch =
@@ -87,7 +101,17 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
       {showLiveTrack && (
         <RouteLine line={liveLine} color={c.recordingLine} lineWidth={MapTokens.recordingLineWidth} />
       )}
-      {hasTrail && (
+      {hasActivity ? (
+        <TrailOverlay
+          line={toLineCoordinates(activityPoints)}
+          endpoints={endpointCoordinates(activityPoints)}
+          color={c.activityLine}
+          lineWidth={MapTokens.trailLineWidth}
+          endpointRadius={MapTokens.endpointRadius}
+          endpointStrokeColor={c.trailEndpointStroke}
+          endpointStrokeWidth={MapTokens.endpointStrokeWidth}
+        />
+      ) : hasTrail ? (
         <TrailOverlay
           line={toLineCoordinates(points)}
           endpoints={endpointCoordinates(points)}
@@ -100,7 +124,7 @@ export function MapCanvas({ trail }: { trail: Trail | null }) {
           endpointStrokeColor={c.trailEndpointStroke}
           endpointStrokeWidth={MapTokens.endpointStrokeWidth}
         />
-      )}
+      ) : null}
     </MapView>
   )
 }

@@ -25,7 +25,7 @@ export function MapScreen() {
     <MapProviderProvider provider={mapboxProvider}>
       <BottomSheetModalProvider>
         <View style={{ flex: 1 }}>
-          <MapCanvas trail={trail} />
+          <MapCanvas trail={trail} activity={null} />
           <RecordButton extraBottom={trail ? cardHeight + MapTokens.controlsSpacing : 0} />
           <MapControls
             onOpenLayers={() => sheetRef.current?.present()}
