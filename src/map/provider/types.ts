@@ -39,10 +39,11 @@ export interface TrailOverlayProps {
   endpoints: [number, number][]
   color: string
   lineWidth: number
-  // require()'d PNG handle for the directional arrow icon (RN-neutral).
-  arrowImage: number
-  arrowSpacing: number
-  arrowSize: number
+  // Directional arrows are optional: omit arrowImage to render a plain trail line + endpoints
+  // (used for recorded activity tracks, where arrows on noisy GPS look cluttered).
+  arrowImage?: number
+  arrowSpacing?: number
+  arrowSize?: number
   endpointRadius: number
   endpointStrokeColor: string
   endpointStrokeWidth: number

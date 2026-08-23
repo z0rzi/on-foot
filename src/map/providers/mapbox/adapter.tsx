@@ -79,25 +79,28 @@ const TrailOverlay = ({
       properties: {},
     })),
   }
+  const arrowLayer = arrowImage != null ? (
+    <Mapbox.SymbolLayer
+      id="trail-arrows"
+      style={{
+        symbolPlacement: 'line',
+        symbolSpacing: arrowSpacing,
+        iconImage: 'trail-arrow',
+        iconSize: arrowSize,
+        iconAllowOverlap: true,
+        iconRotationAlignment: 'map',
+      }}
+    />
+  ) : undefined
   return (
     <>
-      <Mapbox.Images images={{ 'trail-arrow': arrowImage }} />
+      {arrowImage != null && <Mapbox.Images images={{ 'trail-arrow': arrowImage }} />}
       <Mapbox.ShapeSource id="trail-line-source" shape={lineShape}>
         <Mapbox.LineLayer
           id="trail-line"
           style={{ lineColor: color, lineWidth, lineCap: 'round', lineJoin: 'round' }}
         />
-        <Mapbox.SymbolLayer
-          id="trail-arrows"
-          style={{
-            symbolPlacement: 'line',
-            symbolSpacing: arrowSpacing,
-            iconImage: 'trail-arrow',
-            iconSize: arrowSize,
-            iconAllowOverlap: true,
-            iconRotationAlignment: 'map',
-          }}
-        />
+        {arrowLayer as any}
       </Mapbox.ShapeSource>
       <Mapbox.ShapeSource id="trail-endpoints-source" shape={endpointShape}>
         <Mapbox.CircleLayer
