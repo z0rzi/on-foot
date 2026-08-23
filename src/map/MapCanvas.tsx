@@ -49,7 +49,7 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
   const showLiveTrack = recording && livePoints.length >= 2
   const liveLine = useMemo(() => toLineCoordinates(livePoints), [livePoints])
 
-  // Frame the trail a user tap requested, once that trail's own geometry has loaded. selectTrail
+  // Frame the trail a user tap requested, once that trail's own geometry has loaded. select()
   // sets pendingFit; the loaded trail prop lags it (getTrail resolves async), so the fit waits
   // until trail.id matches — switching A → B skips A's stale geometry and frames B once B loads.
   // Clearing pendingFit once fitted stops it re-firing. A restored selection leaves pendingFit

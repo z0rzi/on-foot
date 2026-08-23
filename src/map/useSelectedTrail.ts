@@ -4,26 +4,27 @@ import { useMapStore } from '../store/mapStore'
 import { useTrailsStore } from '../store/trailsStore'
 
 export function useSelectedTrail(): Trail | null {
-  const selectedTrailId = useMapStore((s) => s.selectedTrailId)
-  const clearSelectedTrail = useMapStore((s) => s.clearSelectedTrail)
+  const selection = useMapStore((s) => s.selection)
+  const clearSelection = useMapStore((s) => s.clearSelection)
   const trails = useTrailsStore((s) => s.trails)
   const [trail, setTrail] = useState<Trail | null>(null)
+  const trailId = selection?.kind === 'trail' ? selection.id : null
 
   useEffect(() => {
-    if (selectedTrailId == null) {
+    if (trailId == null) {
       setTrail(null)
       return
     }
     let active = true
-    trailsRepository.getTrail(selectedTrailId).then((loaded) => {
+    trailsRepository.getTrail(trailId).then((loaded) => {
       if (!active) return
-      if (loaded == null) clearSelectedTrail()
+      if (loaded == null) clearSelection()
       setTrail(loaded)
     })
     return () => {
       active = false
     }
-  }, [selectedTrailId, trails, clearSelectedTrail])
+  }, [trailId, trails, clearSelection])
 
   return trail
 }

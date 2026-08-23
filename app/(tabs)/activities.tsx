@@ -16,18 +16,18 @@ export default function ActivitiesScreen() {
   const activities = useActivitiesStore((s) => s.activities)
   const loadActivities = useActivitiesStore((s) => s.loadActivities)
   const removeActivity = useActivitiesStore((s) => s.removeActivity)
-  const selectActivity = useMapStore((s) => s.selectActivity)
-  const clearSelectedActivity = useMapStore((s) => s.clearSelectedActivity)
+  const select = useMapStore((s) => s.select)
+  const clearSelection = useMapStore((s) => s.clearSelection)
 
   useFocusEffect(useCallback(() => { loadActivities() }, [loadActivities]))
 
   const onSelect = useCallback(
     (id: number) => {
       if (recordingPhase(useRecordingStore.getState().session) !== 'idle') return
-      selectActivity(id)
+      select('activity', id)
       router.navigate('/')
     },
-    [selectActivity, router],
+    [select, router],
   )
 
   const confirmDelete = useCallback(
@@ -41,14 +41,15 @@ export default function ActivitiesScreen() {
             text: 'Delete',
             style: 'destructive',
             onPress: async () => {
-              if (useMapStore.getState().selectedActivityId === activity.id) clearSelectedActivity()
+              const sel = useMapStore.getState().selection
+              if (sel?.kind === 'activity' && sel.id === activity.id) clearSelection()
               await removeActivity(activity.id)
             },
           },
         ],
       )
     },
-    [removeActivity, clearSelectedActivity],
+    [removeActivity, clearSelection],
   )
 
   return (

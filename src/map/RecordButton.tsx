@@ -46,7 +46,8 @@ export function RecordButton({ extraBottom = 0 }: { extraBottom?: number }) {
 
   const doStop = useCallback(async () => {
     try {
-      const linkedTrailId = useMapStore.getState().selectedTrailId
+      const sel = useMapStore.getState().selection
+      const linkedTrailId = sel?.kind === 'trail' ? sel.id : null
       await stopRecording(linkedTrailId)
       router.push('/activity/save')
     } catch {

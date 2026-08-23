@@ -23,13 +23,11 @@ export function MapScreen() {
   useLocationPermission()
   const trail = useSelectedTrail()
   const activity = useSelectedActivity()
-  const clearSelectedTrail = useMapStore((s) => s.clearSelectedTrail)
-  const clearSelectedActivity = useMapStore((s) => s.clearSelectedActivity)
-  const selectTrail = useMapStore((s) => s.selectTrail)
-  const selectedActivityId = useMapStore((s) => s.selectedActivityId)
-  const selectedTrailId = useMapStore((s) => s.selectedTrailId)
+  const select = useMapStore((s) => s.select)
+  const clearSelection = useMapStore((s) => s.clearSelection)
+  const selection = useMapStore((s) => s.selection)
   const recording = useRecordingStore((s) => recordingPhase(s.session) !== 'idle')
-  const mode = mapMode({ recording, selectedActivityId, selectedTrailId })
+  const mode = mapMode({ recording, selection })
   // Measured height of the trail info card, so the controls sit clear above it while it is shown.
   const [cardHeight, setCardHeight] = useState(0)
   // Root height + the activity sheet's live top edge drive the controls' bottom in Activity mode, so
@@ -56,14 +54,14 @@ export function MapScreen() {
             animatedBottom={mode === 'activity' ? controlsAnimatedBottom : undefined}
           />
           {mode === 'trail' && trail && (
-            <TrailInfoCard trail={trail} onClose={clearSelectedTrail} onHeightChange={setCardHeight} />
+            <TrailInfoCard trail={trail} onClose={clearSelection} onHeightChange={setCardHeight} />
           )}
           {mode === 'activity' && activity && (
             <>
-              <ActivityModeChip activity={activity} onExit={clearSelectedActivity} />
+              <ActivityModeChip activity={activity} onExit={clearSelection} />
               <ActivityInfoSheet
                 activity={activity}
-                onViewLinkedTrail={(id) => selectTrail(id)}
+                onViewLinkedTrail={(id) => select('trail', id)}
                 animatedPosition={sheetTop}
               />
             </>

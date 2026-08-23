@@ -16,7 +16,7 @@ export default function TrailsScreen() {
   const trails = useTrailsStore((s) => s.trails)
   const loadTrails = useTrailsStore((s) => s.loadTrails)
   const removeTrail = useTrailsStore((s) => s.removeTrail)
-  const selectTrail = useMapStore((s) => s.selectTrail)
+  const select = useMapStore((s) => s.select)
   const [pending, setPending] = useState(false)
 
   useFocusEffect(useCallback(() => { loadTrails() }, [loadTrails]))
@@ -48,10 +48,10 @@ export default function TrailsScreen() {
 
   const onSelect = useCallback(
     (id: number) => {
-      selectTrail(id)
+      select('trail', id)
       router.navigate('/')
     },
-    [selectTrail, router],
+    [select, router],
   )
 
   const pickGpx = useCallback(async () => {

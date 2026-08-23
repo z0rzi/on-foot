@@ -4,26 +4,27 @@ import { useMapStore } from '../store/mapStore'
 import { useActivitiesStore } from '../store/activitiesStore'
 
 export function useSelectedActivity(): Activity | null {
-  const selectedActivityId = useMapStore((s) => s.selectedActivityId)
-  const clearSelectedActivity = useMapStore((s) => s.clearSelectedActivity)
+  const selection = useMapStore((s) => s.selection)
+  const clearSelection = useMapStore((s) => s.clearSelection)
   const activities = useActivitiesStore((s) => s.activities)
   const [activity, setActivity] = useState<Activity | null>(null)
+  const activityId = selection?.kind === 'activity' ? selection.id : null
 
   useEffect(() => {
-    if (selectedActivityId == null) {
+    if (activityId == null) {
       setActivity(null)
       return
     }
     let active = true
-    activitiesRepository.getActivity(selectedActivityId).then((loaded) => {
+    activitiesRepository.getActivity(activityId).then((loaded) => {
       if (!active) return
-      if (loaded == null) clearSelectedActivity()
+      if (loaded == null) clearSelection()
       setActivity(loaded)
     })
     return () => {
       active = false
     }
-  }, [selectedActivityId, activities, clearSelectedActivity])
+  }, [activityId, activities, clearSelection])
 
   return activity
 }
