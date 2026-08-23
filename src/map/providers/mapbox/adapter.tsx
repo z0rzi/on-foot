@@ -2,7 +2,7 @@ import React, { forwardRef, useImperativeHandle, useRef } from 'react'
 import Mapbox, { type MapState } from '@rnmapbox/maps'
 import type {
   MapProvider, MapViewProps, CameraProps, TerrainProps, CameraController, TrailOverlayProps,
-  RouteLineProps,
+  RouteLineProps, UserPuckProps,
 } from '../../provider/types'
 import { mapboxCapabilities } from './capabilities'
 import { TERRAIN_DEM } from './styles'
@@ -58,8 +58,24 @@ const Terrain = ({ exaggeration }: TerrainProps) => (
   </Mapbox.RasterDemSource>
 )
 
-const UserPuck = () => (
-  <Mapbox.LocationPuck puckBearing="heading" puckBearingEnabled visible pulsing={{ isEnabled: true }} />
+// The default 2D puck is a radially symmetric dot, so heading rotation is invisible on it. A
+// custom bearingImage — a dot with a chevron above it — makes the facing direction visible,
+// mirroring the Kotlin app's LocationPuck2D bearing arrow. The image is high-resolution and
+// scaled down so it stays crisp.
+const puckBearingArrow = require('./puck-bearing-arrow.png')
+
+const UserPuck = ({ scale }: UserPuckProps) => (
+  <>
+    <Mapbox.Images images={{ 'puck-bearing-arrow': puckBearingArrow }} />
+    <Mapbox.LocationPuck
+      puckBearing="heading"
+      puckBearingEnabled
+      visible
+      bearingImage="puck-bearing-arrow"
+      scale={scale}
+      pulsing={{ isEnabled: true }}
+    />
+  </>
 )
 
 const TrailOverlay = ({

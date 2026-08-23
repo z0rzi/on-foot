@@ -17,6 +17,8 @@ export const MapTokens = {
   recordingLineWidth: 5,
   arrowSpacing: 100,
   arrowSize: 0.4,
+  // Scale factor for the location puck's bearing image (a high-resolution source scaled down).
+  puckBearingScale: 0.4,
   endpointRadius: 8,
   endpointStrokeWidth: 2.5,
   cameraPadding: { top: 100, sides: 100, bottom: 300 },
