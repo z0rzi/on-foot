@@ -1,9 +1,7 @@
 import { useRef } from 'react'
 import { View } from 'react-native'
 import { useSharedValue, useDerivedValue } from 'react-native-reanimated'
-import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet'
-import { MapProviderProvider } from './provider'
-import { mapboxProvider } from './providers/mapbox'
+import { BottomSheetModal } from '@gorhom/bottom-sheet'
 import { MapCanvas } from './MapCanvas'
 import { MapControls } from './MapControls'
 import { RecordButton } from './RecordButton'
@@ -41,48 +39,46 @@ export function MapScreen() {
   )
 
   return (
-    <MapProviderProvider provider={mapboxProvider}>
-      <BottomSheetModalProvider>
-        <View style={{ flex: 1 }} onLayout={(e) => { rootHeight.value = e.nativeEvent.layout.height }}>
-          <MapCanvas trail={mode === 'trail' ? trail : null} activity={mode === 'activity' ? activity : null} />
-          {mode !== 'activity' && (
-            <RecordButton animatedBottom={mode === 'trail' ? controlsAnimatedBottom : undefined} />
-          )}
-          <MapControls
-            onOpenLayers={() => sheetRef.current?.present()}
-            animatedBottom={mode === 'activity' || mode === 'trail' ? controlsAnimatedBottom : undefined}
-          />
-          {mode === 'trail' && trail && (
-            <>
-              <MapModeChip
-                icon="trail-sign"
-                color={c.trailLine}
-                label={`Viewing trail · ${trail.name}`}
-                onExit={clearSelection}
-                exitAccessibilityLabel="Exit trail view"
-              />
-              <TrailInfoSheet trail={trail} animatedPosition={sheetTop} />
-            </>
-          )}
-          {mode === 'activity' && activity && (
-            <>
-              <MapModeChip
-                icon="walk"
-                color={c.activityLine}
-                label={`Viewing activity · ${activity.name}`}
-                onExit={clearSelection}
-                exitAccessibilityLabel="Exit activity view"
-              />
-              <ActivityInfoSheet
-                activity={activity}
-                onViewLinkedTrail={(id) => select('trail', id)}
-                animatedPosition={sheetTop}
-              />
-            </>
-          )}
-        </View>
-        <LayersSheet ref={sheetRef} />
-      </BottomSheetModalProvider>
-    </MapProviderProvider>
+    <>
+      <View style={{ flex: 1 }} onLayout={(e) => { rootHeight.value = e.nativeEvent.layout.height }}>
+        <MapCanvas trail={mode === 'trail' ? trail : null} activity={mode === 'activity' ? activity : null} />
+        {mode !== 'activity' && (
+          <RecordButton animatedBottom={mode === 'trail' ? controlsAnimatedBottom : undefined} />
+        )}
+        <MapControls
+          onOpenLayers={() => sheetRef.current?.present()}
+          animatedBottom={mode === 'activity' || mode === 'trail' ? controlsAnimatedBottom : undefined}
+        />
+        {mode === 'trail' && trail && (
+          <>
+            <MapModeChip
+              icon="trail-sign"
+              color={c.trailLine}
+              label={`Viewing trail · ${trail.name}`}
+              onExit={clearSelection}
+              exitAccessibilityLabel="Exit trail view"
+            />
+            <TrailInfoSheet trail={trail} animatedPosition={sheetTop} />
+          </>
+        )}
+        {mode === 'activity' && activity && (
+          <>
+            <MapModeChip
+              icon="walk"
+              color={c.activityLine}
+              label={`Viewing activity · ${activity.name}`}
+              onExit={clearSelection}
+              exitAccessibilityLabel="Exit activity view"
+            />
+            <ActivityInfoSheet
+              activity={activity}
+              onViewLinkedTrail={(id) => select('trail', id)}
+              animatedPosition={sheetTop}
+            />
+          </>
+        )}
+      </View>
+      <LayersSheet ref={sheetRef} />
+    </>
   )
 }
