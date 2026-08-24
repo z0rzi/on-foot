@@ -15,13 +15,11 @@ import { PositionFollowIcon } from '../assets/icons/position-follow'
 
 export function MapControls({
   onOpenLayers,
-  extraBottom = 0,
   animatedBottom,
 }: {
   onOpenLayers: () => void
-  extraBottom?: number
-  // When set (Activity mode), the cluster tracks the sheet's animated top edge instead of a static
-  // lift, so it rides above the variable-height sheet. Otherwise it sits above the static overlay.
+  // When set (a selection is active), the cluster tracks the sheet's animated top edge so it rides
+  // above the variable-height sheet. Otherwise it sits above the static overlay.
   animatedBottom?: SharedValue<number>
 }) {
   const c = useTheme()
@@ -103,7 +101,7 @@ export function MapControls({
   )
 
   const containerStyle = useAnimatedStyle(() => ({
-    bottom: animatedBottom ? animatedBottom.value : insets.bottom + MapTokens.overlayPadding + extraBottom,
+    bottom: animatedBottom ? animatedBottom.value : insets.bottom + MapTokens.overlayPadding,
   }))
 
   return (

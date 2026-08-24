@@ -21,13 +21,7 @@ const R = (SIZE - RING) / 2
 const CENTER = SIZE / 2
 const CIRCUMFERENCE = 2 * Math.PI * R
 
-export function RecordButton({
-  extraBottom = 0,
-  animatedBottom,
-}: {
-  extraBottom?: number
-  animatedBottom?: SharedValue<number>
-}) {
+export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<number> }) {
   const c = useTheme()
   const router = useRouter()
   const insets = useSafeAreaInsets()
@@ -82,7 +76,7 @@ export function RecordButton({
   }))
 
   const anchorStyle = useAnimatedStyle(() => ({
-    bottom: animatedBottom ? animatedBottom.value : insets.bottom + MapTokens.overlayPadding + extraBottom,
+    bottom: animatedBottom ? animatedBottom.value : insets.bottom + MapTokens.overlayPadding,
   }))
 
   if (phase === 'saving') return null
