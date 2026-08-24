@@ -99,7 +99,6 @@ export function TrailInfoSheet({
           <Ionicons name="ellipsis-vertical" size={20} color={c.onSurfaceVariant} />
         </Pressable>
       </View>
-      {menuOpen && <OfflineActionsMenu items={menuItems} onClose={() => setMenuOpen(false)} />}
 
       {state.kind === 'downloading' ? (
         <View style={styles.progressWrap}>
@@ -132,6 +131,8 @@ export function TrailInfoSheet({
       )}
 
       <OfflineLayerChooser ref={chooserRef} trail={trail} />
+
+      {menuOpen && <OfflineActionsMenu items={menuItems} onClose={() => setMenuOpen(false)} />}
     </MapInfoSheet>
   )
 }

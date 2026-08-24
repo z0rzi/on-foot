@@ -8,8 +8,7 @@ import { useMapStore } from '../../store/mapStore'
 import { useOfflineStore } from './offlineStore'
 import { boundsForTrail } from './bounds'
 import { estimatePackSize, layerKindForStyle } from './estimate'
-import { offlineStateForTrail } from './badge'
-import { packId } from './packId'
+import { packId, parsePackId } from './packId'
 import { formatBytes } from './format'
 import { OFFLINE_MARGIN_KM, OFFLINE_MAX_ZOOM, OFFLINE_MIN_ZOOM, TILE_COUNT_WARN_THRESHOLD } from './constants'
 import type { Trail } from '../../data/trails/types'
@@ -21,15 +20,21 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
     const controller = useOfflineController()
     const currentStyleId = useMapStore((s) => s.mapStyleId)
     const packs = useOfflineStore((s) => s.packs)
-    const progress = useOfflineStore((s) => s.progress)
     const download = useOfflineStore((s) => s.download)
     const remove = useOfflineStore((s) => s.remove)
 
     const snapPoints = useMemo(() => ['65%'], [])
     const bounds = useMemo(() => boundsForTrail(trail.geometry.points, OFFLINE_MARGIN_KM), [trail])
 
-    const state = offlineStateForTrail(trail.id, packs, progress)
-    const downloadedIds = state.kind === 'available' ? state.styleIds : []
+    // The trail's already-downloaded layers, from the completed packs on disk (no dependency on
+    // live progress, so opening the chooser doesn't re-render on every download tick).
+    const downloadedIds = useMemo(
+      () =>
+        packs
+          .filter((p) => parsePackId(p.id)?.trailId === trail.id && p.state === 'complete')
+          .map((p) => parsePackId(p.id)!.styleId),
+      [packs, trail.id],
+    )
 
     const [selected, setSelected] = useState<Set<string>>(new Set())
     // Seed ticks whenever the trail's downloaded set or the current style changes.
@@ -45,13 +50,19 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
         return next
       })
 
-    const rows = caps.styles.map((s) => {
-      const kind = layerKindForStyle(s.satellite)
-      const estimate = bounds ? estimatePackSize(bounds, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM, kind) : null
-      const downloaded = downloadedIds.includes(s.id)
-      const actualBytes = packs.find((p) => p.id === packId(trail.id, s.id))?.sizeBytes ?? null
-      return { style: s, kind, estimate, downloaded, actualBytes }
-    })
+    // Memoized so the per-style tile-count estimate loops only recompute when the trail bounds,
+    // downloaded set, or pack sizes change — not on unrelated re-renders.
+    const rows = useMemo(
+      () =>
+        caps.styles.map((s) => {
+          const kind = layerKindForStyle(s.satellite)
+          const estimate = bounds ? estimatePackSize(bounds, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM, kind) : null
+          const downloaded = downloadedIds.includes(s.id)
+          const actualBytes = packs.find((p) => p.id === packId(trail.id, s.id))?.sizeBytes ?? null
+          return { style: s, kind, estimate, downloaded, actualBytes }
+        }),
+      [caps.styles, bounds, downloadedIds, packs, trail.id],
+    )
 
     const toDownloadBytes = rows
       .filter((r) => selected.has(r.style.id) && !r.downloaded && r.estimate)
