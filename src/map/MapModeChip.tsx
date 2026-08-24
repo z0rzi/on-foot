@@ -1,19 +1,28 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Activity } from '../data/activities/types'
-import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
 
-export function ActivityModeChip({ activity, onExit }: { activity: Activity; onExit: () => void }) {
-  const c = useTheme()
+export function MapModeChip({
+  label,
+  icon,
+  color,
+  onExit,
+  exitAccessibilityLabel,
+}: {
+  label: string
+  icon: keyof typeof Ionicons.glyphMap
+  color: string
+  onExit: () => void
+  exitAccessibilityLabel: string
+}) {
   const insets = useSafeAreaInsets()
   return (
     <View style={[styles.wrap, { top: insets.top + MapTokens.controlsSpacing }]} pointerEvents="box-none">
-      <View style={[styles.chip, { backgroundColor: c.activityLine }]}>
-        <Ionicons name="walk" size={16} color="#FFFFFF" />
-        <Text style={styles.label} numberOfLines={1}>Viewing activity · {activity.name}</Text>
-        <Pressable accessibilityLabel="Exit activity view" onPress={onExit} hitSlop={8}>
+      <View style={[styles.chip, { backgroundColor: color }]}>
+        <Ionicons name={icon} size={16} color="#FFFFFF" />
+        <Text style={styles.label} numberOfLines={1}>{label}</Text>
+        <Pressable accessibilityLabel={exitAccessibilityLabel} onPress={onExit} hitSlop={8}>
           <Ionicons name="close" size={18} color="#FFFFFF" />
         </Pressable>
       </View>
