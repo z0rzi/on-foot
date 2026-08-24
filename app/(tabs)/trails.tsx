@@ -5,6 +5,8 @@ import { useFocusEffect, useRouter } from 'expo-router'
 import * as DocumentPicker from 'expo-document-picker'
 import { useTrailsStore } from '../../src/store/trailsStore'
 import { useMapStore } from '../../src/store/mapStore'
+import { useOfflineController } from '../../src/map/provider'
+import { removeAllPacksForTrail } from '../../src/map/offline/operations'
 import { TrailListItem } from '../../src/trails/TrailListItem'
 import { useTheme } from '../../src/theme/useTheme'
 import { TrailSummary } from '../../src/data/trails/types'
@@ -17,6 +19,7 @@ export default function TrailsScreen() {
   const loadTrails = useTrailsStore((s) => s.loadTrails)
   const removeTrail = useTrailsStore((s) => s.removeTrail)
   const select = useMapStore((s) => s.select)
+  const offlineController = useOfflineController()
   const [pending, setPending] = useState(false)
 
   useFocusEffect(useCallback(() => { loadTrails() }, [loadTrails]))
@@ -34,6 +37,7 @@ export default function TrailsScreen() {
             onPress: async () => {
               setPending(true)
               try {
+                await removeAllPacksForTrail(offlineController, trail.id)
                 await removeTrail(trail.id)
               } finally {
                 setPending(false)
@@ -43,7 +47,7 @@ export default function TrailsScreen() {
         ],
       )
     },
-    [removeTrail],
+    [offlineController, removeTrail],
   )
 
   const onSelect = useCallback(
