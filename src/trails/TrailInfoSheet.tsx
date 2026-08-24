@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { SharedValue } from 'react-native-reanimated'
@@ -14,7 +14,6 @@ import { useOfflineController } from '../map/provider'
 import { useOfflineStore } from '../map/offline/offlineStore'
 import { offlineStateForTrail } from '../map/offline/badge'
 import { packIdsForTrail } from '../map/offline/operations'
-import { runPackDownload } from '../map/offline/download'
 import { OfflineLayerChooser } from '../map/offline/OfflineLayerChooser'
 import { OfflineActionsMenu } from '../map/offline/OfflineActionsMenu'
 
@@ -30,45 +29,25 @@ export function TrailInfoSheet({
   const controller = useOfflineController()
   const packs = useOfflineStore((s) => s.packs)
   const progress = useOfflineStore((s) => s.progress)
-  const clearProgress = useOfflineStore((s) => s.clearProgress)
-  const refreshPacks = useOfflineStore((s) => s.refreshPacks)
+  const resume = useOfflineStore((s) => s.resume)
+  const removeForTrail = useOfflineStore((s) => s.removeForTrail)
   const chooserRef = useRef<BottomSheetModal>(null)
   const [menuOpen, setMenuOpen] = useState(false)
 
   const state = offlineStateForTrail(trail.id, packs, progress)
 
-  useEffect(() => {
-    refreshPacks(controller)
-  }, [refreshPacks, controller, trail.id])
-
   const removeAll = () => {
     Alert.alert('Remove offline maps', `Remove downloaded maps for "${trail.name}"?`, [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          const ids = packIdsForTrail(packs, trail.id)
-          await Promise.all(ids.map((id) => controller.deletePack(id)))
-          ids.forEach(clearProgress)
-          await refreshPacks(controller)
-        },
-      },
+      { text: 'Remove', style: 'destructive', onPress: () => removeForTrail(controller, trail.id) },
     ])
   }
 
   const retry = () => {
-    packIdsForTrail(packs, trail.id).forEach((id) =>
-      runPackDownload(controller, id, () => controller.resumePack(id)),
-    )
+    packIdsForTrail(packs, trail.id).forEach((id) => resume(controller, id))
   }
 
-  const cancel = async () => {
-    const ids = packIdsForTrail(packs, trail.id)
-    await Promise.all(ids.map((id) => controller.deletePack(id)))
-    ids.forEach(clearProgress)
-    await refreshPacks(controller)
-  }
+  const cancel = () => removeForTrail(controller, trail.id)
 
   const menuItems =
     state.kind === 'none'

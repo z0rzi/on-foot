@@ -19,15 +19,14 @@ export function OfflineMapsList() {
   const c = useTheme()
   const controller = useOfflineController()
   const packs = useOfflineStore((s) => s.packs)
-  const refreshPacks = useOfflineStore((s) => s.refreshPacks)
+  const remove = useOfflineStore((s) => s.remove)
   const trails = useTrailsStore((s) => s.trails)
   const loadTrails = useTrailsStore((s) => s.loadTrails)
 
   useFocusEffect(
     useCallback(() => {
       loadTrails()
-      refreshPacks(controller)
-    }, [loadTrails, refreshPacks, controller]),
+    }, [loadTrails]),
   )
 
   const groups = groupPacksByTrail(packs, trails)
@@ -39,10 +38,7 @@ export function OfflineMapsList() {
       {
         text: 'Remove',
         style: 'destructive',
-        onPress: async () => {
-          await controller.deletePack(packId(trailId, styleId))
-          await refreshPacks(controller)
-        },
+        onPress: () => remove(controller, [packId(trailId, styleId)]),
       },
     ])
   }

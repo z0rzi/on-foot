@@ -10,7 +10,6 @@ import { boundsForTrail } from './bounds'
 import { estimatePackSize, layerKindForStyle } from './estimate'
 import { offlineStateForTrail } from './badge'
 import { packId } from './packId'
-import { runPackDownload } from './download'
 import { OFFLINE_MARGIN_KM, OFFLINE_MAX_ZOOM, OFFLINE_MIN_ZOOM, TILE_COUNT_WARN_THRESHOLD } from './constants'
 import type { Trail } from '../../data/trails/types'
 
@@ -28,7 +27,8 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
     const currentStyleId = useMapStore((s) => s.mapStyleId)
     const packs = useOfflineStore((s) => s.packs)
     const progress = useOfflineStore((s) => s.progress)
-    const refreshPacks = useOfflineStore((s) => s.refreshPacks)
+    const download = useOfflineStore((s) => s.download)
+    const remove = useOfflineStore((s) => s.remove)
 
     const snapPoints = useMemo(() => ['65%'], [])
     const bounds = useMemo(() => boundsForTrail(trail.geometry.points, OFFLINE_MARGIN_KM), [trail])
@@ -65,19 +65,6 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
       <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
     )
 
-    const startDownload = (styleId: string, styleUrl: string) => {
-      const id = packId(trail.id, styleId)
-      const descriptor = {
-        id,
-        styleUrl,
-        bounds: [bounds!.ne, bounds!.sw] as [[number, number], [number, number]],
-        minZoom: OFFLINE_MIN_ZOOM,
-        maxZoom: OFFLINE_MAX_ZOOM,
-        meta: { trailId: trail.id, styleId },
-      }
-      runPackDownload(controller, id, () => controller.downloadPack(descriptor))
-    }
-
     const apply = async () => {
       if (!bounds) {
         Alert.alert('Cannot download', 'This trail has no route to cover.')
@@ -88,10 +75,17 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
       const big = adds.find((r) => (r.estimate?.tileCount ?? 0) > TILE_COUNT_WARN_THRESHOLD)
 
       const run = () => {
-        adds.forEach((r) => startDownload(r.style.id, r.style.url))
-        Promise.all(removes.map((r) => controller.deletePack(packId(trail.id, r.style.id)))).then(() =>
-          refreshPacks(controller),
+        adds.forEach((r) =>
+          download(controller, {
+            id: packId(trail.id, r.style.id),
+            styleUrl: r.style.url,
+            bounds: [bounds!.ne, bounds!.sw] as [[number, number], [number, number]],
+            minZoom: OFFLINE_MIN_ZOOM,
+            maxZoom: OFFLINE_MAX_ZOOM,
+            meta: { trailId: trail.id, styleId: r.style.id },
+          }),
         )
+        if (removes.length) remove(controller, removes.map((r) => packId(trail.id, r.style.id)))
         ;(ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
       }
 
