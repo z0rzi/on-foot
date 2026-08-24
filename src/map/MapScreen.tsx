@@ -30,8 +30,8 @@ export function MapScreen() {
   const selection = useMapStore((s) => s.selection)
   const recording = useRecordingStore((s) => recordingPhase(s.session) !== 'idle')
   const mode = mapMode({ recording, selection })
-  // Root height + the activity sheet's live top edge drive the controls' bottom in Activity mode, so
-  // the cluster rides continuously above the variable-height sheet.
+  // Root height + the selected sheet's live top edge drive the controls' bottom while a trail or
+  // activity is selected, so the cluster rides continuously above the variable-height sheet.
   const rootHeight = useSharedValue(0)
   const sheetTop = useSharedValue(0)
   const controlsAnimatedBottom = useDerivedValue(() =>
