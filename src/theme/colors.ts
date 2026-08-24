@@ -19,6 +19,8 @@ export interface AppColors {
   difficultyEasy: string
   difficultyMedium: string
   difficultyHard: string
+  success: string
+  warning: string
   danger: string
 }
 
@@ -43,6 +45,8 @@ export const lightColors: AppColors = {
   difficultyEasy: '#2E7D32',
   difficultyMedium: '#F9A825',
   difficultyHard: '#C62828',
+  success: '#2E7D32',
+  warning: '#E65100',
   danger: '#C62828',
 }
 
@@ -67,6 +71,8 @@ export const darkColors: AppColors = {
   difficultyEasy: '#66BB6A',
   difficultyMedium: '#FFB300',
   difficultyHard: '#EF5350',
+  success: '#66BB6A',
+  warning: '#FFA726',
   danger: '#EF5350',
 }
 

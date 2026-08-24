@@ -50,7 +50,7 @@ export default function TrailsScreen() {
         ],
       )
     },
-    [removeForTrail, removeTrail],
+    [offlineController, removeForTrail, removeTrail],
   )
 
   const onSelect = useCallback(

@@ -61,11 +61,17 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
         // was pending, so the map never overwrites a live unsub without calling it.
         stopTracking(id)
         subs.set(id, unsub)
-        // Reconcile a completion that landed before the subscription attached.
-        await reload(controller)
-        if (get().packs.some((p) => p.id === id && p.state === 'complete')) {
-          clearProgress(id)
-          stopTracking(id)
+        // Reconcile a completion that landed before the subscription attached. Best-effort: a
+        // transient listPacks failure here must not mark a live download as failed — the
+        // subscription is already driving it.
+        try {
+          await reload(controller)
+          if (get().packs.some((p) => p.id === id && p.state === 'complete')) {
+            clearProgress(id)
+            stopTracking(id)
+          }
+        } catch {
+          // ignore — the active subscription will still report completion
         }
       })
       .catch(() => {

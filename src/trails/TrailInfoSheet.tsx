@@ -13,7 +13,7 @@ import { MetricsGrid } from '../map/MetricsGrid'
 import { useMapCapabilities, useOfflineController } from '../map/provider'
 import { useOfflineStore } from '../map/offline/offlineStore'
 import { offlineStateForTrail } from '../map/offline/badge'
-import { packIdsForTrail } from '../map/offline/operations'
+import { parsePackId } from '../map/offline/packId'
 import { OfflineLayerChooser } from '../map/offline/OfflineLayerChooser'
 import { OfflineActionsMenu } from '../map/offline/OfflineActionsMenu'
 
@@ -52,7 +52,9 @@ export function TrailInfoSheet({
   }
 
   const retry = () => {
-    packIdsForTrail(packs, trail.id).forEach((id) => resume(controller, id))
+    packs
+      .filter((p) => parsePackId(p.id)?.trailId === trail.id && p.state !== 'complete')
+      .forEach((p) => resume(controller, p.id))
   }
 
   const cancel = () => removeForTrail(controller, trail.id).catch(removeFailed)
@@ -88,7 +90,7 @@ export function TrailInfoSheet({
           <Text style={[styles.badge, { color: c.controlAccent }]}>⬇ {state.pct}%</Text>
         )}
         {state.kind === 'available' && (
-          <Text style={[styles.badge, { color: c.difficultyEasy }]}>✓ Offline</Text>
+          <Text style={[styles.badge, { color: c.success }]}>✓ Offline</Text>
         )}
         {state.kind === 'failed' && (
           <Text style={[styles.badge, { color: c.danger }]}>⚠ Failed</Text>
@@ -96,8 +98,8 @@ export function TrailInfoSheet({
         <Pressable accessibilityLabel="Offline actions" onPress={() => setMenuOpen((o) => !o)} hitSlop={8}>
           <Ionicons name="ellipsis-vertical" size={20} color={c.onSurfaceVariant} />
         </Pressable>
-        {menuOpen && <OfflineActionsMenu items={menuItems} onClose={() => setMenuOpen(false)} />}
       </View>
+      {menuOpen && <OfflineActionsMenu items={menuItems} onClose={() => setMenuOpen(false)} />}
 
       {state.kind === 'downloading' ? (
         <View style={styles.progressWrap}>

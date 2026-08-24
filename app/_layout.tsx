@@ -26,7 +26,7 @@ function OfflineInitHandler() {
   const controller = useOfflineController()
   const init = useOfflineStore((s) => s.init)
   useEffect(() => {
-    init(controller)
+    init(controller).catch(() => {})
   }, [init, controller])
   return null
 }

@@ -129,7 +129,7 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
                 <Image source={r.style.preview} style={styles.swatch} resizeMode="cover" />
                 <View style={styles.meta}>
                   <Text style={[styles.name, { color: c.panelContent }]}>{r.style.label}</Text>
-                  <Text style={{ fontSize: 11, color: r.downloaded ? c.controlAccent : r.kind === 'raster' ? c.difficultyHard : c.onSurfaceVariant }}>
+                  <Text style={{ fontSize: 11, color: r.downloaded ? c.controlAccent : r.kind === 'raster' ? c.warning : c.onSurfaceVariant }}>
                     {r.downloaded
                       ? `✓ Downloaded · ${formatBytes(r.actualBytes ?? r.estimate?.bytes ?? 0)}`
                       : r.estimate
