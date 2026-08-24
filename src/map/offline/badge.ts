@@ -10,16 +10,18 @@ export function offlineStateForTrail(
   const live = Object.entries(progress)
     .filter(([id]) => parsePackId(id)?.trailId === trailId)
     .map(([, p]) => p)
+  const trailPacks = packs.filter((p) => parsePackId(p.id)?.trailId === trailId)
 
-  if (live.some((p) => p.failed)) return { kind: 'failed' }
+  if (live.some((p) => p.failed) || trailPacks.some((p) => p.state === 'error')) {
+    return { kind: 'failed' }
+  }
+
   const active = live.filter((p) => p.percentage < 100)
   if (active.length) {
     const pct = Math.round(active.reduce((s, p) => s + p.percentage, 0) / active.length)
     return { kind: 'downloading', pct }
   }
 
-  const trailPacks = packs.filter((p) => parsePackId(p.id)?.trailId === trailId)
-  if (trailPacks.some((p) => p.state === 'error')) return { kind: 'failed' }
   const downloading = trailPacks.filter((p) => p.state === 'downloading')
   if (downloading.length) {
     const pct = Math.round(downloading.reduce((s, p) => s + p.percentage, 0) / downloading.length)

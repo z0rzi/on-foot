@@ -31,6 +31,11 @@ describe('offlineStateForTrail', () => {
     const errored: OfflinePackInfo = { id: packId(1, 'x'), meta: { trailId: 1, styleId: 'x' }, state: 'error', percentage: 5, sizeBytes: 0 }
     expect(offlineStateForTrail(1, [errored], {})).toEqual({ kind: 'failed' })
   })
+  test('an at-rest error beats a concurrent live download for the trail', () => {
+    const errored: OfflinePackInfo = { id: packId(1, 'outdoors'), meta: { trailId: 1, styleId: 'outdoors' }, state: 'error', percentage: 5, sizeBytes: 0 }
+    const state = offlineStateForTrail(1, [errored], { [packId(1, 'satellite')]: { percentage: 40, failed: false } })
+    expect(state).toEqual({ kind: 'failed' })
+  })
   test('ignores other trails', () => {
     expect(offlineStateForTrail(2, [complete(1, 'outdoors')], {})).toEqual({ kind: 'none' })
   })
