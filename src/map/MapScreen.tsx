@@ -59,6 +59,7 @@ export function MapScreen() {
                 color={c.trailLine}
                 label={`Viewing trail · ${trail.name}`}
                 onExit={clearSelection}
+                exitAccessibilityLabel="Exit trail view"
               />
               <TrailInfoSheet trail={trail} animatedPosition={sheetTop} />
             </>
@@ -70,6 +71,7 @@ export function MapScreen() {
                 color={c.activityLine}
                 label={`Viewing activity · ${activity.name}`}
                 onExit={clearSelection}
+                exitAccessibilityLabel="Exit activity view"
               />
               <ActivityInfoSheet
                 activity={activity}
