@@ -1,9 +1,13 @@
 import Mapbox from '@rnmapbox/maps'
 import type { OfflineController, OfflinePackDescriptor, OfflinePackInfo } from '../../provider/types'
 
-export function mapPackState(state: number, percentage: number): OfflinePackInfo['state'] {
-  if (state === 2 || percentage >= 100) return 'complete'
-  if (state === 1) return 'downloading'
+// The native `state` field differs by platform: Android sends the string enum rawValue
+// ("complete"/"active"/"inactive"/…), iOS may send the numeric 0/1/2. Match both. The Android
+// getPacks payload also omits `completedTileSize` and can send a null `percentage` — callers
+// coalesce those before mapping (see infoFromPack / subscribe).
+export function mapPackState(state: number | string, percentage: number): OfflinePackInfo['state'] {
+  if (percentage >= 100 || state === 2 || state === 'complete') return 'complete'
+  if (state === 1 || state === 'active') return 'downloading'
   return 'incomplete'
 }
 
@@ -18,12 +22,13 @@ type MapboxOfflinePack = Awaited<ReturnType<typeof Mapbox.offlineManager.getPack
 
 async function infoFromPack(pack: MapboxOfflinePack): Promise<OfflinePackInfo> {
   const status = await pack.status()
+  const percentage = status.percentage ?? 0
   return {
     id: pack.name,
     meta: toMeta(pack.metadata),
-    state: mapPackState(status.state, status.percentage),
-    percentage: status.percentage,
-    sizeBytes: status.completedTileSize ?? 0,
+    state: mapPackState(status.state, percentage),
+    percentage,
+    sizeBytes: status.completedTileSize ?? status.completedResourceSize ?? 0,
   }
 }
 
@@ -56,14 +61,16 @@ export const mapboxOfflineController: OfflineController = {
   subscribe(id, onProgress, onError) {
     Mapbox.offlineManager.subscribe(
       id,
-      (_pack, status) =>
+      (_pack, status) => {
+        const percentage = status.percentage ?? 0
         onProgress({
           id,
           meta: null,
-          state: mapPackState(status.state, status.percentage),
-          percentage: status.percentage,
-          sizeBytes: status.completedTileSize ?? 0,
-        }),
+          state: mapPackState(status.state, percentage),
+          percentage,
+          sizeBytes: status.completedTileSize ?? status.completedResourceSize ?? 0,
+        })
+      },
       (_pack, err) => onError(id, err.message),
     )
     return () => Mapbox.offlineManager.unsubscribe(id)
