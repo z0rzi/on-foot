@@ -85,6 +85,16 @@ describe('offlineStore ownership', () => {
     expect(useOfflineStore.getState().progress[id]).toBeUndefined()
   })
 
+  test('concurrent same-id downloads never orphan the first subscription', async () => {
+    const id = packId(1, 'a')
+    const controller = makeController({ onSubscribe: (sid, onProgress) => onProgress(info(sid, 'incomplete', 20)) })
+    useOfflineStore.getState().download(controller, descriptor(id))
+    useOfflineStore.getState().download(controller, descriptor(id))
+    await flush()
+    // the first subscription was torn down when the second registered
+    expect(controller.unsubscribed).toContain(id)
+  })
+
   test('reconciles a completion that landed before the subscription attached', async () => {
     const id = packId(1, 'a')
     // subscribe fires nothing, but the registry already shows the pack complete

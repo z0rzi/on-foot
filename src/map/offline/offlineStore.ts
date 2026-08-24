@@ -57,6 +57,9 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
             stopTracking(id)
           },
         )
+        // Tear down any subscription a concurrent track for this id registered while our kickoff
+        // was pending, so the map never overwrites a live unsub without calling it.
+        stopTracking(id)
         subs.set(id, unsub)
         // Reconcile a completion that landed before the subscription attached.
         await reload(controller)
