@@ -53,3 +53,6 @@ example
 
 # local expo module build outputs
 modules/**/build/
+
+# Brainstorming visual companion scratch
+.superpowers/
