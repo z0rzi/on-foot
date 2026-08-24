@@ -45,7 +45,9 @@ The existing trail bottom sheet gains:
 - **A state badge next to the trail title**, determinate (never a forever-pulse):
   - `none` — no badge.
   - `downloading` — `⬇ 46%` badge; the summary line ("7.2 km · 620 m gain") is replaced by
-    "Downloading Outdoors · 21 / 45 MB" + a thin determinate progress bar; reverts when done.
+    "Downloading <layer> · 46%" (the layer name, or "N layers" when several download at once) + a
+    thin determinate progress bar; reverts when done. (A downloaded/total-MB figure is omitted —
+    the native SDK gives no reliable pre-download total, only a heuristic estimate.)
   - `available` — a settled `✓ Offline` badge (static, no animation).
   - `failed` — `⚠ Failed` badge; summary shows "Download stopped · tap to retry".
 - **Offline actions live in the sheet's ⋮ overflow menu** (top-right), keeping the collapsed
@@ -85,17 +87,15 @@ mirroring `CameraController`. SDK-neutral surface:
 
 ```ts
 export interface OfflinePackDescriptor {
-  id: string            // deterministic: `trail-<trailId>-<styleId>`
+  id: string            // deterministic: `offline:<trailId>:<styleId>` (canonical trail/style)
   bounds: [ [number, number], [number, number] ] // [ne, sw] lng/lat
   styleUrl: string
   minZoom: number
   maxZoom: number
-  meta: { trailId: number; styleId: string }
 }
 
 export interface OfflinePackInfo {
-  id: string
-  meta: { trailId: number; styleId: string } | null
+  id: string            // parse with parsePackId for trail/style — no redundant metadata copy
   state: 'complete' | 'downloading' | 'incomplete' | 'error'
   percentage: number    // 0..100
   sizeBytes: number      // completed tile size on disk
@@ -112,8 +112,9 @@ export interface OfflineController {
 ```
 
 The `MapCapabilities.offline: boolean` flag already exists and is `true` for Mapbox. New
-provider-specific concepts (pack state mapping, metadata JSON encoding) live in the adapter,
-never leaked into shared code. MapLibre stays reachable — it has an equivalent offline API.
+provider-specific concepts (pack state mapping, the platform size-field/percentage differences)
+live in the adapter, never leaked into shared code. MapLibre stays reachable — it has an
+equivalent offline API.
 
 The Mapbox adapter maps this onto `offlineManager.createPack({ name, styleURL, bounds,
 minZoom, maxZoom, metadata }, progressListener, errorListener)`, `getPacks()`,
@@ -124,7 +125,8 @@ minZoom, maxZoom, metadata }, progressListener, errorListener)`, `getPacks()`,
 The Mapbox pack registry **is** the source of truth. We persist **nothing new** in our
 SQLite DB (the slice-2 "don't mirror authoritative state" lesson). Everything the UI shows is
 **derived from `listPacks()`** joined with trail data:
-- `{ trailId, styleId }` is stashed in each pack's `metadata`.
+- The pack id (`offline:<trailId>:<styleId>`) is the canonical source of the trail/style it belongs
+  to — consumers parse it with `parsePackId`, so no separate metadata copy is carried.
 - The Settings list, per-trail badges, and totals are all computed from the pack list.
 
 **Live download progress** is transient and lives in a **session-only** zustand store

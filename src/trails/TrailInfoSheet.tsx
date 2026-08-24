@@ -10,7 +10,7 @@ import { useTheme } from '../theme/useTheme'
 import { DifficultyBadge } from './DifficultyBadge'
 import { MapInfoSheet } from '../map/MapInfoSheet'
 import { MetricsGrid } from '../map/MetricsGrid'
-import { useOfflineController } from '../map/provider'
+import { useMapCapabilities, useOfflineController } from '../map/provider'
 import { useOfflineStore } from '../map/offline/offlineStore'
 import { offlineStateForTrail } from '../map/offline/badge'
 import { packIdsForTrail } from '../map/offline/operations'
@@ -26,6 +26,7 @@ export function TrailInfoSheet({
 }) {
   const c = useTheme()
   const router = useRouter()
+  const caps = useMapCapabilities()
   const controller = useOfflineController()
   const packs = useOfflineStore((s) => s.packs)
   const progress = useOfflineStore((s) => s.progress)
@@ -36,10 +37,17 @@ export function TrailInfoSheet({
 
   const state = offlineStateForTrail(trail.id, packs, progress)
 
+  const removeFailed = () =>
+    Alert.alert('Could not remove', 'Something went wrong. Please try again.')
+
   const removeAll = () => {
     Alert.alert('Remove offline maps', `Remove downloaded maps for "${trail.name}"?`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => removeForTrail(controller, trail.id) },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => removeForTrail(controller, trail.id).catch(removeFailed),
+      },
     ])
   }
 
@@ -47,7 +55,14 @@ export function TrailInfoSheet({
     packIdsForTrail(packs, trail.id).forEach((id) => resume(controller, id))
   }
 
-  const cancel = () => removeForTrail(controller, trail.id)
+  const cancel = () => removeForTrail(controller, trail.id).catch(removeFailed)
+
+  const downloadingLabel =
+    state.kind === 'downloading'
+      ? state.styleIds.length === 1
+        ? caps.styles.find((s) => s.id === state.styleIds[0])?.label ?? state.styleIds[0]
+        : `${state.styleIds.length} layers`
+      : ''
 
   const menuItems =
     state.kind === 'none'
@@ -89,7 +104,9 @@ export function TrailInfoSheet({
           <View style={[styles.progressTrack, { backgroundColor: c.panelDivider }]}>
             <View style={[styles.progressFill, { backgroundColor: c.controlAccent, width: `${state.pct}%` }]} />
           </View>
-          <Text style={[styles.summary, { color: c.onSurfaceVariant }]}>Downloading… {state.pct}%</Text>
+          <Text style={[styles.summary, { color: c.onSurfaceVariant }]}>
+            Downloading {downloadingLabel} · {state.pct}%
+          </Text>
         </View>
       ) : (
         <View style={styles.summaryRow}>

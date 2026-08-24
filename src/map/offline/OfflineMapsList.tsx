@@ -3,21 +3,18 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect } from 'expo-router'
 import { useTheme } from '../../theme/useTheme'
-import { useOfflineController } from '../provider'
+import { useMapCapabilities, useOfflineController } from '../provider'
 import { useOfflineStore } from './offlineStore'
 import { useTrailsStore } from '../../store/trailsStore'
 import { groupPacksByTrail, totalOfflineBytes } from './grouping'
+import { formatBytes } from './format'
 import { packId } from './packId'
-
-function formatBytes(bytes: number): string {
-  if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(1)} GB`
-  if (bytes >= 1_000_000) return `${Math.round(bytes / 1_000_000)} MB`
-  return `${Math.max(1, Math.round(bytes / 1000))} KB`
-}
 
 export function OfflineMapsList() {
   const c = useTheme()
+  const caps = useMapCapabilities()
   const controller = useOfflineController()
+  const labelFor = (styleId: string) => caps.styles.find((s) => s.id === styleId)?.label ?? styleId
   const packs = useOfflineStore((s) => s.packs)
   const remove = useOfflineStore((s) => s.remove)
   const trails = useTrailsStore((s) => s.trails)
@@ -38,7 +35,10 @@ export function OfflineMapsList() {
       {
         text: 'Remove',
         style: 'destructive',
-        onPress: () => remove(controller, [packId(trailId, styleId)]),
+        onPress: () =>
+          remove(controller, [packId(trailId, styleId)]).catch(() =>
+            Alert.alert('Could not remove', 'Something went wrong. Please try again.'),
+          ),
       },
     ])
   }
@@ -65,10 +65,10 @@ export function OfflineMapsList() {
             </View>
             {g.layers.map((l) => (
               <View key={l.styleId} style={[styles.layer, { borderTopColor: c.panelDivider }]}>
-                <Text style={{ color: c.onSurface, fontSize: 13, flex: 1 }}>{l.styleId}</Text>
+                <Text style={{ color: c.onSurface, fontSize: 13, flex: 1 }}>{labelFor(l.styleId)}</Text>
                 <Text style={{ color: c.onSurfaceVariant, fontSize: 11, marginRight: 12 }}>{formatBytes(l.sizeBytes)}</Text>
                 <Pressable
-                  accessibilityLabel={`Remove ${l.styleId} for ${g.trailName ?? 'unknown trail'}`}
+                  accessibilityLabel={`Remove ${labelFor(l.styleId)} for ${g.trailName ?? 'unknown trail'}`}
                   onPress={() => removeLayer(g.trailId, l.styleId, g.trailName)}
                   hitSlop={8}
                 >

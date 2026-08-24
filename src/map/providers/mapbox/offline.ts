@@ -11,13 +11,6 @@ export function mapPackState(state: number | string, percentage: number): Offlin
   return 'incomplete'
 }
 
-function toMeta(raw: unknown): OfflinePackInfo['meta'] {
-  const m = raw as { trailId?: unknown; styleId?: unknown } | null | undefined
-  return m && typeof m.trailId === 'number' && typeof m.styleId === 'string'
-    ? { trailId: m.trailId, styleId: m.styleId }
-    : null
-}
-
 type MapboxOfflinePack = Awaited<ReturnType<typeof Mapbox.offlineManager.getPacks>>[number]
 
 async function infoFromPack(pack: MapboxOfflinePack): Promise<OfflinePackInfo> {
@@ -25,7 +18,6 @@ async function infoFromPack(pack: MapboxOfflinePack): Promise<OfflinePackInfo> {
   const percentage = status.percentage ?? 0
   return {
     id: pack.name,
-    meta: toMeta(pack.metadata),
     state: mapPackState(status.state, percentage),
     percentage,
     sizeBytes: status.completedTileSize ?? status.completedResourceSize ?? 0,
@@ -42,7 +34,6 @@ export const mapboxOfflineController: OfflineController = {
         bounds: d.bounds,
         minZoom: d.minZoom,
         maxZoom: d.maxZoom,
-        metadata: d.meta,
       },
       () => {},
       () => {},
@@ -66,7 +57,6 @@ export const mapboxOfflineController: OfflineController = {
         const percentage = status.percentage ?? 0
         onProgress({
           id,
-          meta: null,
           state: mapPackState(status.state, percentage),
           percentage,
           sizeBytes: status.completedTileSize ?? status.completedResourceSize ?? 0,

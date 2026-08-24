@@ -21,7 +21,7 @@ export interface OfflineTrailGroup {
 
 export type OfflineBadgeState =
   | { kind: 'none' }
-  | { kind: 'downloading'; pct: number }
+  | { kind: 'downloading'; pct: number; styleIds: string[] }
   | { kind: 'available'; styleIds: string[] }
   | { kind: 'failed' }
 

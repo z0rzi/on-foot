@@ -4,7 +4,6 @@ import type { OfflinePackInfo } from '../../provider/types'
 
 const pack = (trailId: number, styleId: string, sizeBytes: number): OfflinePackInfo => ({
   id: packId(trailId, styleId),
-  meta: { trailId, styleId },
   state: 'complete',
   percentage: 100,
   sizeBytes,
@@ -28,7 +27,7 @@ describe('groupPacksByTrail', () => {
     expect(groups[0]).toMatchObject({ trailId: 9, trailName: null })
   })
   test('skips foreign (unparseable) pack names', () => {
-    const foreign: OfflinePackInfo = { id: 'x', meta: null, state: 'complete', percentage: 100, sizeBytes: 5 }
+    const foreign: OfflinePackInfo = { id: 'x', state: 'complete', percentage: 100, sizeBytes: 5 }
     expect(groupPacksByTrail([foreign], [])).toEqual([])
   })
   test('empty → []', () => expect(groupPacksByTrail([], [])).toEqual([]))

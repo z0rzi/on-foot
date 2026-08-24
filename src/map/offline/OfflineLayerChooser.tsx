@@ -10,14 +10,9 @@ import { boundsForTrail } from './bounds'
 import { estimatePackSize, layerKindForStyle } from './estimate'
 import { offlineStateForTrail } from './badge'
 import { packId } from './packId'
+import { formatBytes } from './format'
 import { OFFLINE_MARGIN_KM, OFFLINE_MAX_ZOOM, OFFLINE_MIN_ZOOM, TILE_COUNT_WARN_THRESHOLD } from './constants'
 import type { Trail } from '../../data/trails/types'
-
-function formatBytes(bytes: number): string {
-  if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(1)} GB`
-  if (bytes >= 1_000_000) return `${Math.round(bytes / 1_000_000)} MB`
-  return `${Math.max(1, Math.round(bytes / 1000))} KB`
-}
 
 export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }>(
   function OfflineLayerChooser({ trail }, ref) {
@@ -54,7 +49,8 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
       const kind = layerKindForStyle(s.satellite)
       const estimate = bounds ? estimatePackSize(bounds, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM, kind) : null
       const downloaded = downloadedIds.includes(s.id)
-      return { style: s, kind, estimate, downloaded }
+      const actualBytes = packs.find((p) => p.id === packId(trail.id, s.id))?.sizeBytes ?? null
+      return { style: s, kind, estimate, downloaded, actualBytes }
     })
 
     const toDownloadBytes = rows
@@ -82,10 +78,13 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
             bounds: [bounds!.ne, bounds!.sw] as [[number, number], [number, number]],
             minZoom: OFFLINE_MIN_ZOOM,
             maxZoom: OFFLINE_MAX_ZOOM,
-            meta: { trailId: trail.id, styleId: r.style.id },
           }),
         )
-        if (removes.length) remove(controller, removes.map((r) => packId(trail.id, r.style.id)))
+        if (removes.length) {
+          remove(controller, removes.map((r) => packId(trail.id, r.style.id))).catch(() =>
+            Alert.alert('Could not remove', 'Something went wrong. Please try again.'),
+          )
+        }
         ;(ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
       }
 
@@ -132,7 +131,7 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
                   <Text style={[styles.name, { color: c.panelContent }]}>{r.style.label}</Text>
                   <Text style={{ fontSize: 11, color: r.downloaded ? c.controlAccent : r.kind === 'raster' ? c.difficultyHard : c.onSurfaceVariant }}>
                     {r.downloaded
-                      ? `✓ Downloaded · ${r.estimate ? formatBytes(r.estimate.bytes) : ''}`
+                      ? `✓ Downloaded · ${formatBytes(r.actualBytes ?? r.estimate?.bytes ?? 0)}`
                       : r.estimate
                         ? `~${formatBytes(r.estimate.bytes)}`
                         : 'unavailable'}

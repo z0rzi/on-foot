@@ -40,6 +40,8 @@ export default function TrailsScreen() {
               try {
                 await removeForTrail(offlineController, trail.id)
                 await removeTrail(trail.id)
+              } catch {
+                Alert.alert('Could not delete', 'Something went wrong deleting this trail. Please try again.')
               } finally {
                 setPending(false)
               }

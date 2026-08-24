@@ -2,7 +2,7 @@ import { packIdsForTrail } from '../operations'
 import { packId } from '../packId'
 import type { OfflinePackInfo } from '../../provider/types'
 
-const info = (id: string): OfflinePackInfo => ({ id, meta: null, state: 'complete', percentage: 100, sizeBytes: 1 })
+const info = (id: string): OfflinePackInfo => ({ id, state: 'complete', percentage: 100, sizeBytes: 1 })
 
 describe('packIdsForTrail', () => {
   test('returns only the target trail\'s pack ids', () => {

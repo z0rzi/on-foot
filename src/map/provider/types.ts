@@ -105,12 +105,12 @@ export interface OfflinePackDescriptor {
   bounds: [[number, number], [number, number]]
   minZoom: number
   maxZoom: number
-  meta: { trailId: number; styleId: string }
 }
 
 export interface OfflinePackInfo {
+  // The id (`offline:<trailId>:<styleId>`) is the canonical source of trail/style — parse it
+  // with parsePackId rather than carrying a redundant metadata copy.
   id: string
-  meta: { trailId: number; styleId: string } | null
   state: 'complete' | 'downloading' | 'incomplete' | 'error'
   percentage: number
   sizeBytes: number

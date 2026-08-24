@@ -5,27 +5,33 @@ import type { OfflineController, OfflinePackInfo } from '../../provider/types'
 const flush = () => new Promise<void>((r) => setImmediate(r))
 
 const info = (id: string, state: OfflinePackInfo['state'] = 'complete', percentage = 100): OfflinePackInfo => ({
-  id, meta: null, state, percentage, sizeBytes: 1,
+  id, state, percentage, sizeBytes: 1,
+})
+
+const descriptor = (id: string) => ({
+  id, styleUrl: 'u', bounds: [[1, 1], [0, 0]] as [[number, number], [number, number]], minZoom: 10, maxZoom: 16,
 })
 
 // Fake controller. `subscribe` immediately drives the provided script of progress/error calls,
-// so the store's completion/error wiring runs synchronously within a flushed microtask.
+// so the store's completion/error wiring runs synchronously within a flushed microtask, and it
+// records unsubscribe calls so teardown can be asserted.
 function makeController(opts: {
   packs?: OfflinePackInfo[]
   onSubscribe?: (id: string, onProgress: (i: OfflinePackInfo) => void, onError: (id: string, m: string) => void) => void
-} = {}): OfflineController & { deleted: string[]; downloaded: string[]; resumed: string[] } {
+} = {}): OfflineController & { deleted: string[]; downloaded: string[]; resumed: string[]; unsubscribed: string[] } {
   const deleted: string[] = []
   const downloaded: string[] = []
   const resumed: string[] = []
+  const unsubscribed: string[] = []
   return {
-    deleted, downloaded, resumed,
+    deleted, downloaded, resumed, unsubscribed,
     downloadPack: async (d) => { downloaded.push(d.id) },
     resumePack: async (id) => { resumed.push(id) },
     deletePack: async (id) => { deleted.push(id) },
     listPacks: async () => opts.packs ?? [],
     subscribe: (id, onProgress, onError) => {
       opts.onSubscribe?.(id, onProgress, onError)
-      return () => {}
+      return () => { unsubscribed.push(id) }
     },
   }
 }
@@ -43,9 +49,7 @@ describe('offlineStore ownership', () => {
       packs: [info(packId(1, 'a'))],
       onSubscribe: (id, onProgress) => onProgress(info(id, 'complete', 100)),
     })
-    useOfflineStore.getState().download(controller, {
-      id: packId(1, 'a'), styleUrl: 'u', bounds: [[1, 1], [0, 0]], minZoom: 10, maxZoom: 16, meta: { trailId: 1, styleId: 'a' },
-    })
+    useOfflineStore.getState().download(controller, descriptor(packId(1, 'a')))
     await flush()
     expect(controller.downloaded).toEqual([packId(1, 'a')])
     expect(useOfflineStore.getState().progress[packId(1, 'a')]).toBeUndefined()
@@ -54,9 +58,7 @@ describe('offlineStore ownership', () => {
 
   test('download error marks the pack failed', async () => {
     const controller = makeController({ onSubscribe: (id, _p, onError) => onError(id, 'boom') })
-    useOfflineStore.getState().download(controller, {
-      id: packId(1, 'a'), styleUrl: 'u', bounds: [[1, 1], [0, 0]], minZoom: 10, maxZoom: 16, meta: { trailId: 1, styleId: 'a' },
-    })
+    useOfflineStore.getState().download(controller, descriptor(packId(1, 'a')))
     await flush()
     expect(useOfflineStore.getState().progress[packId(1, 'a')]).toEqual({ percentage: 0, failed: true })
   })
@@ -69,6 +71,28 @@ describe('offlineStore ownership', () => {
     await flush()
     expect(controller.resumed).toEqual([id])
     expect(useOfflineStore.getState().progress[id]).toBeUndefined()
+  })
+
+  test('remove tears down an in-flight subscription so no ghost progress survives', async () => {
+    const id = packId(1, 'a')
+    // subscribe attaches but never completes (in-flight download)
+    const controller = makeController({ onSubscribe: (sid, onProgress) => onProgress(info(sid, 'incomplete', 30)) })
+    useOfflineStore.getState().download(controller, descriptor(id))
+    await flush()
+    expect(useOfflineStore.getState().progress[id]).toEqual({ percentage: 30, failed: false })
+    await useOfflineStore.getState().remove(controller, [id])
+    expect(controller.unsubscribed).toContain(id)
+    expect(useOfflineStore.getState().progress[id]).toBeUndefined()
+  })
+
+  test('reconciles a completion that landed before the subscription attached', async () => {
+    const id = packId(1, 'a')
+    // subscribe fires nothing, but the registry already shows the pack complete
+    const controller = makeController({ packs: [info(id, 'complete', 100)] })
+    useOfflineStore.getState().download(controller, descriptor(id))
+    await flush()
+    expect(useOfflineStore.getState().progress[id]).toBeUndefined()
+    expect(useOfflineStore.getState().packs).toHaveLength(1)
   })
 
   test('remove deletes the given ids, clears their progress, and reloads', async () => {
