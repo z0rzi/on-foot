@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { SharedValue } from 'react-native-reanimated'
@@ -14,6 +14,7 @@ import { useOfflineController } from '../map/provider'
 import { useOfflineStore } from '../map/offline/offlineStore'
 import { offlineStateForTrail } from '../map/offline/badge'
 import { packIdsForTrail } from '../map/offline/operations'
+import { runPackDownload } from '../map/offline/download'
 import { OfflineLayerChooser } from '../map/offline/OfflineLayerChooser'
 import { OfflineActionsMenu } from '../map/offline/OfflineActionsMenu'
 
@@ -36,6 +37,10 @@ export function TrailInfoSheet({
 
   const state = offlineStateForTrail(trail.id, packs, progress)
 
+  useEffect(() => {
+    refreshPacks(controller)
+  }, [refreshPacks, controller, trail.id])
+
   const removeAll = () => {
     Alert.alert('Remove offline maps', `Remove downloaded maps for "${trail.name}"?`, [
       { text: 'Cancel', style: 'cancel' },
@@ -52,9 +57,10 @@ export function TrailInfoSheet({
     ])
   }
 
-  const retry = async () => {
-    const ids = packIdsForTrail(packs, trail.id)
-    await Promise.all(ids.map((id) => controller.resumePack(id)))
+  const retry = () => {
+    packIdsForTrail(packs, trail.id).forEach((id) =>
+      runPackDownload(controller, id, () => controller.resumePack(id)),
+    )
   }
 
   const cancel = async () => {

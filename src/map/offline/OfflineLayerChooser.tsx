@@ -10,6 +10,7 @@ import { boundsForTrail } from './bounds'
 import { estimatePackSize, layerKindForStyle } from './estimate'
 import { offlineStateForTrail } from './badge'
 import { packId } from './packId'
+import { runPackDownload } from './download'
 import { OFFLINE_MARGIN_KM, OFFLINE_MAX_ZOOM, OFFLINE_MIN_ZOOM, TILE_COUNT_WARN_THRESHOLD } from './constants'
 import type { Trail } from '../../data/trails/types'
 
@@ -27,8 +28,6 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
     const currentStyleId = useMapStore((s) => s.mapStyleId)
     const packs = useOfflineStore((s) => s.packs)
     const progress = useOfflineStore((s) => s.progress)
-    const setProgress = useOfflineStore((s) => s.setProgress)
-    const clearProgress = useOfflineStore((s) => s.clearProgress)
     const refreshPacks = useOfflineStore((s) => s.refreshPacks)
 
     const snapPoints = useMemo(() => ['65%'], [])
@@ -68,34 +67,15 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
 
     const startDownload = (styleId: string, styleUrl: string) => {
       const id = packId(trail.id, styleId)
-      setProgress(id, 0, false)
-      controller
-        .downloadPack({
-          id,
-          styleUrl,
-          bounds: [bounds!.ne, bounds!.sw],
-          minZoom: OFFLINE_MIN_ZOOM,
-          maxZoom: OFFLINE_MAX_ZOOM,
-          meta: { trailId: trail.id, styleId },
-        })
-        .then(() => {
-          const unsub = controller.subscribe(
-            id,
-            (info) => {
-              setProgress(id, info.percentage, false)
-              if (info.state === 'complete') {
-                clearProgress(id)
-                refreshPacks(controller)
-                unsub()
-              }
-            },
-            () => {
-              setProgress(id, 0, true)
-              unsub()
-            },
-          )
-        })
-        .catch(() => setProgress(id, 0, true))
+      const descriptor = {
+        id,
+        styleUrl,
+        bounds: [bounds!.ne, bounds!.sw] as [[number, number], [number, number]],
+        minZoom: OFFLINE_MIN_ZOOM,
+        maxZoom: OFFLINE_MAX_ZOOM,
+        meta: { trailId: trail.id, styleId },
+      }
+      runPackDownload(controller, id, () => controller.downloadPack(descriptor))
     }
 
     const apply = async () => {

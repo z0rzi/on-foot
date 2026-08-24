@@ -34,6 +34,7 @@ async function infoFromPack(pack: MapboxOfflinePack): Promise<OfflinePackInfo> {
 
 export const mapboxOfflineController: OfflineController = {
   async downloadPack(d: OfflinePackDescriptor) {
+    await Mapbox.offlineManager.deletePack(d.id).catch(() => {})
     await Mapbox.offlineManager.createPack(
       {
         name: d.id,
