@@ -8,7 +8,7 @@ import { MapCanvas } from './MapCanvas'
 import { MapControls } from './MapControls'
 import { RecordButton } from './RecordButton'
 import { LayersSheet } from './LayersSheet'
-import { ActivityModeChip } from './ActivityModeChip'
+import { MapModeChip } from './MapModeChip'
 import { ActivityInfoSheet } from './ActivityInfoSheet'
 import { useLocationPermission } from './useLocationPermission'
 import { useSelectedTrail } from './useSelectedTrail'
@@ -16,11 +16,13 @@ import { useSelectedActivity } from './useSelectedActivity'
 import { TrailInfoCard } from '../trails/TrailInfoCard'
 import { useMapStore, mapMode } from '../store/mapStore'
 import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
+import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
 
 export function MapScreen() {
   const sheetRef = useRef<BottomSheetModal>(null)
   useLocationPermission()
+  const c = useTheme()
   const trail = useSelectedTrail()
   const activity = useSelectedActivity()
   const select = useMapStore((s) => s.select)
@@ -58,7 +60,12 @@ export function MapScreen() {
           )}
           {mode === 'activity' && activity && (
             <>
-              <ActivityModeChip activity={activity} onExit={clearSelection} />
+              <MapModeChip
+                icon="walk"
+                color={c.activityLine}
+                label={`Viewing activity · ${activity.name}`}
+                onExit={clearSelection}
+              />
               <ActivityInfoSheet
                 activity={activity}
                 onViewLinkedTrail={(id) => select('trail', id)}
