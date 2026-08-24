@@ -17,7 +17,7 @@ describe('slippy-map tile math', () => {
     expect(latToTileY(0, 0)).toBe(0)
     expect(tileCountForBounds(world, 0, 0)).toBe(1)
   })
-  test('a sub-tile bbox is one tile at a high zoom', () => {
+  test('a tiny bbox straddling a tile corner spans its four tiles', () => {
     expect(tileCountForBounds(tiny, 14, 14)).toBe(4)
   })
   test('tile count grows with the zoom range', () => {
