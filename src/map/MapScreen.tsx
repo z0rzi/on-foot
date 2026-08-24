@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { View } from 'react-native'
 import { useSharedValue, useDerivedValue } from 'react-native-reanimated'
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet'
@@ -13,7 +13,7 @@ import { ActivityInfoSheet } from './ActivityInfoSheet'
 import { useLocationPermission } from './useLocationPermission'
 import { useSelectedTrail } from './useSelectedTrail'
 import { useSelectedActivity } from './useSelectedActivity'
-import { TrailInfoCard } from '../trails/TrailInfoCard'
+import { TrailInfoSheet } from '../trails/TrailInfoSheet'
 import { useMapStore, mapMode } from '../store/mapStore'
 import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
 import { useTheme } from '../theme/useTheme'
@@ -30,8 +30,6 @@ export function MapScreen() {
   const selection = useMapStore((s) => s.selection)
   const recording = useRecordingStore((s) => recordingPhase(s.session) !== 'idle')
   const mode = mapMode({ recording, selection })
-  // Measured height of the trail info card, so the controls sit clear above it while it is shown.
-  const [cardHeight, setCardHeight] = useState(0)
   // Root height + the activity sheet's live top edge drive the controls' bottom in Activity mode, so
   // the cluster rides continuously above the variable-height sheet.
   const rootHeight = useSharedValue(0)
@@ -42,21 +40,28 @@ export function MapScreen() {
       : rootHeight.value - sheetTop.value + MapTokens.controlsSpacing,
   )
 
-  const trailLift = mode === 'trail' && trail ? cardHeight + MapTokens.controlsSpacing : 0
-
   return (
     <MapProviderProvider provider={mapboxProvider}>
       <BottomSheetModalProvider>
         <View style={{ flex: 1 }} onLayout={(e) => { rootHeight.value = e.nativeEvent.layout.height }}>
           <MapCanvas trail={mode === 'trail' ? trail : null} activity={mode === 'activity' ? activity : null} />
-          {mode !== 'activity' && <RecordButton extraBottom={trailLift} />}
+          {mode !== 'activity' && (
+            <RecordButton animatedBottom={mode === 'trail' ? controlsAnimatedBottom : undefined} />
+          )}
           <MapControls
             onOpenLayers={() => sheetRef.current?.present()}
-            extraBottom={trailLift}
-            animatedBottom={mode === 'activity' ? controlsAnimatedBottom : undefined}
+            animatedBottom={mode === 'activity' || mode === 'trail' ? controlsAnimatedBottom : undefined}
           />
           {mode === 'trail' && trail && (
-            <TrailInfoCard trail={trail} onClose={clearSelection} onHeightChange={setCardHeight} />
+            <>
+              <MapModeChip
+                icon="trail-sign"
+                color={c.trailLine}
+                label={`Viewing trail · ${trail.name}`}
+                onExit={clearSelection}
+              />
+              <TrailInfoSheet trail={trail} animatedPosition={sheetTop} />
+            </>
           )}
           {mode === 'activity' && activity && (
             <>

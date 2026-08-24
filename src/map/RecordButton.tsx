@@ -2,7 +2,7 @@ import React, { useCallback, useMemo } from 'react'
 import { Alert, Pressable, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
-import Animated, { runOnJS, useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated'
+import Animated, { runOnJS, useAnimatedProps, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated'
 import Svg, { Circle } from 'react-native-svg'
 import { useRouter } from 'expo-router'
 import { useTheme } from '../theme/useTheme'
@@ -21,7 +21,13 @@ const R = (SIZE - RING) / 2
 const CENTER = SIZE / 2
 const CIRCUMFERENCE = 2 * Math.PI * R
 
-export function RecordButton({ extraBottom = 0 }: { extraBottom?: number }) {
+export function RecordButton({
+  extraBottom = 0,
+  animatedBottom,
+}: {
+  extraBottom?: number
+  animatedBottom?: SharedValue<number>
+}) {
   const c = useTheme()
   const router = useRouter()
   const insets = useSafeAreaInsets()
@@ -75,10 +81,14 @@ export function RecordButton({ extraBottom = 0 }: { extraBottom?: number }) {
     strokeDashoffset: CIRCUMFERENCE * (1 - progress.value),
   }))
 
+  const anchorStyle = useAnimatedStyle(() => ({
+    bottom: animatedBottom ? animatedBottom.value : insets.bottom + MapTokens.overlayPadding + extraBottom,
+  }))
+
   if (phase === 'saving') return null
 
   return (
-    <View style={[styles.anchor, { bottom: insets.bottom + MapTokens.overlayPadding + extraBottom, left: MapTokens.overlayPadding }]}>
+    <Animated.View style={[styles.anchor, { left: MapTokens.overlayPadding }, anchorStyle]}>
       {phase === 'recording' ? (
         <GestureDetector gesture={hold}>
           <View
@@ -111,7 +121,7 @@ export function RecordButton({ extraBottom = 0 }: { extraBottom?: number }) {
           <PlayIcon size={MapTokens.controlIconSize} color={c.recordingLine} />
         </Pressable>
       )}
-    </View>
+    </Animated.View>
   )
 }
 
