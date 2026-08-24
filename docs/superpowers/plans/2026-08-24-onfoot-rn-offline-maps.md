@@ -1729,7 +1729,8 @@ git commit -m "feat(offline): cascade-delete offline packs when a trail is delet
 - Settings grouped by trail, total storage, per-layer remove, "Areas — LATER" → Task 8. ✓
 - Provider seam / `OfflineController` / capability flag → Task 3. ✓
 - No new DB table; derive from registry; session-only progress → Task 5. ✓
-- Size estimates heuristic + labelled; tile-limit warn; cellular warn → Task 2 + Task 6. ✓
+- Size estimates heuristic + labelled; tile-limit warn → Task 2 + Task 6. ✓ (Per-download
+  cellular/metered warning DEFERRED to a follow-up — needs a native connectivity dep; see spec §8.)
 - Error/failed + retry (`resume`) → Task 3 + Task 7. ✓
 - Cascade delete → Task 9. ✓
 - Deferred (area download placeholder only, no coverage-badges, etc.) → Task 8 placeholder; nothing else built. ✓

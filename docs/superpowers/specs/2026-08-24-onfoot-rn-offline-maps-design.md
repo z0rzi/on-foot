@@ -164,8 +164,10 @@ from `../../data/trails/types`, never the DB-opening barrel.
 - **Tile-count limit:** Mapbox enforces a default per-device offline tile limit (6000 under
   the standard ToS). The estimate also yields a tile count; if a requested pack would exceed
   a safe threshold, warn the user (Satellite at high zoom over a large bbox is the risk case).
-- **Cellular:** warn before starting a download on a metered connection (hikers usually grab
-  packs on WiFi at home). A persistent "WiFi only" *setting* is deferred (§8).
+- **Cellular:** a per-download metered-connection warning is **deferred to a follow-up** (§8) —
+  it needs a native connectivity dependency (NetInfo/expo-network) not worth adding for v1. The
+  size/tile-limit warning above is the real guard against large (satellite) downloads and ships
+  in v1; hikers typically grab packs on WiFi at home regardless.
 
 ## 6. Error handling
 - Download error (dropped connection) → `error` state → `⚠ Failed` badge + tap-to-retry
@@ -179,7 +181,7 @@ from `../../data/trails/types`, never the DB-opening barrel.
   `groupPacksByTrail`, `offlineStateForTrail`.
 - **Device-verified (not unit-tested):** actual download + live progress, cancel/remove,
   retry after a forced network drop, the layer chooser sheet, the Settings screen, the
-  cellular and size warnings. Verified on phone SWWC4HEIYHZPQWZX.
+  size/tile-limit warning. Verified on phone SWWC4HEIYHZPQWZX.
 
 ## 8. Scope
 
@@ -187,7 +189,7 @@ from `../../data/trails/types`, never the DB-opening barrel.
 - Trail-atomic offline downloads (bounding box + margin, fixed zoom range).
 - Multi-layer chooser (deliberate, current layer pre-ticked, per-layer size + running total).
 - Per-layer remove; Settings → Offline maps list grouped by trail; total storage + breakdown.
-- Cascade delete on trail removal; cellular + size/tile-limit warnings; retry.
+- Cascade delete on trail removal; size/tile-limit warning; retry.
 
 **Deferred (design leaves room, do NOT build now):**
 - **Download-an-area** (the greyed "Areas" section). When built, it becomes a second entry
@@ -196,7 +198,8 @@ from `../../data/trails/types`, never the DB-opening barrel.
   tiles?) rather than "does a trail-pack exist."
 - Extra non-Mapbox layer sources (topo, winter, third-party) — chooser already treats layers
   as equal peers.
-- A persistent "WiFi only" setting (v1 warns per-download).
+- A per-download cellular/metered-connection warning, and a persistent "WiFi only" setting
+  (both need a native connectivity dependency; v1 ships the size/tile-limit warning only).
 - Tile staleness / auto-update (`invalidatePack` exists for a later pass).
 
 ## 9. Key constraints carried from the codebase
