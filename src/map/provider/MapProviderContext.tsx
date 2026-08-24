@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react'
-import type { MapProvider, MapCapabilities } from './types'
+import type { MapProvider, MapCapabilities, OfflineController } from './types'
 
 const Ctx = createContext<MapProvider | null>(null)
 
@@ -17,4 +17,8 @@ export function useMapProvider(): MapProvider {
 
 export function useMapCapabilities(): MapCapabilities {
   return useMapProvider().capabilities
+}
+
+export function useOfflineController(): OfflineController {
+  return useMapProvider().offline
 }

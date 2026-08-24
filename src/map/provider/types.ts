@@ -97,9 +97,45 @@ export interface MapComponents {
   RouteLine: React.ComponentType<RouteLineProps>
 }
 
+export interface OfflinePackDescriptor {
+  // Canonical pack name `offline:<trailId>:<styleId>`.
+  id: string
+  styleUrl: string
+  // [ne, sw], each [lng, lat].
+  bounds: [[number, number], [number, number]]
+  minZoom: number
+  maxZoom: number
+  meta: { trailId: number; styleId: string }
+}
+
+export interface OfflinePackInfo {
+  id: string
+  meta: { trailId: number; styleId: string } | null
+  state: 'complete' | 'downloading' | 'incomplete' | 'error'
+  percentage: number
+  sizeBytes: number
+}
+
+// The offline seam: download/manage per-region tile packs. Implemented only by the
+// map adapter; shared code talks to this interface. The capability flag `offline`
+// gates whether it is meaningful for a given provider.
+export interface OfflineController {
+  downloadPack(descriptor: OfflinePackDescriptor): Promise<void>
+  deletePack(id: string): Promise<void>
+  resumePack(id: string): Promise<void>
+  listPacks(): Promise<OfflinePackInfo[]>
+  // Observe an in-flight pack; returns an unsubscribe fn.
+  subscribe(
+    id: string,
+    onProgress: (info: OfflinePackInfo) => void,
+    onError: (id: string, message: string) => void,
+  ): () => void
+}
+
 export interface MapProvider {
   capabilities: MapCapabilities
   components: MapComponents
+  offline: OfflineController
 }
 
 export function isValidCapabilities(c: any): boolean {

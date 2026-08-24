@@ -5,6 +5,7 @@ import type {
   RouteLineProps, UserPuckProps,
 } from '../../provider/types'
 import { mapboxCapabilities } from './capabilities'
+import { mapboxOfflineController } from './offline'
 import { TERRAIN_DEM } from './styles'
 import { MAPBOX_ACCESS_TOKEN } from './token'
 
@@ -156,4 +157,5 @@ const RouteLine = ({ line, color, lineWidth }: RouteLineProps) => {
 export const mapboxProvider: MapProvider = {
   capabilities: mapboxCapabilities,
   components: { View, Camera, Terrain, UserPuck, TrailOverlay, RouteLine },
+  offline: mapboxOfflineController,
 }
