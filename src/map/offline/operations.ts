@@ -6,7 +6,7 @@ export function packIdsForTrail(packs: OfflinePackInfo[], trailId: number): stri
   return packs.filter((p) => parsePackId(p.id)?.trailId === trailId).map((p) => p.id)
 }
 
-export interface RetryTarget {
+interface RetryTarget {
   id: string
   styleId: string
   // True when a pack for this layer already exists in the registry (resume it); false when the

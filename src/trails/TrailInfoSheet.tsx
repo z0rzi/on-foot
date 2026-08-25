@@ -76,9 +76,7 @@ export function TrailInfoSheet({
 
   const downloadingLabel =
     state.kind === 'downloading'
-      ? state.styleIds.length === 1
-        ? caps.styles.find((s) => s.id === state.styleIds[0])?.label ?? state.styleIds[0]
-        : `${state.styleIds.length} layers`
+      ? state.styleIds.map((id) => caps.styles.find((s) => s.id === id)?.label ?? id).join(', ')
       : ''
 
   const menuItems =
