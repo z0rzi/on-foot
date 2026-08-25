@@ -87,7 +87,7 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
         adds.forEach((r) => download(controller, packDescriptor(trail.id, r.style, bounds)))
         if (removes.length) {
           remove(controller, removes.map((r) => packId(trail.id, r.style.id))).then(() =>
-            showToast('Offline maps updated'),
+            showToast('Offline map updated'),
           )
         }
         ;(ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
@@ -117,7 +117,7 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
         handleIndicatorStyle={{ backgroundColor: c.onSurfaceVariant }}
       >
         <BottomSheetView style={styles.content}>
-          <Text style={[styles.title, { color: c.panelContent }]}>Offline layers</Text>
+          <Text style={[styles.title, { color: c.panelContent }]}>Offline map</Text>
           <Text style={[styles.sub, { color: c.onSurfaceVariant }]} numberOfLines={1}>
             {trail.name} · tick to download, untick to remove
           </Text>
@@ -159,7 +159,7 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
           </View>
 
           <Pressable
-            accessibilityLabel="Apply offline layers"
+            accessibilityLabel="Apply offline map changes"
             disabled={!hasChanges}
             onPress={apply}
             style={[styles.apply, { backgroundColor: c.controlAccent, opacity: hasChanges ? 1 : 0.5 }]}

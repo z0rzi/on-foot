@@ -3,7 +3,6 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { SharedValue } from 'react-native-reanimated'
 import type { BottomSheetModal } from '@gorhom/bottom-sheet'
-import { useRouter } from 'expo-router'
 import { Trail } from '../data/trails/types'
 import { formatDistance, formatElevation, formatMetricsSummary } from '../data/trails/gpx/metrics'
 import { useTheme } from '../theme/useTheme'
@@ -29,7 +28,6 @@ export function TrailInfoSheet({
   animatedPosition?: SharedValue<number>
 }) {
   const c = useTheme()
-  const router = useRouter()
   const caps = useMapCapabilities()
   const controller = useOfflineController()
   const packs = useOfflineStore((s) => s.packs)
@@ -50,12 +48,12 @@ export function TrailInfoSheet({
   const state = offlineStateForTrail(trail.id, packs, progress)
 
   const removeAll = () => {
-    Alert.alert('Remove offline maps', `Remove downloaded maps for "${trail.name}"?`, [
+    Alert.alert('Remove offline map', `Remove the offline map for "${trail.name}"?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',
         style: 'destructive',
-        onPress: () => removeForTrail(controller, trail.id).then(() => showToast('Offline maps removed')),
+        onPress: () => removeForTrail(controller, trail.id).then(() => showToast('Offline map removed')),
       },
     ])
   }
@@ -85,19 +83,17 @@ export function TrailInfoSheet({
 
   const menuItems =
     state.kind === 'none'
-      ? [{ label: 'Download for offline', onPress: () => chooserRef.current?.present() }]
+      ? [{ label: 'Download offline map', onPress: () => chooserRef.current?.present() }]
       : state.kind === 'available'
         ? [
-            { label: 'Edit offline layers', onPress: () => chooserRef.current?.present() },
-            { label: 'Manage offline maps', onPress: () => router.push('/settings/offline') },
-            { label: 'Remove offline maps', danger: true, onPress: removeAll },
+            { label: 'Edit offline map', onPress: () => chooserRef.current?.present() },
+            { label: 'Remove offline map', danger: true, onPress: removeAll },
           ]
         : state.kind === 'failed'
           ? [
               { label: 'Retry download', onPress: retry },
-              { label: 'Edit offline layers', onPress: () => chooserRef.current?.present() },
-              { label: 'Manage offline maps', onPress: () => router.push('/settings/offline') },
-              { label: 'Remove offline maps', danger: true, onPress: removeAll },
+              { label: 'Edit offline map', onPress: () => chooserRef.current?.present() },
+              { label: 'Remove offline map', danger: true, onPress: removeAll },
             ]
           : [{ label: 'Cancel download', danger: true, onPress: cancel }]
 
