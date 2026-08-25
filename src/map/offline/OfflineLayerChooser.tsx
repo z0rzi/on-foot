@@ -9,8 +9,10 @@ import { useOfflineStore } from './offlineStore'
 import { boundsForTrail } from './bounds'
 import { estimatePackSize, layerKindForStyle } from './estimate'
 import { packId, parsePackId } from './packId'
+import { packDescriptor } from './descriptor'
 import { formatBytes } from './format'
-import { OFFLINE_MARGIN_KM, OFFLINE_MAX_ZOOM, OFFLINE_MIN_ZOOM, TILE_COUNT_WARN_THRESHOLD } from './constants'
+import { OFFLINE_MARGIN_KM, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM, TILE_COUNT_WARN_THRESHOLD } from './constants'
+import { showToast } from '../../components/toast'
 import type { Trail } from '../../data/trails/types'
 
 export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }>(
@@ -82,18 +84,10 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
       const big = adds.find((r) => (r.estimate?.tileCount ?? 0) > TILE_COUNT_WARN_THRESHOLD)
 
       const run = () => {
-        adds.forEach((r) =>
-          download(controller, {
-            id: packId(trail.id, r.style.id),
-            styleUrl: r.style.url,
-            bounds: [bounds!.ne, bounds!.sw] as [[number, number], [number, number]],
-            minZoom: OFFLINE_MIN_ZOOM,
-            maxZoom: OFFLINE_MAX_ZOOM,
-          }),
-        )
+        adds.forEach((r) => download(controller, packDescriptor(trail.id, r.style, bounds)))
         if (removes.length) {
-          remove(controller, removes.map((r) => packId(trail.id, r.style.id))).catch(() =>
-            Alert.alert('Could not remove', 'Something went wrong. Please try again.'),
+          remove(controller, removes.map((r) => packId(trail.id, r.style.id))).then(() =>
+            showToast('Offline maps updated'),
           )
         }
         ;(ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()

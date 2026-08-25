@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { OfflineController, OfflinePackDescriptor, OfflinePackInfo } from '../provider/types'
 import type { LiveProgress } from './types'
-import { packIdsForTrail } from './operations'
+import { parsePackId } from './packId'
 
 interface OfflineStore {
   packs: OfflinePackInfo[]
@@ -87,15 +87,26 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
     download: (controller, descriptor) =>
       track(controller, descriptor.id, () => controller.downloadPack(descriptor)),
     resume: (controller, id) => track(controller, id, () => controller.resumePack(id)),
+    // Best-effort so a cancel/remove always clears local state and never rejects — even offline,
+    // where a controller call (deletePack, or listPacks via a stale pack's status) can throw. The
+    // session state is torn down first; the delete + reload are attempted but not awaited-to-throw.
     remove: async (controller, ids) => {
       ids.forEach(stopTracking)
-      await Promise.all(ids.map((id) => controller.deletePack(id)))
       ids.forEach(clearProgress)
-      await reload(controller)
+      await Promise.allSettled(ids.map((id) => controller.deletePack(id)))
+      try {
+        await reload(controller)
+      } catch {
+        // ignore — packs stays as last known; the next successful reload reconciles
+      }
     },
+    // Ids come from in-memory state (registry packs + tracked progress), not a fresh listPacks, so a
+    // pending download not yet in the registry — and an offline listPacks — can't block the cancel.
     removeForTrail: async (controller, trailId) => {
-      const ids = packIdsForTrail(await controller.listPacks(), trailId)
-      await get().remove(controller, ids)
+      const ids = new Set<string>()
+      for (const p of get().packs) if (parsePackId(p.id)?.trailId === trailId) ids.add(p.id)
+      for (const id of Object.keys(get().progress)) if (parsePackId(id)?.trailId === trailId) ids.add(id)
+      await get().remove(controller, [...ids])
     },
   }
 })

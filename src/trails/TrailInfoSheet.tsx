@@ -13,9 +13,13 @@ import { MetricsGrid } from '../map/MetricsGrid'
 import { useMapCapabilities, useOfflineController } from '../map/provider'
 import { useOfflineStore } from '../map/offline/offlineStore'
 import { offlineStateForTrail } from '../map/offline/badge'
-import { parsePackId } from '../map/offline/packId'
+import { retryTargetsForTrail } from '../map/offline/operations'
+import { boundsForTrail } from '../map/offline/bounds'
+import { packDescriptor } from '../map/offline/descriptor'
+import { OFFLINE_MARGIN_KM } from '../map/offline/constants'
 import { OfflineLayerChooser } from '../map/offline/OfflineLayerChooser'
 import { OfflineActionsMenu } from '../map/offline/OfflineActionsMenu'
+import { showToast } from '../components/toast'
 
 export function TrailInfoSheet({
   trail,
@@ -30,6 +34,7 @@ export function TrailInfoSheet({
   const controller = useOfflineController()
   const packs = useOfflineStore((s) => s.packs)
   const progress = useOfflineStore((s) => s.progress)
+  const download = useOfflineStore((s) => s.download)
   const resume = useOfflineStore((s) => s.resume)
   const removeForTrail = useOfflineStore((s) => s.removeForTrail)
   const chooserRef = useRef<BottomSheetModal>(null)
@@ -37,27 +42,32 @@ export function TrailInfoSheet({
 
   const state = offlineStateForTrail(trail.id, packs, progress)
 
-  const removeFailed = () =>
-    Alert.alert('Could not remove', 'Something went wrong. Please try again.')
-
   const removeAll = () => {
     Alert.alert('Remove offline maps', `Remove downloaded maps for "${trail.name}"?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',
         style: 'destructive',
-        onPress: () => removeForTrail(controller, trail.id).catch(removeFailed),
+        onPress: () => removeForTrail(controller, trail.id).then(() => showToast('Offline maps removed')),
       },
     ])
   }
 
+  // Retry each failed/incomplete layer: resume a pack that exists (keeps partial progress), or
+  // re-issue the download for a phantom failure that left no pack behind.
   const retry = () => {
-    packs
-      .filter((p) => parsePackId(p.id)?.trailId === trail.id && p.state !== 'complete')
-      .forEach((p) => resume(controller, p.id))
+    const bounds = boundsForTrail(trail.geometry.points, OFFLINE_MARGIN_KM)
+    retryTargetsForTrail(packs, progress, trail.id).forEach((t) => {
+      if (t.hasPack) {
+        resume(controller, t.id)
+        return
+      }
+      const style = caps.styles.find((s) => s.id === t.styleId)
+      if (style && bounds) download(controller, packDescriptor(trail.id, style, bounds))
+    })
   }
 
-  const cancel = () => removeForTrail(controller, trail.id).catch(removeFailed)
+  const cancel = () => removeForTrail(controller, trail.id).then(() => showToast('Download canceled'))
 
   const downloadingLabel =
     state.kind === 'downloading'
@@ -78,6 +88,8 @@ export function TrailInfoSheet({
         : state.kind === 'failed'
           ? [
               { label: 'Retry download', onPress: retry },
+              { label: 'Edit offline layers', onPress: () => chooserRef.current?.present() },
+              { label: 'Manage offline maps', onPress: () => router.push('/settings/offline') },
               { label: 'Remove offline maps', danger: true, onPress: removeAll },
             ]
           : [{ label: 'Cancel download', danger: true, onPress: cancel }]
@@ -95,9 +107,12 @@ export function TrailInfoSheet({
         {state.kind === 'failed' && (
           <Text style={[styles.badge, { color: c.danger }]}>⚠ Failed</Text>
         )}
-        <Pressable accessibilityLabel="Offline actions" onPress={() => setMenuOpen((o) => !o)} hitSlop={8}>
-          <Ionicons name="ellipsis-vertical" size={20} color={c.onSurfaceVariant} />
-        </Pressable>
+        <View style={styles.menuAnchor}>
+          <Pressable accessibilityLabel="Offline actions" onPress={() => setMenuOpen((o) => !o)} hitSlop={8}>
+            <Ionicons name="ellipsis-vertical" size={20} color={c.onSurfaceVariant} />
+          </Pressable>
+          {menuOpen && <OfflineActionsMenu items={menuItems} onClose={() => setMenuOpen(false)} />}
+        </View>
       </View>
 
       {state.kind === 'downloading' ? (
@@ -131,14 +146,13 @@ export function TrailInfoSheet({
       )}
 
       <OfflineLayerChooser ref={chooserRef} trail={trail} />
-
-      {menuOpen && <OfflineActionsMenu items={menuItems} onClose={() => setMenuOpen(false)} />}
     </MapInfoSheet>
   )
 }
 
 const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  menuAnchor: { position: 'relative' },
   name: { fontSize: 18, fontWeight: '700', flex: 1 },
   badge: { fontSize: 12, fontWeight: '700' },
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },

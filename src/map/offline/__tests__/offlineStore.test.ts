@@ -115,9 +115,40 @@ describe('offlineStore ownership', () => {
     expect(useOfflineStore.getState().packs).toEqual([])
   })
 
-  test('removeForTrail deletes only that trail\'s packs', async () => {
-    const controller = makeController({ packs: [info(packId(5, 'a')), info(packId(5, 'b')), info(packId(6, 'a'))] })
+  test('removeForTrail deletes only that trail\'s packs (from in-memory state)', async () => {
+    useOfflineStore.setState({
+      packs: [info(packId(5, 'a')), info(packId(5, 'b')), info(packId(6, 'a'))],
+      progress: {},
+    })
+    const controller = makeController({ packs: [] })
     await useOfflineStore.getState().removeForTrail(controller, 5)
     expect(controller.deleted.sort()).toEqual([packId(5, 'a'), packId(5, 'b')])
+  })
+
+  test('removeForTrail cancels a pending download that has no registry pack yet', async () => {
+    // A pending offline download: tracked in progress, not (yet) in packs.
+    useOfflineStore.setState({ packs: [], progress: { [packId(7, 'a')]: { percentage: 0, failed: false } } })
+    const controller = makeController({ packs: [] })
+    await useOfflineStore.getState().removeForTrail(controller, 7)
+    expect(controller.deleted).toEqual([packId(7, 'a')])
+    expect(useOfflineStore.getState().progress[packId(7, 'a')]).toBeUndefined()
+  })
+
+  test('remove is best-effort: a rejecting deletePack still clears local state and does not throw', async () => {
+    const id = packId(1, 'a')
+    useOfflineStore.setState({ packs: [info(id)], progress: { [id]: { percentage: 50, failed: true } } })
+    const controller = makeController({ packs: [info(id)] })
+    controller.deletePack = async () => { throw new Error('offline') }
+    await expect(useOfflineStore.getState().remove(controller, [id])).resolves.toBeUndefined()
+    expect(useOfflineStore.getState().progress[id]).toBeUndefined()
+  })
+
+  test('remove tolerates a rejecting listPacks (offline) without throwing', async () => {
+    const id = packId(1, 'a')
+    useOfflineStore.setState({ progress: { [id]: { percentage: 0, failed: false } } })
+    const controller = makeController({})
+    controller.listPacks = async () => { throw new Error('offline') }
+    await expect(useOfflineStore.getState().remove(controller, [id])).resolves.toBeUndefined()
+    expect(useOfflineStore.getState().progress[id]).toBeUndefined()
   })
 })

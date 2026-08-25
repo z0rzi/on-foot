@@ -9,6 +9,7 @@ import { useTrailsStore } from '../../store/trailsStore'
 import { groupPacksByTrail, totalOfflineBytes } from './grouping'
 import { formatBytes } from './format'
 import { packId } from './packId'
+import { showToast } from '../../components/toast'
 
 export function OfflineMapsList() {
   const c = useTheme()
@@ -36,9 +37,7 @@ export function OfflineMapsList() {
         text: 'Remove',
         style: 'destructive',
         onPress: () =>
-          remove(controller, [packId(trailId, styleId)]).catch(() =>
-            Alert.alert('Could not remove', 'Something went wrong. Please try again.'),
-          ),
+          remove(controller, [packId(trailId, styleId)]).then(() => showToast('Layer removed')),
       },
     ])
   }
