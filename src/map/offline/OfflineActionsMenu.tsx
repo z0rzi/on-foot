@@ -1,18 +1,28 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Dimensions, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme } from '../../theme/useTheme'
 
+// Rendered in a Modal so it escapes the bottom sheet and the tab bar (neither can clip it), then
+// positioned so its bottom-right sits just above the anchor (the ⋮ button) — the menu opens upward.
 export function OfflineActionsMenu({
   items,
+  anchor,
   onClose,
 }: {
   items: { label: string; danger?: boolean; onPress: () => void }[]
+  anchor: { x: number; y: number }
   onClose: () => void
 }) {
   const c = useTheme()
+  const win = Dimensions.get('window')
   return (
-    <>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close menu" />
-      <View style={[styles.menu, { backgroundColor: c.surface, borderColor: c.panelDivider }]}>
+    <Modal transparent visible animationType="fade" onRequestClose={onClose}>
+      <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close menu" />
+      <View
+        style={[
+          styles.menu,
+          { backgroundColor: c.surface, borderColor: c.panelDivider, right: win.width - anchor.x, bottom: win.height - anchor.y + 6 },
+        ]}
+      >
         {items.map((item) => (
           <Pressable
             key={item.label}
@@ -27,19 +37,14 @@ export function OfflineActionsMenu({
           </Pressable>
         ))}
       </View>
-    </>
+    </Modal>
   )
 }
 
 const styles = StyleSheet.create({
-  // Extends well beyond the small anchor so a tap anywhere on the sheet dismisses the menu.
-  backdrop: { position: 'absolute', top: -1000, left: -1000, right: -1000, bottom: -1000 },
-  // Opens upward from just above the ⋮ (bottom: '100%' of the anchor) so it never runs under the
-  // bottom tab bar when the sheet sits low.
   menu: {
-    position: 'absolute', bottom: '100%', right: 0, marginBottom: 6, minWidth: 190, borderWidth: 1,
-    borderRadius: 10, paddingVertical: 4, elevation: 8, shadowColor: '#000', shadowOpacity: 0.25,
-    shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, zIndex: 10,
+    position: 'absolute', minWidth: 190, borderWidth: 1, borderRadius: 10, paddingVertical: 4,
+    elevation: 8, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
   },
   item: { paddingVertical: 10, paddingHorizontal: 14 },
 })

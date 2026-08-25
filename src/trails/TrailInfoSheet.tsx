@@ -38,7 +38,14 @@ export function TrailInfoSheet({
   const resume = useOfflineStore((s) => s.resume)
   const removeForTrail = useOfflineStore((s) => s.removeForTrail)
   const chooserRef = useRef<BottomSheetModal>(null)
-  const [menuOpen, setMenuOpen] = useState(false)
+  const dotsRef = useRef<View>(null)
+  const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null)
+
+  // Measure the ⋮ in window coords so the Modal-hosted menu can anchor its bottom-right corner to
+  // the button and open upward.
+  const openMenu = () => {
+    dotsRef.current?.measureInWindow((x, y, width) => setMenuAnchor({ x: x + width, y }))
+  }
 
   const state = offlineStateForTrail(trail.id, packs, progress)
 
@@ -107,11 +114,10 @@ export function TrailInfoSheet({
         {state.kind === 'failed' && (
           <Text style={[styles.badge, { color: c.danger }]}>⚠ Failed</Text>
         )}
-        <View style={styles.menuAnchor}>
-          <Pressable accessibilityLabel="Offline actions" onPress={() => setMenuOpen((o) => !o)} hitSlop={8}>
+        <View ref={dotsRef} collapsable={false}>
+          <Pressable accessibilityLabel="Offline actions" onPress={openMenu} hitSlop={8}>
             <Ionicons name="ellipsis-vertical" size={20} color={c.onSurfaceVariant} />
           </Pressable>
-          {menuOpen && <OfflineActionsMenu items={menuItems} onClose={() => setMenuOpen(false)} />}
         </View>
       </View>
 
@@ -146,13 +152,16 @@ export function TrailInfoSheet({
       )}
 
       <OfflineLayerChooser ref={chooserRef} trail={trail} />
+
+      {menuAnchor && (
+        <OfflineActionsMenu items={menuItems} anchor={menuAnchor} onClose={() => setMenuAnchor(null)} />
+      )}
     </MapInfoSheet>
   )
 }
 
 const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  menuAnchor: { position: 'relative' },
   name: { fontSize: 18, fontWeight: '700', flex: 1 },
   badge: { fontSize: 12, fontWeight: '700' },
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
