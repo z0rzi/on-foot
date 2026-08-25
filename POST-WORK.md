@@ -48,6 +48,12 @@ in context.
   of problem, or fork a new one? Consistency beats preference.
 - No quick-fixes or patches papering over a symptom — root cause fixed at the right
   layer, or the tension surfaced explicitly.
+- **A wrapped native SDK/module's TypeScript types are NOT ground truth for runtime
+  payloads.** When adapter code behind the seam wraps a native module, verify the actual
+  shape against the installed platform source (`node_modules/<lib>/android|ios`) and handle
+  per-platform differences. These mismatches pass `tsc` and `jest` (the native module is
+  mocked) and surface only on device — e.g. a field the `.d.ts` types as a number that
+  Android emits as a string, or a payload key named differently per platform.
 
 **3. Cleanliness & maintainability**
 - Small, single-purpose units with clear boundaries. Did any file take on a second
@@ -62,12 +68,25 @@ in context.
 - Names describe what things do; no confused or unused parameters in contracts.
 - Error paths handled at the right layer (no swallowed errors, no promises left to
   reject unhandled, no state flags that can stick).
+- **Derived or cached state that must track an authoritative source** (a registry, the DB,
+  the network) has ONE owner that keeps it fresh — not a freshness convention repeated at
+  each call site. Prefer structural invariants (a schema constraint, a single tagged field,
+  a derived selector) over guards defended by hand in each action. Convention-based sync
+  *will* drift.
 
-**4. Persist the minimum**
+**4. Failure & degraded modes**
+- Enumerate the failure/degraded modes this change can hit — offline / network drop,
+  permission denied, empty or malformed input, user cancel mid-operation — and confirm EACH
+  has a handled outcome the user can see and recover from (feedback + a retry/cancel path),
+  not a silent no-op, a stuck spinner, or a state flag that sticks.
+- TDD the pure decisions here ("what needs retrying", "is this failed?"); device-verify the
+  wiring **offline**, not just online.
+
+**5. Persist the minimum**
 - Only state that must survive a restart is persisted (Zustand `partialize`);
   session/UI state stays in memory.
 
-**5. Tests & comments**
+**6. Tests & comments**
 - Pure logic is TDD'd (`src/**/__tests__/`); tests assert real behavior, not mocks.
   Native rendering/gestures/DB round-trips are device-verified, not unit-tested.
 - Comment style (AGENTS.md): no change-narrating comments; code self-documenting;
@@ -82,6 +101,10 @@ npx jest                  # all pass
 Plus the two seam greps above. For Metro-transform / native / asset-import changes,
 a passing `tsc`/`jest` is NOT enough — confirm a real bundle
 (`npx expo export --platform android`) and, where behavior is native, device-verify.
+Native rendering has traps that don't match a web/CSS mental model — e.g. on Android touch
+events are clipped to a parent's layout bounds regardless of `overflow`; overlays, menus, and
+gestures layered over a bottom sheet or the tab bar need on-device tap **and back-button**
+verification.
 
 ## Report
 
@@ -90,6 +113,9 @@ Give a short honest verdict, then findings grouped by priority
 file:line, what's wrong, why it matters, and the fix. Call out which are worth
 doing now vs. deferring, and name anything that's a deliberate, defensible choice
 so it isn't re-litigated later.
+
+Structure the report around the six numbered checks above — for **each**, state what you
+found or explicitly write "clean." A check with no line in the report was not done.
 
 Then **stop and ask** before applying fixes — unless the finding is an unambiguous
 cleanup (dead code, a stray debug log, a lint/type error), which you may fix
