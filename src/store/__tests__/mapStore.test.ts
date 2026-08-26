@@ -11,6 +11,7 @@ import {
   shouldShowNorthButton,
   followModeChange,
   mapMode,
+  trailToShow,
   useMapStore,
 } from '../mapStore'
 
@@ -297,5 +298,22 @@ describe('store actions', () => {
     useMapStore.setState({ selection: { kind: 'activity', id: 4 } })
     const partial = partialize({ ...useMapStore.getState() } as any)
     expect(partial).toEqual({ mapStyleId: useMapStore.getState().mapStyleId, selection: null })
+  })
+})
+
+describe('trailToShow', () => {
+  const trail = { id: 1 }
+  it('shows the selected trail when viewing a trail', () => {
+    expect(trailToShow('trail', trail)).toBe(trail)
+  })
+  it('shows the selected trail while recording (the followed trail)', () => {
+    expect(trailToShow('recording', trail)).toBe(trail)
+  })
+  it('shows nothing in free or activity mode', () => {
+    expect(trailToShow('free', trail)).toBeNull()
+    expect(trailToShow('activity', trail)).toBeNull()
+  })
+  it('shows nothing when no trail is selected', () => {
+    expect(trailToShow('recording', null)).toBeNull()
   })
 })

@@ -145,6 +145,12 @@ export function mapMode(input: { recording: boolean; selection: Selection | null
   return 'free'
 }
 
+// The trail to draw on the map: the selected trail is shown both when viewing it and while
+// recording (so the followed trail stays visible), never in free or activity mode.
+export function trailToShow<T>(mode: MapMode, selectedTrail: T | null): T | null {
+  return mode === 'trail' || mode === 'recording' ? selectedTrail : null
+}
+
 // A pending one-shot camera fit for whichever selection requested it, consumed once its geometry
 // loads (see MapCanvas). Generalized over trail and activity so both frame identically.
 export interface PendingFit {
