@@ -1,24 +1,21 @@
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { StyleSheet } from 'react-native'
 import { useMapProvider, useMapCapabilities } from './provider'
 import type { CameraController } from './provider/types'
 import { useMapStore, followCameraProps } from '../store/mapStore'
 import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
 import { MapTokens } from '../theme/tokens'
-import { useTheme } from '../theme/useTheme'
 import { Trail } from '../data/trails'
 import { Activity } from '../data/activities/types'
-import { boundsForPoints, toLineCoordinates, endpointCoordinates } from './geo'
-
-const trailArrow = require('../assets/trail-arrow.png')
+import { boundsForPoints } from './geo'
+import { MapOverlays, type OverlayRoute } from './MapOverlays'
 
 export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: Activity | null }) {
   const { components } = useMapProvider()
   const caps = useMapCapabilities()
-  const c = useTheme()
   const styleId = useMapStore((s) => s.mapStyleId)
   const style = caps.styles.find((s) => s.id === styleId) ?? caps.styles[0]
-  const { View: MapView, Camera, Terrain, UserPuck, TrailOverlay, RouteLine } = components
+  const { View: MapView, Camera, Terrain, UserPuck } = components
 
   // The camera is driven declaratively from the store. When a follow mode is active, rnmapbox
   // owns the camera (centres/zooms/tilts to the puck) — this is what auto-zooms to the user on
@@ -47,7 +44,12 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
   const recording = useRecordingStore((s) => recordingPhase(s.session) === 'recording')
   const livePoints = useRecordingStore((s) => s.liveGeometry.points)
   const showLiveTrack = recording && livePoints.length >= 2
-  const liveLine = useMemo(() => toLineCoordinates(livePoints), [livePoints])
+
+  const route: OverlayRoute | null = hasActivity
+    ? { points: activityPoints, kind: 'activity' }
+    : hasTrail
+      ? { points, kind: 'trail' }
+      : null
 
   // Frame the trail a user tap requested, once that trail's own geometry has loaded. select()
   // sets pendingFit; the loaded trail prop lags it (getTrail resolves async), so the fit waits
@@ -98,33 +100,7 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
       />
       {caps.supportsTerrain && <Terrain exaggeration={MapTokens.terrainExaggeration} />}
       <UserPuck scale={MapTokens.puckBearingScale} />
-      {hasActivity ? (
-        <TrailOverlay
-          line={toLineCoordinates(activityPoints)}
-          endpoints={endpointCoordinates(activityPoints)}
-          color={c.activityLine}
-          lineWidth={MapTokens.trailLineWidth}
-          endpointRadius={MapTokens.endpointRadius}
-          endpointStrokeColor={c.trailEndpointStroke}
-          endpointStrokeWidth={MapTokens.endpointStrokeWidth}
-        />
-      ) : hasTrail ? (
-        <TrailOverlay
-          line={toLineCoordinates(points)}
-          endpoints={endpointCoordinates(points)}
-          color={c.trailLine}
-          lineWidth={MapTokens.trailLineWidth}
-          arrowImage={trailArrow}
-          arrowSpacing={MapTokens.arrowSpacing}
-          arrowSize={MapTokens.arrowSize}
-          endpointRadius={MapTokens.endpointRadius}
-          endpointStrokeColor={c.trailEndpointStroke}
-          endpointStrokeWidth={MapTokens.endpointStrokeWidth}
-        />
-      ) : null}
-      {showLiveTrack && (
-        <RouteLine line={liveLine} color={c.recordingLine} lineWidth={MapTokens.recordingLineWidth} />
-      )}
+      <MapOverlays route={route} livePoints={livePoints} showLiveTrack={showLiveTrack} />
     </MapView>
   )
 }
