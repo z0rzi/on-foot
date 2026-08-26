@@ -19,7 +19,7 @@ import { OFFLINE_MARGIN_KM } from '../map/offline/constants'
 import { OfflineLayerChooser } from '../map/offline/OfflineLayerChooser'
 import { OfflineActionsMenu } from '../map/offline/OfflineActionsMenu'
 import { showToast } from '../components/toast'
-import { guardDownload } from '../net/downloadGate'
+import { guardDownload } from '../map/offline/downloadConsent'
 
 export function TrailInfoSheet({
   trail,

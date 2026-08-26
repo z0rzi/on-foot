@@ -13,7 +13,7 @@ import { packDescriptor } from './descriptor'
 import { formatBytes } from './format'
 import { OFFLINE_MARGIN_KM, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM } from './constants'
 import { showToast } from '../../components/toast'
-import { guardDownload } from '../../net/downloadGate'
+import { guardDownload } from './downloadConsent'
 import type { Trail } from '../../data/trails/types'
 
 export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }>(

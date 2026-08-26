@@ -1,6 +1,6 @@
 import { Alert } from 'react-native'
-import { getConnectivity } from './netinfo'
-import { evaluateDownloadGate, type GateDecision } from './gate'
+import { getConnectivity } from '../../net/netinfo'
+import { evaluateDownloadGate, type GateDecision } from '../../net/gate'
 
 // Read connectivity once and route the download: abort when offline, ask for consent on
 // mobile data, proceed otherwise. Fail-open — a probe error must not block a legitimate
