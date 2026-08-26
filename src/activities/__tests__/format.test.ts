@@ -1,4 +1,4 @@
-import { formatDuration, formatActivityDate, formatActivitySummary } from '../format'
+import { formatDuration, formatActivityDate, formatActivitySummary, formatPace, formatSpeed } from '../format'
 import { ActivityMetrics } from '../../data/activities/types'
 
 describe('formatDuration', () => {
@@ -40,5 +40,33 @@ describe('formatActivitySummary', () => {
   })
   test('sub-kilometre distance and short duration', () => {
     expect(formatActivitySummary(metrics(850, 90))).toBe('850 m · 1m 30s')
+  })
+})
+
+describe('formatPace', () => {
+  it('formats min/km as M:SS', () => {
+    expect(formatPace(1000, 480)).toBe('8:00') // 480 s/km
+    expect(formatPace(2000, 480)).toBe('4:00') // 240 s/km
+    expect(formatPace(1000, 510)).toBe('8:30')
+  })
+  it('zero-pads seconds', () => {
+    expect(formatPace(1000, 489)).toBe('8:09')
+  })
+  it('carries rounded 60 seconds up to the next minute', () => {
+    expect(formatPace(1000, 119.6)).toBe('2:00')
+  })
+  it('returns — when distance or duration is non-positive', () => {
+    expect(formatPace(0, 480)).toBe('—')
+    expect(formatPace(1000, 0)).toBe('—')
+  })
+})
+
+describe('formatSpeed', () => {
+  it('formats km/h to one decimal', () => {
+    expect(formatSpeed(1000, 360)).toBe('10.0') // 1 km in 0.1 h
+    expect(formatSpeed(2400, 3600)).toBe('2.4')
+  })
+  it('returns — when duration is non-positive', () => {
+    expect(formatSpeed(1000, 0)).toBe('—')
   })
 })

@@ -21,3 +21,21 @@ export function formatActivityDate(startedAt: number): string {
 export function formatActivitySummary(metrics: ActivityMetrics): string {
   return `${formatDistance(metrics.distanceMeters)} · ${formatDuration(metrics.durationSeconds)}`
 }
+
+export function formatPace(distanceMeters: number, durationSeconds: number): string {
+  if (distanceMeters <= 0 || durationSeconds <= 0) return '—'
+  const secPerKm = durationSeconds / (distanceMeters / 1000)
+  let minutes = Math.floor(secPerKm / 60)
+  let seconds = Math.round(secPerKm % 60)
+  if (seconds === 60) {
+    minutes += 1
+    seconds = 0
+  }
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
+
+export function formatSpeed(distanceMeters: number, durationSeconds: number): string {
+  if (durationSeconds <= 0) return '—'
+  const kmh = distanceMeters / 1000 / (durationSeconds / 3600)
+  return kmh.toFixed(1)
+}
