@@ -1,16 +1,36 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme } from '../theme/useTheme'
 
-export function MetricsGrid({ items }: { items: { label: string; value: string }[] }) {
+export function MetricsGrid({
+  items,
+}: {
+  items: { label: string; value: string; onPress?: () => void; accessibilityLabel?: string }[]
+}) {
   const c = useTheme()
   return (
     <View style={[styles.metrics, { backgroundColor: c.surface }]}>
-      {items.map((item) => (
-        <View key={item.label} style={styles.metricItem}>
-          <Text style={[styles.metricValue, { color: c.onSurface }]}>{item.value}</Text>
-          <Text style={[styles.metricLabel, { color: c.onSurfaceVariant }]}>{item.label}</Text>
-        </View>
-      ))}
+      {items.map((item) => {
+        const body = (
+          <>
+            <Text style={[styles.metricValue, { color: c.onSurface }]}>{item.value}</Text>
+            <Text style={[styles.metricLabel, { color: c.onSurfaceVariant }]}>{item.label}</Text>
+          </>
+        )
+        return item.onPress ? (
+          <Pressable
+            key={item.label}
+            onPress={item.onPress}
+            accessibilityLabel={item.accessibilityLabel}
+            style={styles.metricItem}
+          >
+            {body}
+          </Pressable>
+        ) : (
+          <View key={item.label} style={styles.metricItem}>
+            {body}
+          </View>
+        )
+      })}
     </View>
   )
 }
