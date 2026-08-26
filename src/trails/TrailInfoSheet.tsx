@@ -19,6 +19,7 @@ import { OFFLINE_MARGIN_KM } from '../map/offline/constants'
 import { OfflineLayerChooser } from '../map/offline/OfflineLayerChooser'
 import { OfflineActionsMenu } from '../map/offline/OfflineActionsMenu'
 import { showToast } from '../components/toast'
+import { guardDownload } from '../net/downloadGate'
 
 export function TrailInfoSheet({
   trail,
@@ -62,13 +63,15 @@ export function TrailInfoSheet({
   // re-issue the download for a phantom failure that left no pack behind.
   const retry = () => {
     const bounds = boundsForTrail(trail.geometry.points, OFFLINE_MARGIN_KM)
-    retryTargetsForTrail(packs, progress, trail.id).forEach((t) => {
-      if (t.hasPack) {
-        resume(controller, t.id)
-        return
-      }
-      const style = caps.styles.find((s) => s.id === t.styleId)
-      if (style && bounds) download(controller, packDescriptor(trail.id, style, bounds))
+    guardDownload(null, () => {
+      retryTargetsForTrail(packs, progress, trail.id).forEach((t) => {
+        if (t.hasPack) {
+          resume(controller, t.id)
+          return
+        }
+        const style = caps.styles.find((s) => s.id === t.styleId)
+        if (style && bounds) download(controller, packDescriptor(trail.id, style, bounds))
+      })
     })
   }
 
