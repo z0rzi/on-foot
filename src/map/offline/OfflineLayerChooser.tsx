@@ -11,8 +11,9 @@ import { estimatePackSize, layerKindForStyle } from './estimate'
 import { packId, parsePackId } from './packId'
 import { packDescriptor } from './descriptor'
 import { formatBytes } from './format'
-import { OFFLINE_MARGIN_KM, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM, TILE_COUNT_WARN_THRESHOLD } from './constants'
+import { OFFLINE_MARGIN_KM, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM } from './constants'
 import { showToast } from '../../components/toast'
+import { guardDownload } from '../../net/downloadGate'
 import type { Trail } from '../../data/trails/types'
 
 export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }>(
@@ -74,33 +75,29 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
       <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
     )
 
-    const apply = async () => {
+    const apply = () => {
       if (!bounds) {
         Alert.alert('Cannot download', 'This trail has no route to cover.')
         return
       }
       const adds = rows.filter((r) => selected.has(r.style.id) && !r.downloaded)
       const removes = rows.filter((r) => !selected.has(r.style.id) && r.downloaded)
-      const big = adds.find((r) => (r.estimate?.tileCount ?? 0) > TILE_COUNT_WARN_THRESHOLD)
 
-      const run = () => {
-        adds.forEach((r) => download(controller, packDescriptor(trail.id, r.style, bounds)))
-        if (removes.length) {
-          remove(controller, removes.map((r) => packId(trail.id, r.style.id))).then(() =>
-            showToast('Offline map updated'),
-          )
-        }
-        ;(ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
+      if (removes.length) {
+        remove(controller, removes.map((r) => packId(trail.id, r.style.id))).then(() =>
+          showToast('Offline map updated'),
+        )
       }
 
-      if (big) {
-        Alert.alert(
-          'Large download',
-          `${big.style.label} is about ${formatBytes(big.estimate!.bytes)}. Download on Wi‑Fi to avoid using mobile data. Continue?`,
-          [{ text: 'Cancel', style: 'cancel' }, { text: 'Download', onPress: run }],
-        )
+      const dismiss = () => (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
+
+      if (adds.length) {
+        guardDownload(toDownloadBytes ? formatBytes(toDownloadBytes) : null, () => {
+          adds.forEach((r) => download(controller, packDescriptor(trail.id, r.style, bounds)))
+          dismiss()
+        })
       } else {
-        run()
+        dismiss()
       }
     }
 
