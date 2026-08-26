@@ -5,7 +5,7 @@ import { useTheme } from '../theme/useTheme'
 import { useRecordingStore } from './recordingStore'
 import { usePreferencesStore } from '../settings/preferencesStore'
 import { computeMetrics, formatDistance, formatElevation } from '../data/trails/gpx/metrics'
-import { formatDuration, formatPace, formatSpeed } from '../activities/format'
+import { formatPace, formatSpeed, formatStopwatch } from '../activities/format'
 import { MapInfoSheet } from '../map/MapInfoSheet'
 import { MetricsGrid } from '../map/MetricsGrid'
 
@@ -28,7 +28,7 @@ export function RecordingInfoSheet({
     return () => clearInterval(id)
   }, [])
 
-  const durationSeconds = Math.max(0, (now - (session?.startedAt ?? now)) / 1000)
+  const durationSeconds = Math.max(0, ((session?.endedAt ?? now) - (session?.startedAt ?? now)) / 1000)
   const metrics = computeMetrics(points)
 
   const paceSpeedTile =
@@ -49,7 +49,7 @@ export function RecordingInfoSheet({
 
       <MetricsGrid
         items={[
-          { label: 'Duration', value: formatDuration(durationSeconds) },
+          { label: 'Duration', value: formatStopwatch(durationSeconds) },
           { label: 'Distance', value: formatDistance(metrics.distanceMeters) },
           { label: 'Elev. Gain', value: formatElevation(metrics.elevationGainMeters) },
           { ...paceSpeedTile, onPress: togglePaceSpeed, accessibilityLabel: 'Toggle pace or speed' },

@@ -1,4 +1,4 @@
-import { formatDuration, formatActivityDate, formatActivitySummary, formatPace, formatSpeed } from '../format'
+import { formatDuration, formatActivityDate, formatActivitySummary, formatPace, formatSpeed, formatStopwatch } from '../format'
 import { ActivityMetrics } from '../../data/activities/types'
 
 describe('formatDuration', () => {
@@ -68,5 +68,21 @@ describe('formatSpeed', () => {
   })
   it('returns — when duration is non-positive', () => {
     expect(formatSpeed(1000, 0)).toBe('—')
+  })
+})
+
+describe('formatStopwatch', () => {
+  it('formats under an hour as M:SS', () => {
+    expect(formatStopwatch(0)).toBe('0:00')
+    expect(formatStopwatch(45)).toBe('0:45')
+    expect(formatStopwatch(125)).toBe('2:05')
+  })
+  it('formats an hour or more as H:MM:SS with zero-padded minutes', () => {
+    expect(formatStopwatch(3600)).toBe('1:00:00')
+    expect(formatStopwatch(8107)).toBe('2:15:07')
+  })
+  it('floors fractional seconds and clamps negatives to zero', () => {
+    expect(formatStopwatch(59.9)).toBe('0:59')
+    expect(formatStopwatch(-5)).toBe('0:00')
   })
 })
