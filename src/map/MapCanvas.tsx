@@ -98,9 +98,6 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
       />
       {caps.supportsTerrain && <Terrain exaggeration={MapTokens.terrainExaggeration} />}
       <UserPuck scale={MapTokens.puckBearingScale} />
-      {showLiveTrack && (
-        <RouteLine line={liveLine} color={c.recordingLine} lineWidth={MapTokens.recordingLineWidth} />
-      )}
       {hasActivity ? (
         <TrailOverlay
           line={toLineCoordinates(activityPoints)}
@@ -125,6 +122,9 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
           endpointStrokeWidth={MapTokens.endpointStrokeWidth}
         />
       ) : null}
+      {showLiveTrack && (
+        <RouteLine line={liveLine} color={c.recordingLine} lineWidth={MapTokens.recordingLineWidth} />
+      )}
     </MapView>
   )
 }

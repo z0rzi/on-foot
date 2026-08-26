@@ -12,7 +12,8 @@ import { useLocationPermission } from './useLocationPermission'
 import { useSelectedTrail } from './useSelectedTrail'
 import { useSelectedActivity } from './useSelectedActivity'
 import { TrailInfoSheet } from '../trails/TrailInfoSheet'
-import { useMapStore, mapMode } from '../store/mapStore'
+import { RecordingInfoSheet } from '../recording/RecordingInfoSheet'
+import { useMapStore, mapMode, trailToShow } from '../store/mapStore'
 import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
 import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
@@ -41,13 +42,13 @@ export function MapScreen() {
   return (
     <>
       <View style={{ flex: 1 }} onLayout={(e) => { rootHeight.value = e.nativeEvent.layout.height }}>
-        <MapCanvas trail={mode === 'trail' ? trail : null} activity={mode === 'activity' ? activity : null} />
+        <MapCanvas trail={trailToShow(mode, trail)} activity={mode === 'activity' ? activity : null} />
         {mode !== 'activity' && (
-          <RecordButton animatedBottom={mode === 'trail' ? controlsAnimatedBottom : undefined} />
+          <RecordButton animatedBottom={mode === 'trail' || mode === 'recording' ? controlsAnimatedBottom : undefined} />
         )}
         <MapControls
           onOpenLayers={() => sheetRef.current?.present()}
-          animatedBottom={mode === 'activity' || mode === 'trail' ? controlsAnimatedBottom : undefined}
+          animatedBottom={mode !== 'free' ? controlsAnimatedBottom : undefined}
         />
         {mode === 'trail' && trail && (
           <>
@@ -76,6 +77,9 @@ export function MapScreen() {
               animatedPosition={sheetTop}
             />
           </>
+        )}
+        {mode === 'recording' && (
+          <RecordingInfoSheet followedTrailName={trail?.name ?? null} animatedPosition={sheetTop} />
         )}
       </View>
       <LayersSheet ref={sheetRef} />
