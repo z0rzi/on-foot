@@ -1,4 +1,4 @@
-import React, { forwardRef, useMemo, useState, useEffect } from 'react'
+import React, { forwardRef, useCallback, useMemo, useState, useEffect } from 'react'
 import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop, type BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import { Ionicons } from '@expo/vector-icons'
@@ -13,6 +13,7 @@ import { packDescriptor } from './descriptor'
 import { formatBytes } from './format'
 import { OFFLINE_MARGIN_KM, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM } from './constants'
 import { showToast } from '../../components/toast'
+import { useSheetBackDismiss } from '../../components/useSheetBackDismiss'
 import { guardDownload } from './downloadConsent'
 import type { Trail } from '../../data/trails/types'
 
@@ -27,6 +28,9 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
     const remove = useOfflineStore((s) => s.remove)
 
     const snapPoints = useMemo(() => ['65%'], [])
+    const onChange = useSheetBackDismiss(
+      useCallback(() => (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss(), [ref]),
+    )
     const bounds = useMemo(() => boundsForTrail(trail.geometry.points, OFFLINE_MARGIN_KM), [trail])
 
     // The trail's already-downloaded layers, from the completed packs on disk (no dependency on
@@ -110,6 +114,7 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
         ref={ref}
         snapPoints={snapPoints}
         backdropComponent={renderBackdrop}
+        onChange={onChange}
         backgroundStyle={{ backgroundColor: c.panelBackground }}
         handleIndicatorStyle={{ backgroundColor: c.onSurfaceVariant }}
       >

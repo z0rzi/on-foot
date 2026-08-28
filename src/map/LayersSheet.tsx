@@ -9,12 +9,16 @@ import {
 import { useTheme } from '../theme/useTheme'
 import { useMapCapabilities } from './provider'
 import { useMapStore } from '../store/mapStore'
+import { useSheetBackDismiss } from '../components/useSheetBackDismiss'
 
 export const LayersSheet = forwardRef<BottomSheetModal>((_props, ref) => {
   const c = useTheme()
   const caps = useMapCapabilities()
   const setMapStyle = useMapStore((s) => s.setMapStyle)
   const snapPoints = useMemo(() => ['50%'], [])
+  const onChange = useSheetBackDismiss(
+    useCallback(() => (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss(), [ref]),
+  )
 
   // Dim + tap-outside-to-close: tapping the backdrop dismisses the sheet (swipe-down still works).
   const renderBackdrop = useCallback(
@@ -29,6 +33,7 @@ export const LayersSheet = forwardRef<BottomSheetModal>((_props, ref) => {
       ref={ref}
       snapPoints={snapPoints}
       backdropComponent={renderBackdrop}
+      onChange={onChange}
       backgroundStyle={{ backgroundColor: c.panelBackground }}
     >
       <BottomSheetView style={styles.content}>
