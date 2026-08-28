@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo } from 'react'
 import { Alert, Pressable, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
@@ -27,6 +27,12 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
   const insets = useSafeAreaInsets()
   const phase = useRecordingStore((s) => recordingPhase(s.session))
   const progress = useSharedValue(0)
+
+  // Stopping navigates to the save screen mid-gesture, so the hold's onFinalize (which clears the
+  // ring) never fires. Reset on every phase change so a new recording never inherits a filled ring.
+  useEffect(() => {
+    progress.value = 0
+  }, [phase, progress])
 
   const onPlay = useCallback(async () => {
     try {
