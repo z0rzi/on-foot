@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import type { SharedValue } from 'react-native-reanimated'
+import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../theme/useTheme'
 import { useRecordingStore } from './recordingStore'
 import { usePreferencesStore } from '../settings/preferencesStore'
@@ -11,9 +12,11 @@ import { MetricsGrid } from '../map/MetricsGrid'
 
 export function RecordingInfoSheet({
   followedTrailName,
+  onRemoveTrail,
   animatedPosition,
 }: {
   followedTrailName: string | null
+  onRemoveTrail: () => void
   animatedPosition?: SharedValue<number>
 }) {
   const c = useTheme()
@@ -41,9 +44,17 @@ export function RecordingInfoSheet({
       <View style={styles.header}>
         <Text style={[styles.recording, { color: c.recordingLine }]}>● Recording</Text>
         {followedTrailName != null && (
-          <Text style={[styles.following, { color: c.onSurfaceVariant }]} numberOfLines={1}>
-            Following · {followedTrailName}
-          </Text>
+          <Pressable
+            onPress={onRemoveTrail}
+            accessibilityLabel="Stop following trail"
+            hitSlop={8}
+            style={styles.following}
+          >
+            <Text style={[styles.followingText, { color: c.onSurfaceVariant }]} numberOfLines={1}>
+              Following · {followedTrailName}
+            </Text>
+            <Ionicons name="close" size={14} color={c.onSurfaceVariant} />
+          </Pressable>
         )}
       </View>
 
@@ -62,5 +73,6 @@ export function RecordingInfoSheet({
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   recording: { fontSize: 16, fontWeight: '700' },
-  following: { fontSize: 13, flexShrink: 1 },
+  following: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
+  followingText: { fontSize: 13, flexShrink: 1 },
 })

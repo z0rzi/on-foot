@@ -79,7 +79,11 @@ export function MapScreen() {
           </>
         )}
         {mode === 'recording' && (
-          <RecordingInfoSheet followedTrailName={trail?.name ?? null} animatedPosition={sheetTop} />
+          <RecordingInfoSheet
+            followedTrailName={trail?.name ?? null}
+            onRemoveTrail={clearSelection}
+            animatedPosition={sheetTop}
+          />
         )}
       </View>
       <LayersSheet ref={sheetRef} />
