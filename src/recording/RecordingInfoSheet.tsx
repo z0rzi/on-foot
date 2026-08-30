@@ -28,15 +28,16 @@ export function RecordingInfoSheet({
 
   const phase = recordingPhase(session)
 
-  const [now, setNow] = useState(() => Date.now())
+  // Re-render once a second while recording; the duration reads the current time at render (below)
+  // rather than a snapshot, so it can never lag behind a resume's pausedMs jump.
+  const [, setTick] = useState(0)
   useEffect(() => {
     if (phase !== 'recording') return
-    setNow(Date.now())
-    const id = setInterval(() => setNow(Date.now()), 1000)
+    const id = setInterval(() => setTick((t) => t + 1), 1000)
     return () => clearInterval(id)
   }, [phase])
 
-  const durationSeconds = session ? movingElapsedMs(session, now) / 1000 : 0
+  const durationSeconds = session ? movingElapsedMs(session, Date.now()) / 1000 : 0
   const metrics = computeMetrics(points)
 
   const paceSpeedTile =

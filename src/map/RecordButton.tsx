@@ -20,8 +20,8 @@ const RING = MapTokens.recordRingWidth
 const R = (SIZE - RING) / 2
 const CENTER = SIZE / 2
 const CIRCUMFERENCE = 2 * Math.PI * R
-// The button stays small (discreet) but takes touches from a larger area, and grows as the hold
-// fills so the progress cue stays visible past the thumb covering it.
+// The button stays small (discreet) but takes touches from a larger area, and jumps larger while
+// pressed so the press registers visibly past the thumb covering it (the ring shows hold progress).
 const HITSLOP = 10
 const HOLD_SCALE = 0.25
 
@@ -31,13 +31,15 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
   const insets = useSafeAreaInsets()
   const phase = useRecordingStore((s) => recordingPhase(s.session))
   const progress = useSharedValue(0)
+  const pressScale = useSharedValue(0)
   const pausedRef = useRef(false)
 
   // Stopping navigates to the save screen mid-gesture, so the hold's onFinalize (which clears the
   // ring) never fires. Reset on every phase change so a new recording never inherits a filled ring.
   useEffect(() => {
     progress.value = 0
-  }, [phase, progress])
+    pressScale.value = 0
+  }, [phase, progress, pressScale])
 
   const onPlay = useCallback(async () => {
     try {
@@ -76,16 +78,18 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
         .minDuration(MapTokens.holdToStopMs)
         .hitSlop(HITSLOP)
         .onBegin(() => {
+          pressScale.value = withTiming(1, { duration: 120 })
           progress.value = withTiming(1, { duration: MapTokens.holdToStopMs })
         })
         .onStart(() => {
           runOnJS(doPause)()
         })
         .onFinalize(() => {
+          pressScale.value = withTiming(0, { duration: 150 })
           progress.value = withTiming(0, { duration: 150 })
           runOnJS(onRelease)()
         }),
-    [doPause, onRelease, progress],
+    [doPause, onRelease, progress, pressScale],
   )
 
   const ringProps = useAnimatedProps(() => ({
@@ -97,7 +101,7 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
   }))
 
   const holdScaleStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 + progress.value * HOLD_SCALE }],
+    transform: [{ scale: 1 + pressScale.value * HOLD_SCALE }],
   }))
 
   if (phase === 'paused') return null
