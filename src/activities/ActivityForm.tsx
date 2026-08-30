@@ -73,7 +73,7 @@ export function ActivityForm({
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
-      <Stack.Screen options={{ headerShown: true, title: 'Save activity', headerBackVisible: false }} />
+      <Stack.Screen options={{ headerShown: true, title: 'Save activity' }} />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={[styles.metrics, { backgroundColor: c.surface }]}>
