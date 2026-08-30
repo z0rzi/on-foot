@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo } from 'react'
-import { Alert, Pressable, StyleSheet, View } from 'react-native'
+import React, { useCallback, useEffect, useMemo, useRef } from 'react'
+import { Alert, Pressable, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, { runOnJS, useAnimatedProps, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated'
@@ -9,6 +9,7 @@ import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
 import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
 import { startRecording, pauseRecording } from '../recording/recordingController'
+import { showToast } from '../components/toast'
 import { PlayIcon } from '../assets/icons/play'
 import { PauseIcon } from '../assets/icons/pause'
 
@@ -19,6 +20,10 @@ const RING = MapTokens.recordRingWidth
 const R = (SIZE - RING) / 2
 const CENTER = SIZE / 2
 const CIRCUMFERENCE = 2 * Math.PI * R
+// The button stays small (discreet) but takes touches from a larger area, and grows as the hold
+// fills so the progress cue stays visible past the thumb covering it.
+const HITSLOP = 10
+const HOLD_SCALE = 0.25
 
 export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<number> }) {
   const c = useTheme()
@@ -26,6 +31,7 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
   const insets = useSafeAreaInsets()
   const phase = useRecordingStore((s) => recordingPhase(s.session))
   const progress = useSharedValue(0)
+  const pausedRef = useRef(false)
 
   // Stopping navigates to the save screen mid-gesture, so the hold's onFinalize (which clears the
   // ring) never fires. Reset on every phase change so a new recording never inherits a filled ring.
@@ -50,6 +56,7 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
   }, [router])
 
   const doPause = useCallback(async () => {
+    pausedRef.current = true
     try {
       await pauseRecording()
     } catch {
@@ -57,10 +64,17 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
     }
   }, [])
 
+  // A press that ends before the hold completes never paused — hint that pausing needs a hold.
+  const onRelease = useCallback(() => {
+    if (!pausedRef.current) showToast('Hold to pause')
+    pausedRef.current = false
+  }, [])
+
   const hold = useMemo(
     () =>
       Gesture.LongPress()
         .minDuration(MapTokens.holdToStopMs)
+        .hitSlop(HITSLOP)
         .onBegin(() => {
           progress.value = withTiming(1, { duration: MapTokens.holdToStopMs })
         })
@@ -69,8 +83,9 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
         })
         .onFinalize(() => {
           progress.value = withTiming(0, { duration: 150 })
+          runOnJS(onRelease)()
         }),
-    [doPause, progress],
+    [doPause, onRelease, progress],
   )
 
   const ringProps = useAnimatedProps(() => ({
@@ -81,15 +96,19 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
     bottom: animatedBottom ? animatedBottom.value : insets.bottom + MapTokens.overlayPadding,
   }))
 
+  const holdScaleStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + progress.value * HOLD_SCALE }],
+  }))
+
   if (phase === 'paused') return null
 
   return (
     <Animated.View style={[styles.anchor, { left: MapTokens.overlayPadding }, anchorStyle]}>
       {phase === 'recording' ? (
         <GestureDetector gesture={hold}>
-          <View
+          <Animated.View
             accessibilityLabel="Pause recording (press and hold)"
-            style={[styles.btn, { backgroundColor: c.controlSurface }]}
+            style={[styles.btn, { backgroundColor: c.controlSurface }, holdScaleStyle]}
           >
             <Svg width={SIZE} height={SIZE} style={StyleSheet.absoluteFill}>
               <AnimatedCircle
@@ -106,7 +125,7 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
               />
             </Svg>
             <PauseIcon size={MapTokens.controlIconSize} color={c.recordingLine} />
-          </View>
+          </Animated.View>
         </GestureDetector>
       ) : (
         <Pressable
