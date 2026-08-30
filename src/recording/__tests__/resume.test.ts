@@ -12,7 +12,4 @@ describe('resumeActionFor', () => {
   it('paused session → paused', () => {
     expect(resumeActionFor({ ...session, pausedAt: 500 })).toBe('paused')
   })
-  it('stopped session (endedAt set) → save', () => {
-    expect(resumeActionFor({ ...session, endedAt: 10 })).toBe('save')
-  })
 })

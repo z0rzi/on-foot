@@ -24,18 +24,6 @@ export async function startRecording(): Promise<StartResult> {
   return 'started'
 }
 
-export async function stopRecording(linkedTrailId: number | null): Promise<void> {
-  const session = await activitiesRepository.getActiveSession()
-  if (await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK)) {
-    await Location.stopLocationUpdatesAsync(RECORDING_TASK)
-  }
-  if (session && session.endedAt == null) {
-    const endedAt = Date.now()
-    await activitiesRepository.markStopped(session.id, endedAt, linkedTrailId)
-    useRecordingStore.getState().setSession({ ...session, endedAt, linkedTrailId })
-  }
-}
-
 export async function pauseRecording(): Promise<void> {
   const session = await activitiesRepository.getActiveSession()
   if (!session || session.pausedAt != null || session.endedAt != null) return
@@ -95,10 +83,6 @@ export async function resumeIfActive(): Promise<{ action: ResumeAction; sessionI
   } else if (action === 'paused' && session) {
     const points = await activitiesRepository.getSessionPoints(session.id)
     useRecordingStore.getState().hydrate(session, points)
-  } else if (action === 'save' && session) {
-    // Reflect the stopped session so phase derives to 'saving' — the save page reads its own
-    // points from the DB, so the live geometry is not needed here.
-    useRecordingStore.getState().hydrate(session, [])
   }
   return { action, sessionId: session?.id ?? null }
 }

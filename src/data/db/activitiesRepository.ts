@@ -33,12 +33,6 @@ export const sqliteActivitiesRepository: ActivitiesRepository = {
       .orderBy(asc(recordingPoints.t), asc(recordingPoints.id))
     return (rows as RecordingPointRow[]).map(rowToTrackPoint)
   },
-  async markStopped(sessionId, endedAt, linkedTrailId) {
-    await db
-      .update(recordingSessions)
-      .set({ endedAt, linkedTrailId })
-      .where(eq(recordingSessions.id, sessionId))
-  },
   async markPaused(sessionId, pausedAt) {
     await db.update(recordingSessions).set({ pausedAt }).where(eq(recordingSessions.id, sessionId))
   },
