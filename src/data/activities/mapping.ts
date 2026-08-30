@@ -121,11 +121,12 @@ export function activityMetricsFromPoints(
   points: TrackPoint[],
   startedAt: number,
   endedAt: number,
+  pausedMs: number,
 ): ActivityMetrics {
   const m = computeMetrics(points)
   return {
     distanceMeters: m.distanceMeters,
-    durationSeconds: Math.max(0, Math.round((endedAt - startedAt) / 1000)),
+    durationSeconds: Math.max(0, Math.round((endedAt - startedAt - pausedMs) / 1000)),
     elevationGainMeters: m.elevationGainMeters,
     elevationLossMeters: m.elevationLossMeters,
   }
@@ -136,14 +137,14 @@ export function buildNewActivityInput(
   points: TrackPoint[],
   form: ActivityFormFields,
 ): NewActivityInput {
-  const endedAt = session.endedAt ?? points[points.length - 1]?.t ?? session.startedAt
+  const endedAt = session.pausedAt ?? points[points.length - 1]?.t ?? session.startedAt
   return {
     name: form.name,
     effort: form.effort,
     comments: form.comments,
     linkedTrailId: session.linkedTrailId,
     geometry: { points },
-    metrics: activityMetricsFromPoints(points, session.startedAt, endedAt),
+    metrics: activityMetricsFromPoints(points, session.startedAt, endedAt, session.pausedMs),
     startedAt: session.startedAt,
     endedAt,
   }

@@ -41,38 +41,41 @@ describe('rowToSession', () => {
 })
 
 describe('activityMetricsFromPoints', () => {
-  it('computes distance, duration, elevation', () => {
-    const m = activityMetricsFromPoints(pts, 1000, 7000)
+  it('computes distance, moving duration (wall minus paused), elevation', () => {
+    const m = activityMetricsFromPoints(pts, 1000, 7000, 2000)
     expect(m.distanceMeters).toBeGreaterThan(0)
-    expect(m.durationSeconds).toBe(6)
+    expect(m.durationSeconds).toBe(4)
     expect(m.elevationGainMeters).toBe(10)
     expect(m.elevationLossMeters).toBe(5)
   })
+  it('duration with no pause equals wall time', () => {
+    expect(activityMetricsFromPoints(pts, 1000, 7000, 0).durationSeconds).toBe(6)
+  })
   it('returns null elevation when no point has ele', () => {
     const flat: TrackPoint[] = [{ lat: 0, lng: 0, ele: null, t: 0 }, { lat: 0, lng: 0.001, ele: null, t: 2000 }]
-    const m = activityMetricsFromPoints(flat, 0, 2000)
+    const m = activityMetricsFromPoints(flat, 0, 2000, 0)
     expect(m.elevationGainMeters).toBeNull()
     expect(m.elevationLossMeters).toBeNull()
   })
   it('never returns a negative duration', () => {
-    expect(activityMetricsFromPoints(pts, 7000, 1000).durationSeconds).toBe(0)
+    expect(activityMetricsFromPoints(pts, 7000, 1000, 0).durationSeconds).toBe(0)
   })
 })
 
 describe('buildNewActivityInput', () => {
-  const session = { id: 9, startedAt: 1000, endedAt: 7000, linkedTrailId: 42, pausedAt: null, pausedMs: 0 }
+  const session = { id: 9, startedAt: 1000, endedAt: null, linkedTrailId: 42, pausedAt: 7000, pausedMs: 2000 }
   const form = { name: 'Morning walk', effort: 'moderate' as const, comments: 'nice' }
-  it('assembles the input from session + points + form', () => {
+  it('assembles the input; endedAt is the pause moment, duration is moving time', () => {
     const input = buildNewActivityInput(session, pts, form)
     expect(input).toMatchObject({
       name: 'Morning walk', effort: 'moderate', comments: 'nice',
       linkedTrailId: 42, startedAt: 1000, endedAt: 7000,
       geometry: { points: pts },
     })
-    expect(input.metrics.durationSeconds).toBe(6)
+    expect(input.metrics.durationSeconds).toBe(4) // (7000 - 1000 - 2000) / 1000
   })
-  it('falls back to the last point time when endedAt is null', () => {
-    const input = buildNewActivityInput({ ...session, endedAt: null }, pts, form)
+  it('falls back to the last point time when not paused', () => {
+    const input = buildNewActivityInput({ ...session, pausedAt: null }, pts, form)
     expect(input.endedAt).toBe(7000)
   })
 })

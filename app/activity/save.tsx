@@ -49,8 +49,8 @@ export default function SaveActivityScreen() {
     )
   }
 
-  const endedAt = session.endedAt ?? points[points.length - 1]?.t ?? session.startedAt
-  const metrics = activityMetricsFromPoints(points, session.startedAt, endedAt)
+  const endedAt = session.pausedAt ?? points[points.length - 1]?.t ?? session.startedAt
+  const metrics = activityMetricsFromPoints(points, session.startedAt, endedAt, session.pausedMs)
 
   return (
     <ActivityForm
