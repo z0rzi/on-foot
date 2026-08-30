@@ -8,10 +8,9 @@ import { useRouter } from 'expo-router'
 import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
 import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
-import { startRecording, stopRecording } from '../recording/recordingController'
-import { useMapStore } from '../store/mapStore'
+import { startRecording, pauseRecording } from '../recording/recordingController'
 import { PlayIcon } from '../assets/icons/play'
-import { StopIcon } from '../assets/icons/stop'
+import { PauseIcon } from '../assets/icons/pause'
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 
@@ -50,16 +49,13 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
     }
   }, [router])
 
-  const doStop = useCallback(async () => {
+  const doPause = useCallback(async () => {
     try {
-      const sel = useMapStore.getState().selection
-      const linkedTrailId = sel?.kind === 'trail' ? sel.id : null
-      await stopRecording(linkedTrailId)
-      router.push('/activity/save')
+      await pauseRecording()
     } catch {
-      Alert.alert('Could not stop recording', 'Something went wrong. Please try again.')
+      Alert.alert('Could not pause recording', 'Something went wrong. Please try again.')
     }
-  }, [router])
+  }, [])
 
   const hold = useMemo(
     () =>
@@ -69,12 +65,12 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
           progress.value = withTiming(1, { duration: MapTokens.holdToStopMs })
         })
         .onStart(() => {
-          runOnJS(doStop)()
+          runOnJS(doPause)()
         })
         .onFinalize(() => {
           progress.value = withTiming(0, { duration: 150 })
         }),
-    [doStop, progress],
+    [doPause, progress],
   )
 
   const ringProps = useAnimatedProps(() => ({
@@ -92,7 +88,7 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
       {phase === 'recording' ? (
         <GestureDetector gesture={hold}>
           <View
-            accessibilityLabel="Stop recording (press and hold)"
+            accessibilityLabel="Pause recording (press and hold)"
             style={[styles.btn, { backgroundColor: c.controlSurface }]}
           >
             <Svg width={SIZE} height={SIZE} style={StyleSheet.absoluteFill}>
@@ -109,7 +105,7 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
                 transform={`rotate(-90 ${CENTER} ${CENTER})`}
               />
             </Svg>
-            <StopIcon size={MapTokens.controlIconSize} color={c.recordingLine} />
+            <PauseIcon size={MapTokens.controlIconSize} color={c.recordingLine} />
           </View>
         </GestureDetector>
       ) : (

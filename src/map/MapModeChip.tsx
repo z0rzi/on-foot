@@ -13,8 +13,8 @@ export function MapModeChip({
   label: string
   icon: keyof typeof Ionicons.glyphMap
   color: string
-  onExit: () => void
-  exitAccessibilityLabel: string
+  onExit?: () => void
+  exitAccessibilityLabel?: string
 }) {
   const insets = useSafeAreaInsets()
   return (
@@ -22,9 +22,11 @@ export function MapModeChip({
       <View style={[styles.chip, { backgroundColor: color }]}>
         <Ionicons name={icon} size={16} color="#FFFFFF" />
         <Text style={styles.label} numberOfLines={1}>{label}</Text>
-        <Pressable accessibilityLabel={exitAccessibilityLabel} onPress={onExit} hitSlop={8}>
-          <Ionicons name="close" size={18} color="#FFFFFF" />
-        </Pressable>
+        {onExit && (
+          <Pressable accessibilityLabel={exitAccessibilityLabel} onPress={onExit} hitSlop={8}>
+            <Ionicons name="close" size={18} color="#FFFFFF" />
+          </Pressable>
+        )}
       </View>
     </View>
   )
