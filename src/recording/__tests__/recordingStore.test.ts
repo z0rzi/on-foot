@@ -5,8 +5,8 @@ const p = (t: number): TrackPoint => ({ lat: 0, lng: t, ele: null, t })
 const recordingSession: RecordingSession = {
   id: 7, startedAt: 1000, endedAt: null, linkedTrailId: null, pausedAt: null, pausedMs: 0,
 }
-const stoppedSession: RecordingSession = {
-  id: 7, startedAt: 1000, endedAt: 5000, linkedTrailId: 3, pausedAt: null, pausedMs: 0,
+const pausedSession: RecordingSession = {
+  id: 7, startedAt: 1000, endedAt: null, linkedTrailId: 3, pausedAt: 4000, pausedMs: 0,
 }
 
 beforeEach(() => {
@@ -20,8 +20,8 @@ describe('recordingPhase', () => {
   it('open session (endedAt null) → recording', () => {
     expect(recordingPhase(recordingSession)).toBe('recording')
   })
-  it('stopped session (endedAt set) → saving', () => {
-    expect(recordingPhase(stoppedSession)).toBe('saving')
+  it('session with pausedAt → paused', () => {
+    expect(recordingPhase(pausedSession)).toBe('paused')
   })
 })
 
@@ -37,10 +37,10 @@ describe('recordingStore', () => {
     expect(useRecordingStore.getState().session).toEqual(recordingSession)
     expect(useRecordingStore.getState().liveGeometry.points).toHaveLength(2)
   })
-  it('setSession replaces the session without touching geometry (phase derives to saving)', () => {
+  it('setSession replaces the session without touching geometry (phase derives to paused)', () => {
     useRecordingStore.getState().hydrate(recordingSession, [p(1)])
-    useRecordingStore.getState().setSession(stoppedSession)
-    expect(recordingPhase(useRecordingStore.getState().session)).toBe('saving')
+    useRecordingStore.getState().setSession(pausedSession)
+    expect(recordingPhase(useRecordingStore.getState().session)).toBe('paused')
     expect(useRecordingStore.getState().liveGeometry.points).toHaveLength(1)
   })
   it('appendLivePoints appends in order', () => {

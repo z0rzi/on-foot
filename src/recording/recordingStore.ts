@@ -1,14 +1,14 @@
 import { create } from 'zustand'
 import { ActivityGeometry, RecordingSession, TrackPoint } from '../data/activities/types'
 
-export type RecordingPhase = 'idle' | 'recording' | 'saving'
+export type RecordingPhase = 'idle' | 'recording' | 'paused'
 
-// Phase is derived from the durable session — the single source of truth — so the UI can
-// never disagree with what is persisted: no session is idle, an open session (endedAt null)
-// is recording, a stopped one (endedAt set) is awaiting save.
+// Phase is derived from the durable session — the single source of truth — so the UI can never
+// disagree with what is persisted: no session is idle, a session with a pausedAt is paused, an
+// otherwise-open session is recording.
 export function recordingPhase(session: RecordingSession | null): RecordingPhase {
   if (!session) return 'idle'
-  return session.endedAt == null ? 'recording' : 'saving'
+  return session.pausedAt != null ? 'paused' : 'recording'
 }
 
 const EMPTY_GEOMETRY: ActivityGeometry = { points: [] }

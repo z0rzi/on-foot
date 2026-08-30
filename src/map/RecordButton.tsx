@@ -85,7 +85,7 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
     bottom: animatedBottom ? animatedBottom.value : insets.bottom + MapTokens.overlayPadding,
   }))
 
-  if (phase === 'saving') return null
+  if (phase === 'paused') return null
 
   return (
     <Animated.View style={[styles.anchor, { left: MapTokens.overlayPadding }, anchorStyle]}>
