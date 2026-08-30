@@ -42,4 +42,6 @@ export interface RecordingSession {
   startedAt: number
   endedAt: number | null
   linkedTrailId: number | null
+  pausedAt: number | null
+  pausedMs: number
 }

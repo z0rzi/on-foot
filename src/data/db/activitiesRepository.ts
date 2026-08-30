@@ -39,6 +39,15 @@ export const sqliteActivitiesRepository: ActivitiesRepository = {
       .set({ endedAt, linkedTrailId })
       .where(eq(recordingSessions.id, sessionId))
   },
+  async markPaused(sessionId, pausedAt) {
+    await db.update(recordingSessions).set({ pausedAt }).where(eq(recordingSessions.id, sessionId))
+  },
+  async markResumed(sessionId, pausedMs) {
+    await db.update(recordingSessions).set({ pausedAt: null, pausedMs }).where(eq(recordingSessions.id, sessionId))
+  },
+  async markLinkedTrail(sessionId, linkedTrailId) {
+    await db.update(recordingSessions).set({ linkedTrailId }).where(eq(recordingSessions.id, sessionId))
+  },
   async discardSession(sessionId) {
     await db.transaction((tx) => {
       tx.delete(recordingPoints).where(eq(recordingPoints.sessionId, sessionId)).run()

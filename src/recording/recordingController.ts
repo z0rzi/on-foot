@@ -18,7 +18,7 @@ export async function startRecording(): Promise<StartResult> {
 
   const startedAt = Date.now()
   const sessionId = await activitiesRepository.startSession(startedAt)
-  useRecordingStore.getState().beginSession({ id: sessionId, startedAt, endedAt: null, linkedTrailId: null })
+  useRecordingStore.getState().beginSession({ id: sessionId, startedAt, endedAt: null, linkedTrailId: null, pausedAt: null, pausedMs: 0 })
   await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
   return 'started'
 }

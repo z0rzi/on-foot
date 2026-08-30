@@ -29,6 +29,13 @@
       "when": 1787414315763,
       "tag": "0003_odd_impossible_man",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788118144779,
+      "tag": "0004_zippy_bedlam",
+      "breakpoints": true
     }
   ]
 }

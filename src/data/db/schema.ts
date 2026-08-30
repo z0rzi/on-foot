@@ -39,6 +39,8 @@ export const recordingSessions = sqliteTable(
     startedAt: integer('started_at').notNull(),
     endedAt: integer('ended_at'),
     linkedTrailId: integer('linked_trail_id'),
+    pausedAt: integer('paused_at'),
+    pausedMs: integer('paused_ms').notNull().default(0),
     singleton: integer('singleton').notNull().default(1),
   },
   (table) => ({

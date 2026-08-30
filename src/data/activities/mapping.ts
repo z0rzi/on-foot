@@ -40,6 +40,8 @@ export interface RecordingSessionRow {
   startedAt: number
   endedAt: number | null
   linkedTrailId: number | null
+  pausedAt: number | null
+  pausedMs: number
 }
 
 export interface RecordingPointRow {
@@ -79,7 +81,14 @@ export function rowToTrackPoint(row: RecordingPointRow): TrackPoint {
 }
 
 export function rowToSession(row: RecordingSessionRow): RecordingSession {
-  return { id: row.id, startedAt: row.startedAt, endedAt: row.endedAt, linkedTrailId: row.linkedTrailId }
+  return {
+    id: row.id,
+    startedAt: row.startedAt,
+    endedAt: row.endedAt,
+    linkedTrailId: row.linkedTrailId,
+    pausedAt: row.pausedAt,
+    pausedMs: row.pausedMs,
+  }
 }
 
 export function rowToSummary(row: ActivityRow): ActivitySummary {

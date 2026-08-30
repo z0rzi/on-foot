@@ -2,8 +2,12 @@ import { recordingPhase, useRecordingStore } from '../recordingStore'
 import { RecordingSession, TrackPoint } from '../../data/activities/types'
 
 const p = (t: number): TrackPoint => ({ lat: 0, lng: t, ele: null, t })
-const recordingSession: RecordingSession = { id: 7, startedAt: 1000, endedAt: null, linkedTrailId: null }
-const stoppedSession: RecordingSession = { id: 7, startedAt: 1000, endedAt: 5000, linkedTrailId: 3 }
+const recordingSession: RecordingSession = {
+  id: 7, startedAt: 1000, endedAt: null, linkedTrailId: null, pausedAt: null, pausedMs: 0,
+}
+const stoppedSession: RecordingSession = {
+  id: 7, startedAt: 1000, endedAt: 5000, linkedTrailId: 3, pausedAt: null, pausedMs: 0,
+}
 
 beforeEach(() => {
   useRecordingStore.setState({ session: null, liveGeometry: { points: [] } })

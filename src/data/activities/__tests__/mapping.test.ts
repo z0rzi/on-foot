@@ -28,9 +28,15 @@ describe('rowToTrackPoint', () => {
 })
 
 describe('rowToSession', () => {
-  it('maps a session row (recording)', () => {
-    expect(rowToSession({ id: 3, startedAt: 10, endedAt: null, linkedTrailId: null }))
-      .toEqual({ id: 3, startedAt: 10, endedAt: null, linkedTrailId: null })
+  it('maps a recording session row including pause fields', () => {
+    expect(
+      rowToSession({ id: 3, startedAt: 10, endedAt: null, linkedTrailId: null, pausedAt: null, pausedMs: 0 }),
+    ).toEqual({ id: 3, startedAt: 10, endedAt: null, linkedTrailId: null, pausedAt: null, pausedMs: 0 })
+  })
+  it('maps a paused session row', () => {
+    expect(
+      rowToSession({ id: 3, startedAt: 10, endedAt: null, linkedTrailId: 2, pausedAt: 500, pausedMs: 120 }),
+    ).toEqual({ id: 3, startedAt: 10, endedAt: null, linkedTrailId: 2, pausedAt: 500, pausedMs: 120 })
   })
 })
 
@@ -54,7 +60,7 @@ describe('activityMetricsFromPoints', () => {
 })
 
 describe('buildNewActivityInput', () => {
-  const session = { id: 9, startedAt: 1000, endedAt: 7000, linkedTrailId: 42 }
+  const session = { id: 9, startedAt: 1000, endedAt: 7000, linkedTrailId: 42, pausedAt: null, pausedMs: 0 }
   const form = { name: 'Morning walk', effort: 'moderate' as const, comments: 'nice' }
   it('assembles the input from session + points + form', () => {
     const input = buildNewActivityInput(session, pts, form)

@@ -5,6 +5,7 @@ import m0000 from './0000_dazzling_randall_flagg.sql';
 import m0001 from './0001_cloudy_wolverine.sql';
 import m0002 from './0002_short_cannonball.sql';
 import m0003 from './0003_odd_impossible_man.sql';
+import m0004 from './0004_zippy_bedlam.sql';
 
   export default {
     journal,
@@ -12,7 +13,8 @@ import m0003 from './0003_odd_impossible_man.sql';
       m0000,
 m0001,
 m0002,
-m0003
+m0003,
+m0004
     }
   }
   
