@@ -110,11 +110,19 @@ Controller (`recordingController.ts`) wraps them with persistence + GPS:
   (sets `paused_at = null`, `paused_ms = next.pausedMs`), restart
   `startLocationUpdatesAsync`, `setSession(next)`. Multiple pause/resume cycles
   accumulate into `pausedMs`.
-- **`stopRecording()` is removed.** Stop is a navigation action (below), not a
-  DB write. `discardRecording()` is unchanged.
+- **`stopToSave(linkedTrailId)`** — the paused Stop action. Persists the current
+  followed-trail selection as the session's `linkedTrailId` via
+  `markLinkedTrail(id, linkedTrailId)` (the **only** Stop-time write — it is
+  `linkedTrailId`, never `endedAt`, so #18 stays fixed), reflects it in the store
+  (`setSession`), then the caller navigates to `/activity/save`. The session
+  stays paused. This preserves the existing "whatever trail is followed at the
+  end is linked, last one wins" behaviour that `stopRecording` used to provide.
+- **`stopRecording()` is removed** (its endedAt-at-stop write is what caused #18).
+  `discardRecording()` is unchanged.
 
-`ActivitiesRepository` gains `markPaused(id, pausedAt)` and
-`markResumed(id, pausedMs)`; `markStopped` is removed (no caller remains).
+`ActivitiesRepository` gains `markPaused(id, pausedAt)`, `markResumed(id, pausedMs)`,
+and `markLinkedTrail(id, linkedTrailId)`; `markStopped` is removed (no caller
+remains).
 
 ## Location Task
 
@@ -147,7 +155,8 @@ button, so the session is paused (`pausedAt` set, `endedAt` still `null`).
 
 - The activity's end time is derived from `pausedAt ?? lastPoint.t ?? startedAt`
   (the pause moment — confirmed acceptable even if the hiker waits before tapping
-  Stop).
+  Stop). The `linkedTrailId` comes from the session (written at Stop by
+  `stopToSave`).
 - `activityMetricsFromPoints(points, startedAt, endedAt, pausedMs)` gains a
   `pausedMs` argument and computes `durationSeconds` as moving time
   (`(endedAt - startedAt - pausedMs) / 1000`, floored at 0). `buildNewActivityInput`
@@ -172,7 +181,8 @@ hold)", the hold gesture drives the ring and on completion calls
 - The hold-to-pause button is replaced by **two floating tap buttons**,
   bottom-left, riding above the sheet like the record button:
   - **Resume** (play icon) → `resumeRecording()`.
-  - **Stop** (stop icon) → `router.push('/activity/save')`.
+  - **Stop** (stop icon) → `stopToSave(linkedTrailId)` (from the current map
+    selection), then `router.push('/activity/save')`.
   These live in a small dedicated `PausedControls` component; `MapScreen` renders
   `RecordButton` for `idle`/`recording` and `PausedControls` for `paused`.
 - A prominent top **"⏸ Paused" chip** makes the GPS-off state loud. `MapModeChip`
