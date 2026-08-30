@@ -28,16 +28,21 @@ export function RecordingInfoSheet({
 
   const phase = recordingPhase(session)
 
-  // Re-render once a second while recording; the duration reads the current time at render (below)
-  // rather than a snapshot, so it can never lag behind a resume's pausedMs jump.
-  const [, setTick] = useState(0)
+  const [now, setNow] = useState(() => Date.now())
+  const [prevPhase, setPrevPhase] = useState(phase)
+  // Refresh the clock the instant recording (re)starts, before paint, so the first frame after a
+  // resume already reflects the new pausedMs instead of briefly showing the pre-resume value.
+  if (phase !== prevPhase) {
+    setPrevPhase(phase)
+    if (phase === 'recording') setNow(Date.now())
+  }
   useEffect(() => {
     if (phase !== 'recording') return
-    const id = setInterval(() => setTick((t) => t + 1), 1000)
+    const id = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(id)
   }, [phase])
 
-  const durationSeconds = session ? movingElapsedMs(session, Date.now()) / 1000 : 0
+  const durationSeconds = session ? movingElapsedMs(session, now) / 1000 : 0
   const metrics = computeMetrics(points)
 
   const paceSpeedTile =
