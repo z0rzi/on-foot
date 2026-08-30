@@ -11,7 +11,7 @@ TaskManager.defineTask(RECORDING_TASK, async ({ data, error }) => {
   const { locations } = data as { locations: Location.LocationObject[] }
   if (!locations?.length) return
   const session = await activitiesRepository.getActiveSession()
-  if (!session || session.endedAt != null) return
+  if (!session || session.endedAt != null || session.pausedAt != null) return
   const points = locations.map(toTrackPoint)
   await activitiesRepository.appendPoints(session.id, points)
   useRecordingStore.getState().appendLivePoints(points)

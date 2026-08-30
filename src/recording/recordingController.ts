@@ -4,6 +4,7 @@ import { RECORDING_TASK } from './locationTask'
 import { RECORDING_OPTIONS } from './options'
 import { useRecordingStore } from './recordingStore'
 import { resumeActionFor, ResumeAction } from './resume'
+import { applyPause, applyResume } from './session'
 import { toTrackPoint } from './track'
 
 export type StartResult = 'started' | 'permission-denied' | 'already-active'
@@ -35,6 +36,35 @@ export async function stopRecording(linkedTrailId: number | null): Promise<void>
   }
 }
 
+export async function pauseRecording(): Promise<void> {
+  const session = await activitiesRepository.getActiveSession()
+  if (!session || session.pausedAt != null || session.endedAt != null) return
+  if (await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK)) {
+    await Location.stopLocationUpdatesAsync(RECORDING_TASK)
+  }
+  const now = Date.now()
+  await activitiesRepository.markPaused(session.id, now)
+  useRecordingStore.getState().setSession(applyPause(session, now))
+}
+
+export async function resumeRecording(): Promise<void> {
+  const session = await activitiesRepository.getActiveSession()
+  if (!session || session.pausedAt == null) return
+  const next = applyResume(session, Date.now())
+  await activitiesRepository.markResumed(session.id, next.pausedMs)
+  useRecordingStore.getState().setSession(next)
+  if (!(await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK))) {
+    await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
+  }
+}
+
+export async function stopToSave(linkedTrailId: number | null): Promise<void> {
+  const session = await activitiesRepository.getActiveSession()
+  if (!session) return
+  await activitiesRepository.markLinkedTrail(session.id, linkedTrailId)
+  useRecordingStore.getState().setSession({ ...session, linkedTrailId })
+}
+
 export async function discardRecording(sessionId: number): Promise<void> {
   if (await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK)) {
     await Location.stopLocationUpdatesAsync(RECORDING_TASK)
@@ -62,6 +92,9 @@ export async function resumeIfActive(): Promise<{ action: ResumeAction; sessionI
     } catch {
       // No immediate fix available; the next background batch will connect the gap.
     }
+  } else if (action === 'paused' && session) {
+    const points = await activitiesRepository.getSessionPoints(session.id)
+    useRecordingStore.getState().hydrate(session, points)
   } else if (action === 'save' && session) {
     // Reflect the stopped session so phase derives to 'saving' — the save page reads its own
     // points from the DB, so the live geometry is not needed here.
