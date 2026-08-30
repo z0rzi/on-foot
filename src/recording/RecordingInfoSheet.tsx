@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import type { SharedValue } from 'react-native-reanimated'
 import { Ionicons } from '@expo/vector-icons'
@@ -9,7 +8,7 @@ import { computeMetrics, formatDistance, formatElevation } from '../data/trails/
 import { formatPace, formatSpeed, formatStopwatch } from '../activities/format'
 import { MapInfoSheet } from '../map/MapInfoSheet'
 import { MetricsGrid } from '../map/MetricsGrid'
-import { movingElapsedMs } from './session'
+import { useMovingStopwatch } from './useMovingStopwatch'
 
 export function RecordingInfoSheet({
   followedTrailName,
@@ -27,22 +26,7 @@ export function RecordingInfoSheet({
   const togglePaceSpeed = usePreferencesStore((s) => s.togglePaceSpeed)
 
   const phase = recordingPhase(session)
-
-  const [now, setNow] = useState(() => Date.now())
-  const [prevPhase, setPrevPhase] = useState(phase)
-  // Refresh the clock the instant recording (re)starts, before paint, so the first frame after a
-  // resume already reflects the new pausedMs instead of briefly showing the pre-resume value.
-  if (phase !== prevPhase) {
-    setPrevPhase(phase)
-    if (phase === 'recording') setNow(Date.now())
-  }
-  useEffect(() => {
-    if (phase !== 'recording') return
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [phase])
-
-  const durationSeconds = session ? movingElapsedMs(session, now) / 1000 : 0
+  const durationSeconds = useMovingStopwatch(session) / 1000
   const metrics = computeMetrics(points)
 
   const paceSpeedTile =

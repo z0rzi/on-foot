@@ -1,4 +1,5 @@
 import { computeMetrics } from '../trails/gpx/metrics'
+import { movingDurationMs } from './duration'
 import {
   Activity, ActivityGeometry, ActivityMetrics, ActivitySummary,
   Effort, NewActivityInput, RecordingSession, TrackPoint,
@@ -126,7 +127,7 @@ export function activityMetricsFromPoints(
   const m = computeMetrics(points)
   return {
     distanceMeters: m.distanceMeters,
-    durationSeconds: Math.max(0, Math.round((endedAt - startedAt - pausedMs) / 1000)),
+    durationSeconds: Math.round(movingDurationMs(startedAt, endedAt, pausedMs) / 1000),
     elevationGainMeters: m.elevationGainMeters,
     elevationLossMeters: m.elevationLossMeters,
   }
