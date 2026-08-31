@@ -3,10 +3,10 @@ import { RecordingSession, TrackPoint } from '../../data/activities/types'
 
 const p = (t: number): TrackPoint => ({ lat: 0, lng: t, ele: null, t })
 const recordingSession: RecordingSession = {
-  id: 7, startedAt: 1000, endedAt: null, linkedTrailId: null, pausedAt: null, pausedMs: 0,
+  id: 7, startedAt: 1000, linkedTrailId: null, pausedAt: null, pausedMs: 0,
 }
 const pausedSession: RecordingSession = {
-  id: 7, startedAt: 1000, endedAt: null, linkedTrailId: 3, pausedAt: 4000, pausedMs: 0,
+  id: 7, startedAt: 1000, linkedTrailId: 3, pausedAt: 4000, pausedMs: 0,
 }
 
 beforeEach(() => {
@@ -17,7 +17,7 @@ describe('recordingPhase', () => {
   it('no session → idle', () => {
     expect(recordingPhase(null)).toBe('idle')
   })
-  it('open session (endedAt null) → recording', () => {
+  it('open session (no pausedAt) → recording', () => {
     expect(recordingPhase(recordingSession)).toBe('recording')
   })
   it('session with pausedAt → paused', () => {

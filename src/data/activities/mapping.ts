@@ -39,7 +39,6 @@ export interface ActivityInsertValues {
 export interface RecordingSessionRow {
   id: number
   startedAt: number
-  endedAt: number | null
   linkedTrailId: number | null
   pausedAt: number | null
   pausedMs: number
@@ -85,7 +84,6 @@ export function rowToSession(row: RecordingSessionRow): RecordingSession {
   return {
     id: row.id,
     startedAt: row.startedAt,
-    endedAt: row.endedAt,
     linkedTrailId: row.linkedTrailId,
     pausedAt: row.pausedAt,
     pausedMs: row.pausedMs,

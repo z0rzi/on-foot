@@ -40,7 +40,6 @@ export interface Activity extends ActivitySummary {
 export interface RecordingSession {
   id: number
   startedAt: number
-  endedAt: number | null
   linkedTrailId: number | null
   pausedAt: number | null
   pausedMs: number

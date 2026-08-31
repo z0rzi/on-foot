@@ -1,7 +1,7 @@
 import { applyPause, applyResume, movingElapsedMs } from '../session'
 import { RecordingSession } from '../../data/activities/types'
 
-const base: RecordingSession = { id: 1, startedAt: 1000, endedAt: null, linkedTrailId: null, pausedAt: null, pausedMs: 0 }
+const base: RecordingSession = { id: 1, startedAt: 1000, linkedTrailId: null, pausedAt: null, pausedMs: 0 }
 
 describe('movingElapsedMs', () => {
   it('recording: elapsed since start minus accumulated pause', () => {

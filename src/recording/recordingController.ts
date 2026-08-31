@@ -19,14 +19,14 @@ export async function startRecording(): Promise<StartResult> {
 
   const startedAt = Date.now()
   const sessionId = await activitiesRepository.startSession(startedAt)
-  useRecordingStore.getState().beginSession({ id: sessionId, startedAt, endedAt: null, linkedTrailId: null, pausedAt: null, pausedMs: 0 })
+  useRecordingStore.getState().beginSession({ id: sessionId, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0 })
   await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
   return 'started'
 }
 
 export async function pauseRecording(): Promise<void> {
   const session = await activitiesRepository.getActiveSession()
-  if (!session || session.pausedAt != null || session.endedAt != null) return
+  if (!session || session.pausedAt != null) return
   if (await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK)) {
     await Location.stopLocationUpdatesAsync(RECORDING_TASK)
   }
