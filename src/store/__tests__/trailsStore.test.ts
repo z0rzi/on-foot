@@ -21,7 +21,7 @@ const summary = (id: number): TrailSummary => ({
 const input: NewTrailInput = {
   name: 'New', difficulty: 'medium', description: null,
   metrics: { distanceMeters: 1, elevationGainMeters: 0, elevationLossMeters: 0 },
-  geometry: { points: [], waypoints: [] },
+  geometry: { segments: [], waypoints: [] },
 }
 
 beforeEach(() => {

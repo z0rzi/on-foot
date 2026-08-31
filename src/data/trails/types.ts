@@ -7,7 +7,7 @@ export type Difficulty = 'easy' | 'medium' | 'hard'
 export interface TrailMetrics {
   distanceMeters: number; elevationGainMeters: number | null; elevationLossMeters: number | null
 }
-export interface TrailGeometry { points: GpxPoint[]; waypoints: GpxWaypoint[] }
+export interface TrailGeometry { segments: GpxPoint[][]; waypoints: GpxWaypoint[] }
 export interface NewTrailInput {
   name: string; difficulty: Difficulty; description: string | null
   metrics: TrailMetrics; geometry: TrailGeometry

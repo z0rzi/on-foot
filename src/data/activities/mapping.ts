@@ -1,4 +1,4 @@
-import { computeMetrics } from '../trails/gpx/metrics'
+import { metricsForSegments } from '../trails/gpx/metrics'
 import { movingDurationMs } from './duration'
 import {
   Activity, ActivityGeometry, ActivityMetrics, ActivitySummary,
@@ -42,6 +42,7 @@ export interface RecordingSessionRow {
   linkedTrailId: number | null
   pausedAt: number | null
   pausedMs: number
+  currentSegment: number
 }
 
 export interface RecordingPointRow {
@@ -51,6 +52,7 @@ export interface RecordingPointRow {
   lng: number
   ele: number | null
   t: number
+  segment: number
 }
 
 export interface RecordingPointInsertValues {
@@ -59,6 +61,7 @@ export interface RecordingPointInsertValues {
   lng: number
   ele: number | null
   t: number
+  segment: number
 }
 
 export interface ActivityFormFields {
@@ -72,12 +75,32 @@ export function serializeActivityGeometry(geometry: ActivityGeometry): string {
 }
 
 export function deserializeActivityGeometry(json: string): ActivityGeometry {
-  const parsed = JSON.parse(json) as Partial<ActivityGeometry>
-  return { points: parsed.points ?? [] }
+  const parsed = JSON.parse(json) as { segments?: TrackPoint[][]; points?: TrackPoint[] }
+  if (parsed.segments) return { segments: parsed.segments }
+  if (parsed.points) return { segments: parsed.points.length ? [parsed.points] : [] }
+  return { segments: [] }
 }
 
 export function rowToTrackPoint(row: RecordingPointRow): TrackPoint {
   return { lat: row.lat, lng: row.lng, ele: row.ele, t: row.t }
+}
+
+export function groupPointsBySegment(rows: RecordingPointRow[]): TrackPoint[][] {
+  const bySegment = new Map<number, TrackPoint[]>()
+  for (const row of rows) {
+    const list = bySegment.get(row.segment) ?? []
+    list.push(rowToTrackPoint(row))
+    bySegment.set(row.segment, list)
+  }
+  return [...bySegment.keys()].sort((a, b) => a - b).map((k) => bySegment.get(k)!)
+}
+
+export function lastTrackPoint(segments: TrackPoint[][]): TrackPoint | null {
+  for (let i = segments.length - 1; i >= 0; i--) {
+    const seg = segments[i]
+    if (seg.length > 0) return seg[seg.length - 1]
+  }
+  return null
 }
 
 export function rowToSession(row: RecordingSessionRow): RecordingSession {
@@ -87,6 +110,7 @@ export function rowToSession(row: RecordingSessionRow): RecordingSession {
     linkedTrailId: row.linkedTrailId,
     pausedAt: row.pausedAt,
     pausedMs: row.pausedMs,
+    currentSegment: row.currentSegment,
   }
 }
 
@@ -116,13 +140,13 @@ export function rowToActivity(row: ActivityRow): Activity {
   }
 }
 
-export function activityMetricsFromPoints(
-  points: TrackPoint[],
+export function activityMetricsFromSegments(
+  segments: TrackPoint[][],
   startedAt: number,
   endedAt: number,
   pausedMs: number,
 ): ActivityMetrics {
-  const m = computeMetrics(points)
+  const m = metricsForSegments(segments)
   return {
     distanceMeters: m.distanceMeters,
     durationSeconds: Math.round(movingDurationMs(startedAt, endedAt, pausedMs) / 1000),
@@ -133,17 +157,17 @@ export function activityMetricsFromPoints(
 
 export function buildNewActivityInput(
   session: RecordingSession,
-  points: TrackPoint[],
+  segments: TrackPoint[][],
   form: ActivityFormFields,
 ): NewActivityInput {
-  const endedAt = session.pausedAt ?? points[points.length - 1]?.t ?? session.startedAt
+  const endedAt = session.pausedAt ?? lastTrackPoint(segments)?.t ?? session.startedAt
   return {
     name: form.name,
     effort: form.effort,
     comments: form.comments,
     linkedTrailId: session.linkedTrailId,
-    geometry: { points },
-    metrics: activityMetricsFromPoints(points, session.startedAt, endedAt, session.pausedMs),
+    geometry: { segments },
+    metrics: activityMetricsFromSegments(segments, session.startedAt, endedAt, session.pausedMs),
     startedAt: session.startedAt,
     endedAt,
   }
@@ -166,6 +190,10 @@ export function inputToActivityValues(input: NewActivityInput, now: number): Act
   }
 }
 
-export function pointsToInsertValues(sessionId: number, points: TrackPoint[]): RecordingPointInsertValues[] {
-  return points.map((p) => ({ sessionId, lat: p.lat, lng: p.lng, ele: p.ele, t: p.t }))
+export function pointsToInsertValues(
+  sessionId: number,
+  segment: number,
+  points: TrackPoint[],
+): RecordingPointInsertValues[] {
+  return points.map((p) => ({ sessionId, segment, lat: p.lat, lng: p.lng, ele: p.ele, t: p.t }))
 }

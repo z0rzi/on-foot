@@ -1,7 +1,7 @@
 export type Effort = 'easy' | 'moderate' | 'hard' | 'max'
 
 export interface TrackPoint { lat: number; lng: number; ele: number | null; t: number }
-export interface ActivityGeometry { points: TrackPoint[] }
+export interface ActivityGeometry { segments: TrackPoint[][] }
 
 export interface ActivityMetrics {
   distanceMeters: number
@@ -43,4 +43,5 @@ export interface RecordingSession {
   linkedTrailId: number | null
   pausedAt: number | null
   pausedMs: number
+  currentSegment: number
 }

@@ -1,4 +1,4 @@
-import { Difficulty, NewTrailInput, Trail, TrailGeometry, TrailSummary, TrailUpdate } from './types'
+import { Difficulty, GpxPoint, GpxWaypoint, NewTrailInput, Trail, TrailGeometry, TrailSummary, TrailUpdate } from './types'
 
 export interface TrailRow {
   id: number
@@ -30,8 +30,11 @@ export function serializeGeometry(geometry: TrailGeometry): string {
 }
 
 export function deserializeGeometry(json: string): TrailGeometry {
-  const parsed = JSON.parse(json) as Partial<TrailGeometry>
-  return { points: parsed.points ?? [], waypoints: parsed.waypoints ?? [] }
+  const parsed = JSON.parse(json) as {
+    segments?: GpxPoint[][]; points?: GpxPoint[]; waypoints?: GpxWaypoint[]
+  }
+  const segments = parsed.segments ?? (parsed.points?.length ? [parsed.points] : [])
+  return { segments, waypoints: parsed.waypoints ?? [] }
 }
 
 export function rowToSummary(row: TrailRow): TrailSummary {
