@@ -1,7 +1,7 @@
 import { applyPause, applyResume, movingElapsedMs } from '../session'
 import { RecordingSession } from '../../data/activities/types'
 
-const base: RecordingSession = { id: 1, startedAt: 1000, linkedTrailId: null, pausedAt: null, pausedMs: 0 }
+const base: RecordingSession = { id: 1, startedAt: 1000, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0 }
 
 describe('movingElapsedMs', () => {
   it('recording: elapsed since start minus accumulated pause', () => {
@@ -22,16 +22,17 @@ describe('applyPause', () => {
 })
 
 describe('applyResume', () => {
-  it('accumulates the just-ended pause into pausedMs and clears pausedAt', () => {
+  it('accumulates the just-ended pause into pausedMs, clears pausedAt, opens next segment', () => {
     expect(applyResume({ ...base, pausedAt: 5000, pausedMs: 1000 }, 8000)).toEqual({
       ...base,
       pausedAt: null,
       pausedMs: 4000,
+      currentSegment: 1,
     })
   })
-  it('accumulates across multiple cycles', () => {
-    const afterFirst = applyResume({ ...base, pausedAt: 3000 }, 4000) // +1000
+  it('increments the segment on each resume across cycles', () => {
+    const afterFirst = applyResume({ ...base, pausedAt: 3000 }, 4000) // seg 1
     const paused2 = applyPause(afterFirst, 9000)
-    expect(applyResume(paused2, 11000)).toEqual({ ...base, pausedAt: null, pausedMs: 3000 }) // 1000 + 2000
+    expect(applyResume(paused2, 11000)).toEqual({ ...base, pausedAt: null, pausedMs: 3000, currentSegment: 2 })
   })
 })

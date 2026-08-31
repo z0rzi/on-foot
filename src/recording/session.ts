@@ -14,5 +14,6 @@ export function applyResume(session: RecordingSession, now: number): RecordingSe
     ...session,
     pausedAt: null,
     pausedMs: session.pausedMs + (now - (session.pausedAt ?? now)),
+    currentSegment: session.currentSegment + 1,
   }
 }
