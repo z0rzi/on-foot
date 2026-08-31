@@ -14,6 +14,7 @@ import { useOfflineStore } from '../map/offline/offlineStore'
 import { offlineStateForTrail } from '../map/offline/badge'
 import { retryTargetsForTrail } from '../map/offline/operations'
 import { boundsForTrail } from '../map/offline/bounds'
+import { flattenSegments } from '../map/geo'
 import { packDescriptor } from '../map/offline/descriptor'
 import { OFFLINE_MARGIN_KM } from '../map/offline/constants'
 import { OfflineLayerChooser } from '../map/offline/OfflineLayerChooser'
@@ -62,7 +63,7 @@ export function TrailInfoSheet({
   // Retry each failed/incomplete layer: resume a pack that exists (keeps partial progress), or
   // re-issue the download for a phantom failure that left no pack behind.
   const retry = () => {
-    const bounds = boundsForTrail(trail.geometry.points, OFFLINE_MARGIN_KM)
+    const bounds = boundsForTrail(flattenSegments(trail.geometry.segments), OFFLINE_MARGIN_KM)
     guardDownload(null, () => {
       retryTargetsForTrail(packs, progress, trail.id).forEach((t) => {
         if (t.hasPack) {

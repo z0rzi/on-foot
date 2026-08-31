@@ -7,7 +7,7 @@ import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
 import { MapTokens } from '../theme/tokens'
 import { Trail } from '../data/trails'
 import { Activity } from '../data/activities/types'
-import { boundsForPoints } from './geo'
+import { boundsForPoints, flattenSegments } from './geo'
 import { MapOverlays, type OverlayRoute } from './MapOverlays'
 
 export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: Activity | null }) {
@@ -35,20 +35,20 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
     if (northResetNonce > 0) cameraRef.current?.resetNorth(true)
   }, [northResetNonce])
 
-  const points = trail?.geometry.points ?? []
-  const hasTrail = points.length >= 2
+  const segments = trail?.geometry.segments ?? []
+  const hasTrail = flattenSegments(segments).length >= 2
 
-  const activityPoints = activity?.geometry.points ?? []
-  const hasActivity = activityPoints.length >= 2
+  const activitySegments = activity?.geometry.segments ?? []
+  const hasActivity = flattenSegments(activitySegments).length >= 2
 
   const recording = useRecordingStore((s) => recordingPhase(s.session) === 'recording')
-  const livePoints = useRecordingStore((s) => s.liveGeometry.points)
-  const showLiveTrack = recording && livePoints.length >= 2
+  const liveSegments = useRecordingStore((s) => s.liveGeometry.segments)
+  const showLiveTrack = recording && flattenSegments(liveSegments).length >= 2
 
   const route: OverlayRoute | null = hasActivity
-    ? { points: activityPoints, kind: 'activity' }
+    ? { segments: activitySegments, kind: 'activity' }
     : hasTrail
-      ? { points, kind: 'trail' }
+      ? { segments, kind: 'trail' }
       : null
 
   // Frame the trail a user tap requested, once that trail's own geometry has loaded. select()
@@ -58,8 +58,9 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
   // null, so it never fits and the camera keeps following the user.
   useEffect(() => {
     if (trail == null || pendingFit?.kind !== 'trail' || pendingFit.id !== trail.id) return
-    if (trail.geometry.points.length < 2) return
-    const bounds = boundsForPoints(trail.geometry.points)
+    const flat = flattenSegments(trail.geometry.segments)
+    if (flat.length < 2) return
+    const bounds = boundsForPoints(flat)
     if (!bounds) return
     clearPendingFit()
     const { top, sides, bottom } = MapTokens.cameraPadding
@@ -68,8 +69,9 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
 
   useEffect(() => {
     if (activity == null || pendingFit?.kind !== 'activity' || pendingFit.id !== activity.id) return
-    if (activity.geometry.points.length < 2) return
-    const bounds = boundsForPoints(activity.geometry.points)
+    const flat = flattenSegments(activity.geometry.segments)
+    if (flat.length < 2) return
+    const bounds = boundsForPoints(flat)
     if (!bounds) return
     clearPendingFit()
     const { top, sides, bottom } = MapTokens.cameraPadding
@@ -100,7 +102,7 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
       />
       {caps.supportsTerrain && <Terrain exaggeration={MapTokens.terrainExaggeration} />}
       <UserPuck scale={MapTokens.puckBearingScale} />
-      <MapOverlays route={route} livePoints={livePoints} showLiveTrack={showLiveTrack} />
+      <MapOverlays route={route} liveSegments={liveSegments} showLiveTrack={showLiveTrack} />
     </MapView>
   )
 }

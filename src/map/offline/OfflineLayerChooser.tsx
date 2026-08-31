@@ -7,6 +7,7 @@ import { useMapCapabilities, useOfflineController } from '../provider'
 import { useMapStore } from '../../store/mapStore'
 import { useOfflineStore } from './offlineStore'
 import { boundsForTrail } from './bounds'
+import { flattenSegments } from '../geo'
 import { estimatePackSize, layerKindForStyle } from './estimate'
 import { packId, parsePackId } from './packId'
 import { packDescriptor } from './descriptor'
@@ -31,7 +32,7 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
     const onChange = useSheetBackDismiss(
       useCallback(() => (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss(), [ref]),
     )
-    const bounds = useMemo(() => boundsForTrail(trail.geometry.points, OFFLINE_MARGIN_KM), [trail])
+    const bounds = useMemo(() => boundsForTrail(flattenSegments(trail.geometry.segments), OFFLINE_MARGIN_KM), [trail])
 
     // The trail's already-downloaded layers, from the completed packs on disk (no dependency on
     // live progress, so opening the chooser doesn't re-render on every download tick).
