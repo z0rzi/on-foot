@@ -19,7 +19,7 @@ export async function startRecording(): Promise<StartResult> {
 
   const startedAt = Date.now()
   const sessionId = await activitiesRepository.startSession(startedAt)
-  useRecordingStore.getState().beginSession({ id: sessionId, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0 })
+  useRecordingStore.getState().beginSession({ id: sessionId, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0 })
   await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
   return 'started'
 }
@@ -39,8 +39,9 @@ export async function resumeRecording(): Promise<void> {
   const session = await activitiesRepository.getActiveSession()
   if (!session || session.pausedAt == null) return
   const next = applyResume(session, Date.now())
-  await activitiesRepository.markResumed(session.id, next.pausedMs)
+  await activitiesRepository.markResumed(session.id, next.pausedMs, next.currentSegment)
   useRecordingStore.getState().setSession(next)
+  useRecordingStore.getState().startSegment()
   if (!(await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK))) {
     await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
   }
@@ -65,8 +66,8 @@ export async function resumeIfActive(): Promise<{ action: ResumeAction; sessionI
   const session = await activitiesRepository.getActiveSession()
   const action = resumeActionFor(session)
   if (action === 'resume' && session) {
-    const points = await activitiesRepository.getSessionPoints(session.id)
-    useRecordingStore.getState().hydrate(session, points)
+    const segments = await activitiesRepository.getSessionSegments(session.id)
+    useRecordingStore.getState().hydrate(session, segments)
     if (!(await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK))) {
       await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
     }
@@ -75,14 +76,14 @@ export async function resumeIfActive(): Promise<{ action: ResumeAction; sessionI
     try {
       const now = await Location.getCurrentPositionAsync({ accuracy: RECORDING_OPTIONS.accuracy })
       const point = toTrackPoint(now)
-      await activitiesRepository.appendPoints(session.id, [point])
+      await activitiesRepository.appendPoints(session.id, session.currentSegment, [point])
       useRecordingStore.getState().appendLivePoints([point])
     } catch {
       // No immediate fix available; the next background batch will connect the gap.
     }
   } else if (action === 'paused' && session) {
-    const points = await activitiesRepository.getSessionPoints(session.id)
-    useRecordingStore.getState().hydrate(session, points)
+    const segments = await activitiesRepository.getSessionSegments(session.id)
+    useRecordingStore.getState().hydrate(session, segments)
   }
   return { action, sessionId: session?.id ?? null }
 }
