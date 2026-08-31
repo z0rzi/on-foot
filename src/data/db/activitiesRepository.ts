@@ -2,8 +2,8 @@ import { asc, desc, eq } from 'drizzle-orm'
 import { ActivitiesRepository } from '../activities/repository'
 import {
   ActivityRow, RecordingPointRow, RecordingSessionRow,
-  inputToActivityValues, pointsToInsertValues,
-  rowToActivity, rowToSession, rowToSummary, rowToTrackPoint,
+  groupPointsBySegment, inputToActivityValues, pointsToInsertValues,
+  rowToActivity, rowToSession, rowToSummary,
 } from '../activities/mapping'
 import { db } from './client'
 import { activities, recordingPoints, recordingSessions } from './schema'
@@ -21,23 +21,25 @@ export const sqliteActivitiesRepository: ActivitiesRepository = {
     const rows = await db.select().from(recordingSessions).limit(1)
     return rows.length ? rowToSession(rows[0] as RecordingSessionRow) : null
   },
-  async appendPoints(sessionId, points) {
+  async appendPoints(sessionId, segment, points) {
     if (points.length === 0) return
-    await db.insert(recordingPoints).values(pointsToInsertValues(sessionId, points))
+    await db.insert(recordingPoints).values(pointsToInsertValues(sessionId, segment, points))
   },
-  async getSessionPoints(sessionId) {
+  async getSessionSegments(sessionId) {
     const rows = await db
       .select()
       .from(recordingPoints)
       .where(eq(recordingPoints.sessionId, sessionId))
-      .orderBy(asc(recordingPoints.t), asc(recordingPoints.id))
-    return (rows as RecordingPointRow[]).map(rowToTrackPoint)
+      .orderBy(asc(recordingPoints.segment), asc(recordingPoints.t), asc(recordingPoints.id))
+    return groupPointsBySegment(rows as RecordingPointRow[])
   },
   async markPaused(sessionId, pausedAt) {
     await db.update(recordingSessions).set({ pausedAt }).where(eq(recordingSessions.id, sessionId))
   },
-  async markResumed(sessionId, pausedMs) {
-    await db.update(recordingSessions).set({ pausedAt: null, pausedMs }).where(eq(recordingSessions.id, sessionId))
+  async markResumed(sessionId, pausedMs, currentSegment) {
+    await db.update(recordingSessions)
+      .set({ pausedAt: null, pausedMs, currentSegment })
+      .where(eq(recordingSessions.id, sessionId))
   },
   async markLinkedTrail(sessionId, linkedTrailId) {
     await db.update(recordingSessions).set({ linkedTrailId }).where(eq(recordingSessions.id, sessionId))
