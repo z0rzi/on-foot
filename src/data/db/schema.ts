@@ -41,6 +41,7 @@ export const recordingSessions = sqliteTable(
     linkedTrailId: integer('linked_trail_id'),
     pausedAt: integer('paused_at'),
     pausedMs: integer('paused_ms').notNull().default(0),
+    currentSegment: integer('current_segment').notNull().default(0),
     singleton: integer('singleton').notNull().default(1),
   },
   (table) => ({
@@ -55,4 +56,5 @@ export const recordingPoints = sqliteTable('recording_points', {
   lng: real('lng').notNull(),
   ele: real('ele'),
   t: integer('t').notNull(),
+  segment: integer('segment').notNull().default(0),
 })
