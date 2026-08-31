@@ -4,16 +4,6 @@ export function toLineCoordinates(points: GpxPoint[]): [number, number][] {
   return points.map((point) => [point.lng, point.lat])
 }
 
-export function endpointCoordinates(points: GpxPoint[]): [number, number][] {
-  if (points.length === 0) return []
-  const first = points[0]
-  const last = points[points.length - 1]
-  return [
-    [first.lng, first.lat],
-    [last.lng, last.lat],
-  ]
-}
-
 export function boundsForPoints(
   points: GpxPoint[],
 ): { ne: [number, number]; sw: [number, number] } | null {

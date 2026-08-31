@@ -1,7 +1,6 @@
 import {
   boundsForPoints,
   toLineCoordinates,
-  endpointCoordinates,
   segmentLines,
   connectorLines,
   overallEndpoints,
@@ -20,24 +19,6 @@ describe('toLineCoordinates', () => {
   })
   test('empty input -> empty array', () => {
     expect(toLineCoordinates([])).toEqual([])
-  })
-})
-
-describe('endpointCoordinates', () => {
-  test('returns first and last as [lng, lat]', () => {
-    expect(endpointCoordinates([p(1, 2), p(3, 4), p(5, 6)])).toEqual([
-      [2, 1],
-      [6, 5],
-    ])
-  })
-  test('single point -> start equals end', () => {
-    expect(endpointCoordinates([p(1, 2)])).toEqual([
-      [2, 1],
-      [2, 1],
-    ])
-  })
-  test('empty input -> empty array', () => {
-    expect(endpointCoordinates([])).toEqual([])
   })
 })
 

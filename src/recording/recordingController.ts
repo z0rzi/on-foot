@@ -68,6 +68,9 @@ export async function resumeIfActive(): Promise<{ action: ResumeAction; sessionI
   if (action === 'resume' && session) {
     const segments = await activitiesRepository.getSessionSegments(session.id)
     useRecordingStore.getState().hydrate(session, segments)
+    if (session.currentSegment + 1 > segments.length) {
+      useRecordingStore.getState().startSegment()
+    }
     if (!(await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK))) {
       await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
     }
