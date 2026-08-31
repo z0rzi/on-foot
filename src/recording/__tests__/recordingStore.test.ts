@@ -3,14 +3,14 @@ import { RecordingSession, TrackPoint } from '../../data/activities/types'
 
 const p = (t: number): TrackPoint => ({ lat: 0, lng: t, ele: null, t })
 const recordingSession: RecordingSession = {
-  id: 7, startedAt: 1000, linkedTrailId: null, pausedAt: null, pausedMs: 0,
+  id: 7, startedAt: 1000, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0,
 }
 const pausedSession: RecordingSession = {
-  id: 7, startedAt: 1000, linkedTrailId: 3, pausedAt: 4000, pausedMs: 0,
+  id: 7, startedAt: 1000, linkedTrailId: 3, pausedAt: 4000, pausedMs: 0, currentSegment: 1,
 }
 
 beforeEach(() => {
-  useRecordingStore.setState({ session: null, liveGeometry: { points: [] } })
+  useRecordingStore.setState({ session: null, liveGeometry: { segments: [] } })
 })
 
 describe('recordingPhase', () => {
@@ -26,28 +26,32 @@ describe('recordingPhase', () => {
 })
 
 describe('recordingStore', () => {
-  it('beginSession sets the session (recording) + empty geometry', () => {
+  it('beginSession sets the session (recording) + one open empty segment', () => {
     useRecordingStore.getState().beginSession(recordingSession)
-    expect(useRecordingStore.getState().session).toEqual(recordingSession)
-    expect(recordingPhase(useRecordingStore.getState().session)).toBe('recording')
-    expect(useRecordingStore.getState().liveGeometry.points).toEqual([])
+    expect(useRecordingStore.getState().liveGeometry.segments).toEqual([[]])
   })
-  it('hydrate loads a session + its points', () => {
-    useRecordingStore.getState().hydrate(recordingSession, [p(1), p(2)])
-    expect(useRecordingStore.getState().session).toEqual(recordingSession)
-    expect(useRecordingStore.getState().liveGeometry.points).toHaveLength(2)
+  it('hydrate loads a session + its segments', () => {
+    useRecordingStore.getState().hydrate(recordingSession, [[p(1), p(2)]])
+    expect(useRecordingStore.getState().liveGeometry.segments).toEqual([[p(1), p(2)]])
   })
-  it('setSession replaces the session without touching geometry (phase derives to paused)', () => {
-    useRecordingStore.getState().hydrate(recordingSession, [p(1)])
+  it('setSession replaces the session without touching geometry', () => {
+    useRecordingStore.getState().hydrate(recordingSession, [[p(1)]])
     useRecordingStore.getState().setSession(pausedSession)
     expect(recordingPhase(useRecordingStore.getState().session)).toBe('paused')
-    expect(useRecordingStore.getState().liveGeometry.points).toHaveLength(1)
+    expect(useRecordingStore.getState().liveGeometry.segments).toEqual([[p(1)]])
   })
-  it('appendLivePoints appends in order', () => {
+  it('appendLivePoints appends into the last segment', () => {
     useRecordingStore.getState().beginSession(recordingSession)
     useRecordingStore.getState().appendLivePoints([p(1), p(2)])
     useRecordingStore.getState().appendLivePoints([p(3)])
-    expect(useRecordingStore.getState().liveGeometry.points.map((x) => x.t)).toEqual([1, 2, 3])
+    expect(useRecordingStore.getState().liveGeometry.segments).toEqual([[p(1), p(2), p(3)]])
+  })
+  it('startSegment then appendLivePoints writes into the new segment', () => {
+    useRecordingStore.getState().beginSession(recordingSession)
+    useRecordingStore.getState().appendLivePoints([p(1)])
+    useRecordingStore.getState().startSegment()
+    useRecordingStore.getState().appendLivePoints([p(2)])
+    expect(useRecordingStore.getState().liveGeometry.segments).toEqual([[p(1)], [p(2)]])
   })
   it('appendLivePoints with [] is a no-op (same reference)', () => {
     useRecordingStore.getState().beginSession(recordingSession)
@@ -56,10 +60,9 @@ describe('recordingStore', () => {
     expect(useRecordingStore.getState().liveGeometry).toBe(before)
   })
   it('reset returns to idle + clears everything', () => {
-    useRecordingStore.getState().hydrate(recordingSession, [p(1)])
+    useRecordingStore.getState().hydrate(recordingSession, [[p(1)]])
     useRecordingStore.getState().reset()
     expect(useRecordingStore.getState().session).toBeNull()
-    expect(recordingPhase(useRecordingStore.getState().session)).toBe('idle')
-    expect(useRecordingStore.getState().liveGeometry.points).toEqual([])
+    expect(useRecordingStore.getState().liveGeometry.segments).toEqual([])
   })
 })

@@ -11,26 +11,34 @@ export function recordingPhase(session: RecordingSession | null): RecordingPhase
   return session.pausedAt != null ? 'paused' : 'recording'
 }
 
-const EMPTY_GEOMETRY: ActivityGeometry = { points: [] }
+const EMPTY_GEOMETRY: ActivityGeometry = { segments: [] }
 
 interface RecordingStore {
   // In-memory reflection of the durable recording_sessions row; set from it on every transition.
   session: RecordingSession | null
   liveGeometry: ActivityGeometry
   beginSession: (session: RecordingSession) => void
-  hydrate: (session: RecordingSession, points: TrackPoint[]) => void
+  hydrate: (session: RecordingSession, segments: TrackPoint[][]) => void
   setSession: (session: RecordingSession) => void
   appendLivePoints: (points: TrackPoint[]) => void
+  startSegment: () => void
   reset: () => void
 }
 
 export const useRecordingStore = create<RecordingStore>((set) => ({
   session: null,
   liveGeometry: EMPTY_GEOMETRY,
-  beginSession: (session) => set({ session, liveGeometry: EMPTY_GEOMETRY }),
-  hydrate: (session, points) => set({ session, liveGeometry: { points } }),
+  beginSession: (session) => set({ session, liveGeometry: { segments: [[]] } }),
+  hydrate: (session, segments) => set({ session, liveGeometry: { segments } }),
   setSession: (session) => set({ session }),
   appendLivePoints: (points) =>
-    set((s) => (points.length === 0 ? {} : { liveGeometry: { points: [...s.liveGeometry.points, ...points] } })),
+    set((s) => {
+      if (points.length === 0) return {}
+      const segments = s.liveGeometry.segments
+      const last = segments.length > 0 ? segments[segments.length - 1] : []
+      const head = segments.length > 0 ? segments.slice(0, -1) : []
+      return { liveGeometry: { segments: [...head, [...last, ...points]] } }
+    }),
+  startSegment: () => set((s) => ({ liveGeometry: { segments: [...s.liveGeometry.segments, []] } })),
   reset: () => set({ session: null, liveGeometry: EMPTY_GEOMETRY }),
 }))
