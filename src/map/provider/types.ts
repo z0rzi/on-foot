@@ -33,8 +33,11 @@ export interface CameraProps {
 }
 
 export interface TrailOverlayProps {
-  // Trail polyline as [lng, lat] pairs, in trail order.
-  line: [number, number][]
+  // Track segments as a MultiLineString: each entry is one segment's [lng, lat] pairs, in order.
+  lines: [number, number][][]
+  // Dashed connectors bridging consecutive segment endpoints; carry no distance.
+  connectors: [number, number][][]
+  connectorDashArray: number[]
   // [start, end] as [lng, lat]; drawn as dot markers.
   endpoints: [number, number][]
   color: string
@@ -50,8 +53,9 @@ export interface TrailOverlayProps {
 }
 
 export interface RouteLineProps {
-  // Polyline as [lng, lat] pairs, in order. A plain line — no arrows or endpoints.
-  line: [number, number][]
+  lines: [number, number][][]
+  connectors: [number, number][][]
+  connectorDashArray: number[]
   color: string
   lineWidth: number
 }
