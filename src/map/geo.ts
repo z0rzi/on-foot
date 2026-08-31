@@ -30,3 +30,36 @@ export function boundsForPoints(
   }
   return { ne: [maxLng, maxLat], sw: [minLng, minLat] }
 }
+
+export function segmentLines(segments: GpxPoint[][]): [number, number][][] {
+  return segments.filter((s) => s.length >= 2).map(toLineCoordinates)
+}
+
+export function connectorLines(segments: GpxPoint[][]): [number, number][][] {
+  const nonEmpty = segments.filter((s) => s.length > 0)
+  const connectors: [number, number][][] = []
+  for (let i = 1; i < nonEmpty.length; i++) {
+    const prev = nonEmpty[i - 1]
+    const cur = nonEmpty[i]
+    const from = prev[prev.length - 1]
+    const to = cur[0]
+    connectors.push([[from.lng, from.lat], [to.lng, to.lat]])
+  }
+  return connectors
+}
+
+export function overallEndpoints(segments: GpxPoint[][]): [number, number][] {
+  const nonEmpty = segments.filter((s) => s.length > 0)
+  if (nonEmpty.length === 0) return []
+  const first = nonEmpty[0][0]
+  const lastSeg = nonEmpty[nonEmpty.length - 1]
+  const last = lastSeg[lastSeg.length - 1]
+  return [
+    [first.lng, first.lat],
+    [last.lng, last.lat],
+  ]
+}
+
+export function flattenSegments<T>(segments: T[][]): T[] {
+  return segments.flat()
+}

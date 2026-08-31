@@ -1,4 +1,12 @@
-import { boundsForPoints, toLineCoordinates, endpointCoordinates } from '../geo'
+import {
+  boundsForPoints,
+  toLineCoordinates,
+  endpointCoordinates,
+  segmentLines,
+  connectorLines,
+  overallEndpoints,
+  flattenSegments,
+} from '../geo'
 import { GpxPoint } from '../../data/trails/types'
 
 const p = (lat: number, lng: number): GpxPoint => ({ lat, lng, ele: null })
@@ -45,5 +53,35 @@ describe('boundsForPoints', () => {
   })
   test('empty input -> null', () => {
     expect(boundsForPoints([])).toBeNull()
+  })
+})
+
+describe('segment helpers', () => {
+  const segA = [p(1, 1), p(1, 2), p(1, 3)]
+  const segB = [p(2, 5), p(2, 6)]
+
+  test('segmentLines maps each ≥2-point segment to a line, drops shorter ones', () => {
+    expect(segmentLines([segA, [p(9, 9)], segB])).toEqual([
+      [[1, 1], [2, 1], [3, 1]],
+      [[5, 2], [6, 2]],
+    ])
+  })
+  test('connectorLines joins last-of-prev to first-of-next across non-empty segments', () => {
+    expect(connectorLines([segA, segB])).toEqual([[[3, 1], [5, 2]]])
+  })
+  test('connectorLines is empty for a single segment', () => {
+    expect(connectorLines([segA])).toEqual([])
+  })
+  test('connectorLines skips empty segments', () => {
+    expect(connectorLines([segA, [], segB])).toEqual([[[3, 1], [5, 2]]])
+  })
+  test('overallEndpoints returns first-of-first and last-of-last non-empty', () => {
+    expect(overallEndpoints([[], segA, segB])).toEqual([[1, 1], [6, 2]])
+  })
+  test('overallEndpoints of all-empty is empty', () => {
+    expect(overallEndpoints([[], []])).toEqual([])
+  })
+  test('flattenSegments concatenates in order', () => {
+    expect(flattenSegments([segA, segB])).toHaveLength(5)
   })
 })
