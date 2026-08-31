@@ -35,6 +35,27 @@ export function computeMetrics(points: GpxPoint[]): TrailMetrics {
   }
 }
 
+export function metricsForSegments(segments: GpxPoint[][]): TrailMetrics {
+  let distanceMeters = 0
+  let gain = 0
+  let loss = 0
+  let hasElevation = false
+  for (const segment of segments) {
+    const m = computeMetrics(segment)
+    distanceMeters += m.distanceMeters
+    if (m.elevationGainMeters !== null) {
+      hasElevation = true
+      gain += m.elevationGainMeters
+      loss += m.elevationLossMeters ?? 0
+    }
+  }
+  return {
+    distanceMeters,
+    elevationGainMeters: hasElevation ? gain : null,
+    elevationLossMeters: hasElevation ? loss : null,
+  }
+}
+
 export function formatDistance(meters: number): string {
   return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters.toFixed(0)} m`
 }

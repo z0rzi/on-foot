@@ -1,4 +1,4 @@
-import { haversineMeters, computeMetrics, formatDistance, formatElevation, formatMetricsSummary } from '../gpx/metrics'
+import { haversineMeters, computeMetrics, metricsForSegments, formatDistance, formatElevation, formatMetricsSummary } from '../gpx/metrics'
 import { GpxPoint } from '../types'
 
 const p = (lat: number, lng: number, ele: number | null = null): GpxPoint => ({ lat, lng, ele })
@@ -57,5 +57,38 @@ describe('formatters', () => {
   test('formatMetricsSummary states when elevation is missing', () => {
     expect(formatMetricsSummary({ distanceMeters: 1500, elevationGainMeters: null, elevationLossMeters: null }))
       .toBe('1.5 km • no elevation data')
+  })
+})
+
+describe('metricsForSegments', () => {
+  const seg = (lngs: number[], eles: (number | null)[]): GpxPoint[] =>
+    lngs.map((lng, i) => ({ lat: 0, lng, ele: eles[i] }))
+
+  it('sums per-segment distance and excludes the gap between segments', () => {
+    const a = seg([0, 0.001], [null, null])
+    const b = seg([1, 1.001], [null, null]) // far away; gap must NOT be counted
+    const twoSeg = metricsForSegments([a, b])
+    const oneEach = computeMetrics(a).distanceMeters + computeMetrics(b).distanceMeters
+    expect(twoSeg.distanceMeters).toBeCloseTo(oneEach, 6)
+    // A single flat segment spanning the gap would be far larger:
+    expect(computeMetrics([...a, ...b]).distanceMeters).toBeGreaterThan(twoSeg.distanceMeters * 10)
+  })
+
+  it('sums elevation gain/loss per segment', () => {
+    const a = seg([0, 0.001], [100, 110]) // +10
+    const b = seg([1, 1.001], [200, 190]) // -10
+    const m = metricsForSegments([a, b])
+    expect(m.elevationGainMeters).toBe(10)
+    expect(m.elevationLossMeters).toBe(10)
+  })
+
+  it('elevation is null only when no segment has elevation', () => {
+    const flat = seg([0, 0.001], [null, null])
+    expect(metricsForSegments([flat]).elevationGainMeters).toBeNull()
+  })
+
+  it('a single segment equals computeMetrics of that segment', () => {
+    const a = seg([0, 0.001, 0.002], [100, 110, 105])
+    expect(metricsForSegments([a])).toEqual(computeMetrics(a))
   })
 })
