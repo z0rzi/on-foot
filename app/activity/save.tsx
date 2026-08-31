@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { RecordingSession, TrackPoint, activitiesRepository } from '../../src/data/activities'
-import { activityMetricsFromPoints, buildNewActivityInput } from '../../src/data/activities/mapping'
+import { activityMetricsFromSegments, buildNewActivityInput, lastTrackPoint } from '../../src/data/activities/mapping'
 import { useActivitiesStore } from '../../src/store/activitiesStore'
 import { discardRecording } from '../../src/recording/recordingController'
 import { useRecordingStore } from '../../src/recording/recordingStore'
@@ -22,7 +22,7 @@ export default function SaveActivityScreen() {
 
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState<RecordingSession | null>(null)
-  const [points, setPoints] = useState<TrackPoint[]>([])
+  const [segments, setSegments] = useState<TrackPoint[][]>([])
 
   useEffect(() => {
     let active = true
@@ -32,10 +32,10 @@ export default function SaveActivityScreen() {
         goToMap()
         return
       }
-      const loadedPoints = await activitiesRepository.getSessionPoints(loaded.id)
+      const loadedSegments = await activitiesRepository.getSessionSegments(loaded.id)
       if (!active) return
       setSession(loaded)
-      setPoints(loadedPoints)
+      setSegments(loadedSegments)
       setLoading(false)
     })
     return () => { active = false }
@@ -49,8 +49,8 @@ export default function SaveActivityScreen() {
     )
   }
 
-  const endedAt = session.pausedAt ?? points[points.length - 1]?.t ?? session.startedAt
-  const metrics = activityMetricsFromPoints(points, session.startedAt, endedAt, session.pausedMs)
+  const endedAt = session.pausedAt ?? lastTrackPoint(segments)?.t ?? session.startedAt
+  const metrics = activityMetricsFromSegments(segments, session.startedAt, endedAt, session.pausedMs)
 
   return (
     <ActivityForm
@@ -59,7 +59,7 @@ export default function SaveActivityScreen() {
       initialEffort={null}
       initialComments=""
       onSave={async ({ name, effort, comments }) => {
-        await saveActivity(session.id, buildNewActivityInput(session, points, { name, effort, comments }))
+        await saveActivity(session.id, buildNewActivityInput(session, segments, { name, effort, comments }))
         resetRecording()
         goToMap()
       }}
