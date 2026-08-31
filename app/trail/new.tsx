@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { readGpxFile } from '../../src/data/trails/gpx/readFile'
 import { parseGpx } from '../../src/data/trails/gpx/parse'
-import { computeMetrics } from '../../src/data/trails/gpx/metrics'
+import { metricsForSegments } from '../../src/data/trails/gpx/metrics'
 import { useTrailsStore } from '../../src/store/trailsStore'
 import { TrailGeometry, TrailMetrics } from '../../src/data/trails/types'
 import { TrailForm } from '../../src/trails/TrailForm'
@@ -31,8 +31,8 @@ export default function NewTrailScreen() {
         const xml = await readGpxFile(params.uri)
         const parsed = parseGpx(xml, params.name ?? null)
         if (cancelled) return
-        setGeometry({ points: parsed.points, waypoints: parsed.waypoints })
-        setMetrics(computeMetrics(parsed.points))
+        setGeometry({ segments: parsed.segments, waypoints: parsed.waypoints })
+        setMetrics(metricsForSegments(parsed.segments))
         setName(parsed.title ?? params.name ?? '')
         setLoading(false)
       } catch {

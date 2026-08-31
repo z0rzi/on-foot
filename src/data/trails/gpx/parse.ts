@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser'
 import { GpxPoint, GpxWaypoint } from '../types'
 
 export interface GpxParseResult {
-  points: GpxPoint[]
+  segments: GpxPoint[][]
   waypoints: GpxWaypoint[]
   title: string | null
 }
@@ -56,16 +56,17 @@ export function parseGpx(xml: string, fallbackName: string | null = null): GpxPa
   const waypoints = asArray(gpx.wpt).map(toWaypoint)
 
   const routes = asArray(gpx.rte)
-  const points =
+  const segments: GpxPoint[][] =
     routes.length > 0
-      ? routes.flatMap((rte: any) => asArray(rte.rtept).map(toPoint))
+      ? routes.map((rte: any) => asArray(rte.rtept).map(toPoint))
       : asArray(gpx.trk).flatMap((trk: any) =>
-          asArray(trk.trkseg).flatMap((seg: any) => asArray(seg.trkpt).map(toPoint)),
+          asArray(trk.trkseg).map((seg: any) => asArray(seg.trkpt).map(toPoint)),
         )
+  const nonEmpty = segments.filter((s) => s.length > 0)
 
   const trackTitle = str(asArray(gpx.trk)[0]?.name)
   const metadataTitle = str(gpx.metadata?.name)
   const title = trackTitle ?? metadataTitle ?? str(fallbackName)
 
-  return { points, waypoints, title }
+  return { segments: nonEmpty, waypoints, title }
 }
