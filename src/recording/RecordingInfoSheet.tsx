@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../theme/useTheme'
 import { useRecordingStore, recordingPhase } from './recordingStore'
 import { usePreferencesStore } from '../settings/preferencesStore'
-import { computeMetrics, formatDistance, formatElevation } from '../data/trails/gpx/metrics'
+import { metricsForSegments, formatDistance, formatElevation } from '../data/trails/gpx/metrics'
 import { formatPace, formatSpeed, formatStopwatch } from '../activities/format'
 import { MapInfoSheet } from '../map/MapInfoSheet'
 import { MetricsGrid } from '../map/MetricsGrid'
@@ -21,13 +21,13 @@ export function RecordingInfoSheet({
 }) {
   const c = useTheme()
   const session = useRecordingStore((s) => s.session)
-  const points = useRecordingStore((s) => s.liveGeometry.points)
+  const segments = useRecordingStore((s) => s.liveGeometry.segments)
   const paceSpeedMode = usePreferencesStore((s) => s.paceSpeedMode)
   const togglePaceSpeed = usePreferencesStore((s) => s.togglePaceSpeed)
 
   const phase = recordingPhase(session)
   const durationSeconds = useMovingStopwatch(session) / 1000
-  const metrics = computeMetrics(points)
+  const metrics = metricsForSegments(segments)
 
   const paceSpeedTile =
     paceSpeedMode === 'pace'
