@@ -41,9 +41,9 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
   const activitySegments = activity?.geometry.segments ?? []
   const hasActivity = flattenSegments(activitySegments).length >= 2
 
-  const recording = useRecordingStore((s) => recordingPhase(s.session) === 'recording')
+  const active = useRecordingStore((s) => recordingPhase(s.session) !== 'idle')
   const liveSegments = useRecordingStore((s) => s.liveGeometry.segments)
-  const showLiveTrack = recording && flattenSegments(liveSegments).length >= 2
+  const showLiveTrack = active && flattenSegments(liveSegments).length >= 2
 
   const route: OverlayRoute | null = hasActivity
     ? { segments: activitySegments, kind: 'activity' }

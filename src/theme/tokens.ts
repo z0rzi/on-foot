@@ -15,7 +15,7 @@ export const MapTokens = {
   terrainExaggeration: 1.0,
   trailLineWidth: 4,
   recordingLineWidth: 5,
-  connectorDashArray: [2, 2],
+  connectorDashArray: [0, 2],
   arrowSpacing: 100,
   arrowSize: 0.4,
   // Scale factor for the location puck's bearing image (a high-resolution source scaled down).
