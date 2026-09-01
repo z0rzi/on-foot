@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { ActivityGeometry, RecordingSession, TrackPoint } from '../data/activities/types'
+import { LiveTrackPoint, RecordingSession, TrackPoint } from '../data/activities/types'
 
 export type RecordingPhase = 'idle' | 'recording' | 'paused'
 
@@ -11,34 +11,30 @@ export function recordingPhase(session: RecordingSession | null): RecordingPhase
   return session.pausedAt != null ? 'paused' : 'recording'
 }
 
-const EMPTY_GEOMETRY: ActivityGeometry = { segments: [] }
-
 interface RecordingStore {
   // In-memory reflection of the durable recording_sessions row; set from it on every transition.
   session: RecordingSession | null
-  liveGeometry: ActivityGeometry
+  // Flat, segment-tagged points mirroring the recording_points rows. Segments are the distinct
+  // `segment` values; consumers group on demand (groupPointsBySegment) for rendering and metrics.
+  livePoints: LiveTrackPoint[]
   beginSession: (session: RecordingSession) => void
-  hydrate: (session: RecordingSession, segments: TrackPoint[][]) => void
+  hydrate: (session: RecordingSession, points: LiveTrackPoint[]) => void
   setSession: (session: RecordingSession) => void
-  appendLivePoints: (points: TrackPoint[]) => void
-  startSegment: () => void
+  appendLivePoints: (segment: number, points: TrackPoint[]) => void
   reset: () => void
 }
 
 export const useRecordingStore = create<RecordingStore>((set) => ({
   session: null,
-  liveGeometry: EMPTY_GEOMETRY,
-  beginSession: (session) => set({ session, liveGeometry: { segments: [[]] } }),
-  hydrate: (session, segments) => set({ session, liveGeometry: { segments } }),
+  livePoints: [],
+  beginSession: (session) => set({ session, livePoints: [] }),
+  hydrate: (session, points) => set({ session, livePoints: points }),
   setSession: (session) => set({ session }),
-  appendLivePoints: (points) =>
-    set((s) => {
-      if (points.length === 0) return {}
-      const segments = s.liveGeometry.segments
-      const last = segments.length > 0 ? segments[segments.length - 1] : []
-      const head = segments.length > 0 ? segments.slice(0, -1) : []
-      return { liveGeometry: { segments: [...head, [...last, ...points]] } }
-    }),
-  startSegment: () => set((s) => ({ liveGeometry: { segments: [...s.liveGeometry.segments, []] } })),
-  reset: () => set({ session: null, liveGeometry: EMPTY_GEOMETRY }),
+  appendLivePoints: (segment, points) =>
+    set((s) =>
+      points.length === 0
+        ? {}
+        : { livePoints: [...s.livePoints, ...points.map((p) => ({ ...p, segment }))] },
+    ),
+  reset: () => set({ session: null, livePoints: [] }),
 }))

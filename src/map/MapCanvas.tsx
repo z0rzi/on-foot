@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import { StyleSheet } from 'react-native'
 import { useMapProvider, useMapCapabilities } from './provider'
 import type { CameraController } from './provider/types'
@@ -7,6 +7,7 @@ import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
 import { MapTokens } from '../theme/tokens'
 import { Trail } from '../data/trails'
 import { Activity } from '../data/activities/types'
+import { groupPointsBySegment } from '../data/activities/mapping'
 import { boundsForPoints, flattenSegments } from './geo'
 import { MapOverlays, type OverlayRoute } from './MapOverlays'
 
@@ -42,8 +43,9 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
   const hasActivity = flattenSegments(activitySegments).length >= 2
 
   const active = useRecordingStore((s) => recordingPhase(s.session) !== 'idle')
-  const liveSegments = useRecordingStore((s) => s.liveGeometry.segments)
-  const showLiveTrack = active && flattenSegments(liveSegments).length >= 2
+  const livePoints = useRecordingStore((s) => s.livePoints)
+  const liveSegments = useMemo(() => groupPointsBySegment(livePoints), [livePoints])
+  const showLiveTrack = active && livePoints.length >= 2
 
   const route: OverlayRoute | null = hasActivity
     ? { segments: activitySegments, kind: 'activity' }

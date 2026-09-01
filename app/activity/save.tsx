@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { RecordingSession, TrackPoint, activitiesRepository } from '../../src/data/activities'
-import { activityMetricsFromSegments, buildNewActivityInput, lastTrackPoint } from '../../src/data/activities/mapping'
+import { activityMetricsFromSegments, buildNewActivityInput, groupPointsBySegment, lastTrackPoint } from '../../src/data/activities/mapping'
 import { useActivitiesStore } from '../../src/store/activitiesStore'
 import { discardRecording } from '../../src/recording/recordingController'
 import { useRecordingStore } from '../../src/recording/recordingStore'
@@ -32,10 +32,10 @@ export default function SaveActivityScreen() {
         goToMap()
         return
       }
-      const loadedSegments = await activitiesRepository.getSessionSegments(loaded.id)
+      const loadedPoints = await activitiesRepository.getSessionPoints(loaded.id)
       if (!active) return
       setSession(loaded)
-      setSegments(loadedSegments)
+      setSegments(groupPointsBySegment(loadedPoints))
       setLoading(false)
     })
     return () => { active = false }

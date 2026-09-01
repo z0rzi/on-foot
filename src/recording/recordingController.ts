@@ -41,7 +41,6 @@ export async function resumeRecording(): Promise<void> {
   const next = applyResume(session, Date.now())
   await activitiesRepository.markResumed(session.id, next.pausedMs, next.currentSegment)
   useRecordingStore.getState().setSession(next)
-  useRecordingStore.getState().startSegment()
   if (!(await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK))) {
     await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
   }
@@ -66,27 +65,24 @@ export async function resumeIfActive(): Promise<{ action: ResumeAction; sessionI
   const session = await activitiesRepository.getActiveSession()
   const action = resumeActionFor(session)
   if (action === 'resume' && session) {
-    const segments = await activitiesRepository.getSessionSegments(session.id)
-    useRecordingStore.getState().hydrate(session, segments)
-    if (session.currentSegment + 1 > segments.length) {
-      useRecordingStore.getState().startSegment()
-    }
+    const points = await activitiesRepository.getSessionPoints(session.id)
+    useRecordingStore.getState().hydrate(session, points)
     if (!(await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK))) {
       await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
     }
-    // Append an immediate fix so the overlay bridges the dead gap with a straight line to the
-    // current position. Non-fatal: if no fix is available, the next background batch connects it.
+    // Append an immediate fix at the current position into the current segment, so the live
+    // overlay reflects where recording resumes without waiting for the first background batch.
     try {
       const now = await Location.getCurrentPositionAsync({ accuracy: RECORDING_OPTIONS.accuracy })
       const point = toTrackPoint(now)
       await activitiesRepository.appendPoints(session.id, session.currentSegment, [point])
-      useRecordingStore.getState().appendLivePoints([point])
+      useRecordingStore.getState().appendLivePoints(session.currentSegment, [point])
     } catch {
       // No immediate fix available; the next background batch will connect the gap.
     }
   } else if (action === 'paused' && session) {
-    const segments = await activitiesRepository.getSessionSegments(session.id)
-    useRecordingStore.getState().hydrate(session, segments)
+    const points = await activitiesRepository.getSessionPoints(session.id)
+    useRecordingStore.getState().hydrate(session, points)
   }
   return { action, sessionId: session?.id ?? null }
 }

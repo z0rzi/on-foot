@@ -1,7 +1,7 @@
 import {
   activityMetricsFromSegments, buildNewActivityInput, deserializeActivityGeometry,
   groupPointsBySegment, inputToActivityValues, lastTrackPoint, pointsToInsertValues,
-  rowToActivity, rowToSession, rowToSummary, rowToTrackPoint, serializeActivityGeometry,
+  rowToActivity, rowToLivePoint, rowToSession, rowToSummary, rowToTrackPoint, serializeActivityGeometry,
 } from '../mapping'
 import { NewActivityInput, TrackPoint } from '../types'
 
@@ -58,6 +58,13 @@ describe('rowToTrackPoint', () => {
   it('maps a point row incl. null ele', () => {
     expect(rowToTrackPoint({ id: 1, sessionId: 2, lat: 1, lng: 2, ele: null, t: 5, segment: 0 }))
       .toEqual({ lat: 1, lng: 2, ele: null, t: 5 })
+  })
+})
+
+describe('rowToLivePoint', () => {
+  it('maps a point row to a segment-tagged live point', () => {
+    expect(rowToLivePoint({ id: 1, sessionId: 2, lat: 1, lng: 2, ele: null, t: 5, segment: 3 }))
+      .toEqual({ lat: 1, lng: 2, ele: null, t: 5, segment: 3 })
   })
 })
 

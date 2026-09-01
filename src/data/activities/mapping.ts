@@ -2,7 +2,7 @@ import { metricsForSegments } from '../trails/gpx/metrics'
 import { movingDurationMs } from './duration'
 import {
   Activity, ActivityGeometry, ActivityMetrics, ActivitySummary,
-  Effort, NewActivityInput, RecordingSession, TrackPoint,
+  Effort, LiveTrackPoint, NewActivityInput, RecordingSession, TrackPoint,
 } from './types'
 
 export interface ActivityRow {
@@ -85,12 +85,16 @@ export function rowToTrackPoint(row: RecordingPointRow): TrackPoint {
   return { lat: row.lat, lng: row.lng, ele: row.ele, t: row.t }
 }
 
-export function groupPointsBySegment(rows: RecordingPointRow[]): TrackPoint[][] {
+export function rowToLivePoint(row: RecordingPointRow): LiveTrackPoint {
+  return { lat: row.lat, lng: row.lng, ele: row.ele, t: row.t, segment: row.segment }
+}
+
+export function groupPointsBySegment(points: LiveTrackPoint[]): TrackPoint[][] {
   const bySegment = new Map<number, TrackPoint[]>()
-  for (const row of rows) {
-    const list = bySegment.get(row.segment) ?? []
-    list.push(rowToTrackPoint(row))
-    bySegment.set(row.segment, list)
+  for (const point of points) {
+    const list = bySegment.get(point.segment) ?? []
+    list.push({ lat: point.lat, lng: point.lng, ele: point.ele, t: point.t })
+    bySegment.set(point.segment, list)
   }
   return [...bySegment.keys()].sort((a, b) => a - b).map((k) => bySegment.get(k)!)
 }

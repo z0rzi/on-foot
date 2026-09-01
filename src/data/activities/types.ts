@@ -1,6 +1,7 @@
 export type Effort = 'easy' | 'moderate' | 'hard' | 'max'
 
 export interface TrackPoint { lat: number; lng: number; ele: number | null; t: number }
+export interface LiveTrackPoint extends TrackPoint { segment: number }
 export interface ActivityGeometry { segments: TrackPoint[][] }
 
 export interface ActivityMetrics {
