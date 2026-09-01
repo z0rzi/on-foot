@@ -81,10 +81,6 @@ export function deserializeActivityGeometry(json: string): ActivityGeometry {
   return { segments: [] }
 }
 
-export function rowToTrackPoint(row: RecordingPointRow): TrackPoint {
-  return { lat: row.lat, lng: row.lng, ele: row.ele, t: row.t }
-}
-
 export function rowToLivePoint(row: RecordingPointRow): LiveTrackPoint {
   return { lat: row.lat, lng: row.lng, ele: row.ele, t: row.t, segment: row.segment }
 }
