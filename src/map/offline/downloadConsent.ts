@@ -1,7 +1,7 @@
 import { Alert } from 'react-native'
 import { getConnectivity } from '../../net/netinfo'
 import { evaluateDownloadGate, type GateDecision } from '../../net/gate'
-import { hasEnoughDiskSpace, readFreeDiskBytes } from './diskSpace'
+import { hasEnoughDiskSpace, readFreeDiskBytes, requiredDiskSpace } from './diskSpace'
 import { formatBytes } from './format'
 
 // Read connectivity once and route the download: abort when offline, block when the device
@@ -35,7 +35,7 @@ export async function guardDownload(
     if (freeBytes !== null && !hasEnoughDiskSpace(freeBytes, estimatedBytes)) {
       Alert.alert(
         'Not enough space',
-        `This download needs about ${formatBytes(estimatedBytes)}, but only ${formatBytes(freeBytes)} is free. Free up some space and try again.`,
+        `This download needs about ${formatBytes(requiredDiskSpace(estimatedBytes))} of free space, but only ${formatBytes(freeBytes)} is available. Free up some space and try again.`,
       )
       return
     }

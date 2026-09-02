@@ -1,4 +1,4 @@
-import { hasEnoughDiskSpace } from '../diskSpace'
+import { hasEnoughDiskSpace, requiredDiskSpace } from '../diskSpace'
 import { DISK_SPACE_RESERVE_BYTES } from '../constants'
 
 describe('hasEnoughDiskSpace', () => {
@@ -19,5 +19,15 @@ describe('hasEnoughDiskSpace', () => {
 
   test('false when a large estimate exceeds free space', () => {
     expect(hasEnoughDiskSpace(1_000_000_000, 5_000_000_000)).toBe(false)
+  })
+})
+
+describe('requiredDiskSpace', () => {
+  test('is the estimate plus the reserve', () => {
+    expect(requiredDiskSpace(50_000_000)).toBe(50_000_000 + DISK_SPACE_RESERVE_BYTES)
+  })
+
+  test('is just the reserve for a zero estimate', () => {
+    expect(requiredDiskSpace(0)).toBe(DISK_SPACE_RESERVE_BYTES)
   })
 })
