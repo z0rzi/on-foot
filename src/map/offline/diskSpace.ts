@@ -9,6 +9,10 @@ export function hasEnoughDiskSpace(freeBytes: number, estimatedBytes: number): b
   return freeBytes >= requiredDiskSpace(estimatedBytes)
 }
 
-export function readFreeDiskBytes(): number {
-  return Paths.availableDiskSpace
+export function readFreeDiskBytes(): number | null {
+  // iOS reports nil (surfaced as a non-finite value) when the filesystem attributes
+  // can't be read; normalise that to null so the caller fails open rather than blocking
+  // a download with a garbage size.
+  const free = Paths.availableDiskSpace
+  return Number.isFinite(free) ? free : null
 }
