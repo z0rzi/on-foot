@@ -97,7 +97,7 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
       const dismiss = () => (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
 
       if (adds.length) {
-        guardDownload(toDownloadBytes ? formatBytes(toDownloadBytes) : null, () => {
+        guardDownload(toDownloadBytes || null, () => {
           adds.forEach((r) => download(controller, packDescriptor(trail.id, r.style, bounds)))
           dismiss()
         })

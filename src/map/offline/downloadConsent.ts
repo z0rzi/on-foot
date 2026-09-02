@@ -1,11 +1,18 @@
 import { Alert } from 'react-native'
 import { getConnectivity } from '../../net/netinfo'
 import { evaluateDownloadGate, type GateDecision } from '../../net/gate'
+import { hasEnoughDiskSpace, readFreeDiskBytes } from './diskSpace'
+import { formatBytes } from './format'
 
-// Read connectivity once and route the download: abort when offline, ask for consent on
-// mobile data, proceed otherwise. Fail-open — a probe error must not block a legitimate
-// download. `sizeLabel` (e.g. "24 MB") is shown in the metered prompt when known.
-export async function guardDownload(sizeLabel: string | null, proceed: () => void): Promise<void> {
+// Read connectivity once and route the download: abort when offline, block when the device
+// lacks room for the estimated pack, ask for consent on mobile data, proceed otherwise.
+// Fail-open — a probe error (connectivity or disk) must not block a legitimate download.
+// `estimatedBytes` is the total to download when known (null on the retry path); it drives
+// both the disk check and the size shown in the metered prompt.
+export async function guardDownload(
+  estimatedBytes: number | null,
+  proceed: () => void,
+): Promise<void> {
   let decision: GateDecision
   try {
     decision = evaluateDownloadGate(await getConnectivity())
@@ -18,9 +25,25 @@ export async function guardDownload(sizeLabel: string | null, proceed: () => voi
     return
   }
 
+  if (estimatedBytes !== null) {
+    let freeBytes: number | null
+    try {
+      freeBytes = readFreeDiskBytes()
+    } catch {
+      freeBytes = null
+    }
+    if (freeBytes !== null && !hasEnoughDiskSpace(freeBytes, estimatedBytes)) {
+      Alert.alert(
+        'Not enough space',
+        `This download needs about ${formatBytes(estimatedBytes)}, but only ${formatBytes(freeBytes)} is free. Free up some space and try again.`,
+      )
+      return
+    }
+  }
+
   if (decision === 'metered') {
-    const message = sizeLabel
-      ? `This download is about ${sizeLabel} and may use your mobile data. Continue?`
+    const message = estimatedBytes
+      ? `This download is about ${formatBytes(estimatedBytes)} and may use your mobile data. Continue?`
       : 'This download may use your mobile data. Continue?'
     Alert.alert('Mobile data', message, [
       { text: 'Cancel', style: 'cancel' },
