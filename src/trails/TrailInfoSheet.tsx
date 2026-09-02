@@ -55,7 +55,9 @@ export function TrailInfoSheet({
       {
         text: 'Remove',
         style: 'destructive',
-        onPress: () => removeForTrail(controller, trail.id).then(() => showToast('Offline map removed')),
+        onPress: () => {
+          void removeForTrail(controller, trail.id).then(() => showToast('Offline map removed'))
+        },
       },
     ])
   }
@@ -64,7 +66,7 @@ export function TrailInfoSheet({
   // re-issue the download for a phantom failure that left no pack behind.
   const retry = () => {
     const bounds = boundsForTrail(flattenSegments(trail.geometry.segments), OFFLINE_MARGIN_KM)
-    guardDownload(null, () => {
+    void guardDownload(null, () => {
       retryTargetsForTrail(packs, progress, trail.id).forEach((t) => {
         if (t.hasPack) {
           resume(controller, t.id)

@@ -23,7 +23,7 @@ export function OfflineMapsList() {
 
   useFocusEffect(
     useCallback(() => {
-      loadTrails()
+      void loadTrails()
     }, [loadTrails]),
   )
 
@@ -36,8 +36,9 @@ export function OfflineMapsList() {
       {
         text: 'Remove',
         style: 'destructive',
-        onPress: () =>
-          remove(controller, [packId(trailId, styleId)]).then(() => showToast('Layer removed')),
+        onPress: () => {
+          void remove(controller, [packId(trailId, styleId)]).then(() => showToast('Layer removed'))
+        },
       },
     ])
   }

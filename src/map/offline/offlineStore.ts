@@ -49,7 +49,7 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
             if (info.state === 'complete') {
               clearProgress(id)
               stopTracking(id)
-              reload(controller)
+              void reload(controller)
             }
           },
           () => {

@@ -1,6 +1,8 @@
 # Expo HAS CHANGED
 
-Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
+Read the exact versioned docs for the Expo SDK version pinned in `package.json` (the `expo`
+dependency) before writing any code — e.g. SDK 57 → https://docs.expo.dev/versions/v57.0.0/.
+`/deps-check` flags when this pin drifts from `package.json`.
 
 # Architecture principles
 
@@ -14,12 +16,16 @@ uphold the original design, do not let it erode one expedient change at a time.
 - **Respect existing patterns.** Before adding code, find how the codebase already solves
   the same shape of problem and follow it. Consistency beats personal preference. If a
   pattern genuinely needs to change, change it deliberately and everywhere — don't fork it.
-- **The map-provider seam is inviolable.** Only `src/map/providers/<provider>/` may import a
-  map SDK (`@rnmapbox/maps` today). The store, UI, and shared map code stay
-  provider-agnostic and talk to the semantic provider port (`src/map/provider/`). New
-  provider-specific concepts are declared on the port (e.g. semantic flags on descriptors),
-  never leaked as literals into shared code. MapLibre is the intended escape hatch — keep it
-  reachable.
+- **Architectural seams are inviolable and declared in `src/architecture/seams.ts`.** A seam
+  confines a native SDK/engine to one directory so the rest of the app stays provider-agnostic
+  and swappable. Today: the **map SDK** (`@rnmapbox/maps` → `src/map/providers/<provider>/`;
+  shared code talks to the semantic port `src/map/provider/`, and MapLibre is the intended
+  escape hatch — keep it reachable), the **database engine** (`expo-sqlite`/`drizzle-orm` →
+  `src/data/db/`), and **connectivity** (`@react-native-community/netinfo` → `src/net/`).
+  Provider-specific concepts are declared on the port (e.g. semantic flags on descriptors),
+  never leaked as literals into shared code. When a change introduces a new boundary (a
+  native-SDK wrapper, a new port), register it in `seams.ts` in the same change — the `seams`
+  test enforces every entry. See `docs/architecture/seams.md`.
 - **Keep units small and single-purpose,** communicating through well-defined interfaces.
   Split by responsibility, not by layer. A file that outgrows one clear job is a signal to
   decompose, not to keep piling on.
@@ -28,6 +34,13 @@ uphold the original design, do not let it erode one expedient change at a time.
   rendering, gestures, and camera behaviour are verified on-device, not unit-tested.
 - **Persist the minimum.** Only state that must survive a restart is persisted (Zustand
   `partialize`); session/UI state stays in-memory.
+- **Hold the type and quality line.** No new `any`/`as any`/`@ts-ignore`/`eslint-disable`
+  without a one-line justification of why it is necessary. `npm run verify` (types, tests,
+  seams/secrets/cycles, lint) must be green before a change is done — it runs in the pre-push
+  hook and in CI.
+- **Icon-only controls carry an `accessibilityLabel`.** Prefer routing icon buttons through
+  `ControlButton`, which requires the label at compile time; text buttons are auto-labeled by
+  React Native and need none.
 - **Features go through brainstorm → spec → plan** (`docs/superpowers/`), not
   straight-to-code. Small changes still get a design thought through before implementation.
 

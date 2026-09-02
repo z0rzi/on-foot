@@ -16,7 +16,7 @@ export function useSelectedActivity(): Activity | null {
       return
     }
     let active = true
-    activitiesRepository.getActivity(activityId).then((loaded) => {
+    void activitiesRepository.getActivity(activityId).then((loaded) => {
       if (!active) return
       if (loaded == null) clearSelection()
       setActivity(loaded)

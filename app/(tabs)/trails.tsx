@@ -23,7 +23,7 @@ export default function TrailsScreen() {
   const removeForTrail = useOfflineStore((s) => s.removeForTrail)
   const [pending, setPending] = useState(false)
 
-  useFocusEffect(useCallback(() => { loadTrails() }, [loadTrails]))
+  useFocusEffect(useCallback(() => { void loadTrails() }, [loadTrails]))
 
   const confirmDelete = useCallback(
     (trail: TrailSummary) => {
@@ -35,16 +35,18 @@ export default function TrailsScreen() {
           {
             text: 'Delete',
             style: 'destructive',
-            onPress: async () => {
-              setPending(true)
-              try {
-                await removeForTrail(offlineController, trail.id)
-                await removeTrail(trail.id)
-              } catch {
-                Alert.alert('Could not delete', 'Something went wrong deleting this trail. Please try again.')
-              } finally {
-                setPending(false)
-              }
+            onPress: () => {
+              void (async () => {
+                setPending(true)
+                try {
+                  await removeForTrail(offlineController, trail.id)
+                  await removeTrail(trail.id)
+                } catch {
+                  Alert.alert('Could not delete', 'Something went wrong deleting this trail. Please try again.')
+                } finally {
+                  setPending(false)
+                }
+              })()
             },
           },
         ],

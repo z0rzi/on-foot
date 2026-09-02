@@ -16,7 +16,7 @@ export function useSelectedTrail(): Trail | null {
       return
     }
     let active = true
-    trailsRepository.getTrail(trailId).then((loaded) => {
+    void trailsRepository.getTrail(trailId).then((loaded) => {
       if (!active) return
       if (loaded == null) clearSelection()
       setTrail(loaded)

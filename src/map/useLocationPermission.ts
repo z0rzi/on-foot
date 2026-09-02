@@ -9,6 +9,6 @@ import * as Location from 'expo-location'
  */
 export function useLocationPermission() {
   useEffect(() => {
-    Location.requestForegroundPermissionsAsync()
+    void Location.requestForegroundPermissionsAsync()
   }, [])
 }

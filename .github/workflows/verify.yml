@@ -1,0 +1,20 @@
+name: verify
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # .env is gitignored; react-native-dotenv needs the keys to exist at transform time.
+      # The values are irrelevant to type-check/tests/lint (the native SDK is mocked).
+      - run: printf 'MAPBOX_ACCESS_TOKEN=ci\nMAPBOX_DOWNLOAD_TOKEN=ci\n' > .env
+      - run: npm run verify

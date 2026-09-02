@@ -41,6 +41,8 @@ export const LayersSheet = forwardRef<BottomSheetModal>((_props, ref) => {
         {caps.styles.map((s) => (
           <Pressable
             key={s.id}
+            accessibilityRole="button"
+            accessibilityLabel={`${s.label} map layer`}
             style={[styles.row, { borderColor: c.panelDivider }]}
             onPress={() => {
               setMapStyle(s.id)

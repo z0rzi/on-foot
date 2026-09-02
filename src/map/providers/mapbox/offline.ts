@@ -51,7 +51,7 @@ export const mapboxOfflineController: OfflineController = {
     return Promise.all(packs.map(infoFromPack))
   },
   subscribe(id, onProgress, onError) {
-    Mapbox.offlineManager.subscribe(
+    void Mapbox.offlineManager.subscribe(
       id,
       (_pack, status) => {
         const percentage = status.percentage ?? 0

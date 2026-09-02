@@ -89,7 +89,7 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
       const removes = rows.filter((r) => !selected.has(r.style.id) && r.downloaded)
 
       if (removes.length) {
-        remove(controller, removes.map((r) => packId(trail.id, r.style.id))).then(() =>
+        void remove(controller, removes.map((r) => packId(trail.id, r.style.id))).then(() =>
           showToast('Offline map updated'),
         )
       }
@@ -97,7 +97,7 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
       const dismiss = () => (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
 
       if (adds.length) {
-        guardDownload(toDownloadBytes || null, () => {
+        void guardDownload(toDownloadBytes || null, () => {
           adds.forEach((r) => download(controller, packDescriptor(trail.id, r.style, bounds)))
           dismiss()
         })

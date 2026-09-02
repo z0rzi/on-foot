@@ -30,7 +30,7 @@ export function ActivityInfoSheet({
       return
     }
     let active = true
-    trailsRepository.getTrail(id).then((t) => {
+    void trailsRepository.getTrail(id).then((t) => {
       if (active) setLinkedTrail(t)
     })
     return () => {

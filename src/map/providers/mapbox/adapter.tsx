@@ -9,7 +9,7 @@ import { mapboxOfflineController } from './offline'
 import { TERRAIN_DEM } from './styles'
 import { MAPBOX_ACCESS_TOKEN } from './token'
 
-Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN)
+void Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN)
 
 const View = ({ styleURL, onCameraChanged, style, children }: MapViewProps) => (
   <Mapbox.MapView
@@ -52,6 +52,7 @@ const Camera = forwardRef<CameraController, CameraProps>(
     )
   },
 )
+Camera.displayName = 'Camera'
 
 const Terrain = ({ exaggeration }: TerrainProps) => (
   <Mapbox.RasterDemSource id="terrain-dem" url={TERRAIN_DEM.url} tileSize={TERRAIN_DEM.tileSize}>

@@ -26,7 +26,7 @@ export default function SaveActivityScreen() {
 
   useEffect(() => {
     let active = true
-    activitiesRepository.getActiveSession().then(async (loaded) => {
+    void activitiesRepository.getActiveSession().then(async (loaded) => {
       if (!active) return
       if (!loaded) {
         goToMap()

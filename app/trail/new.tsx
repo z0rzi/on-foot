@@ -42,7 +42,7 @@ export default function NewTrailScreen() {
         }
       }
     }
-    run()
+    void run()
     return () => { cancelled = true }
   }, [params.uri, params.name, router])
 

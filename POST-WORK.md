@@ -29,12 +29,11 @@ in context.
 - Anything built "for later" that isn't used now (YAGNI).
 
 **2. Architecture & the inviolable seams**
-- Is the map-provider seam intact? Only `src/map/providers/<provider>/` may import
-  a map SDK. Verify: `grep -rn "@rnmapbox" src app | grep -v "src/map/providers/"`
-  → must be empty.
-- Is the persistence seam intact? Only `src/data/db/*` may import
-  `expo-sqlite`/`drizzle-orm`. Verify:
-  `grep -rn "drizzle-orm\|expo-sqlite" src app | grep -v "src/data/db/"` → empty.
+- Are the seams intact? `npm run verify` runs the `seams` test, which enforces every entry in
+  `src/architecture/seams.ts` (map SDK, DB engine, connectivity) — no manual greps needed.
+- **New boundary introduced but not registered?** If this diff wraps a new native module or
+  creates a new boundary directory, it must have a `SEAMS` entry — an unregistered boundary is
+  a silent future leak that nothing will catch. See `docs/architecture/seams.md`.
 - New provider/engine concepts declared on the port (semantic flags), never leaked
   as literals into shared store/UI code.
 - Beware import side effects at the seam: a module barrel that constructs the
@@ -67,12 +66,20 @@ in context.
   functions.
 - Names describe what things do; no confused or unused parameters in contracts.
 - Error paths handled at the right layer (no swallowed errors, no promises left to
-  reject unhandled, no state flags that can stick).
+  reject unhandled, no state flags that can stick). `npm run verify`'s
+  `no-floating-promises` catches the mechanical cases; you still judge whether a `void`ed
+  promise should actually surface its failure to the user.
+- No new `any`/`as any`/`@ts-ignore`/`eslint-disable` without a one-line justification of why
+  it is necessary. Lint flags them (`no-explicit-any` warns); a reviewer decides if the escape
+  hatch is earned or hiding a real type.
 - **Derived or cached state that must track an authoritative source** (a registry, the DB,
   the network) has ONE owner that keeps it fresh — not a freshness convention repeated at
   each call site. Prefer structural invariants (a schema constraint, a single tagged field,
   a derived selector) over guards defended by hand in each action. Convention-based sync
   *will* drift.
+- Icon-only interactive elements have an `accessibilityLabel` (route icon buttons through
+  `ControlButton`, which requires it at compile time); text-bearing buttons are auto-labeled
+  by React Native and need none.
 
 **4. Failure & degraded modes**
 - Enumerate the failure/degraded modes this change can hit — offline / network drop,
@@ -81,6 +88,11 @@ in context.
   not a silent no-op, a stuck spinner, or a state flag that sticks.
 - TDD the pure decisions here ("what needs retrying", "is this failed?"); device-verify the
   wiring **offline**, not just online.
+- **Render crashes, not just async failures.** A thrown error in a component's render is
+  caught by the root `ErrorBoundary` (`src/components/ErrorBoundary.tsx`) into a recoverable
+  fallback — confirm new risky render paths (parsing, indexing, non-null assumptions on async
+  data) either can't throw or degrade gracefully rather than relying on the boundary as a
+  catch-all.
 
 **5. Persist the minimum**
 - Only state that must survive a restart is persisted (Zustand `partialize`);
@@ -95,10 +107,11 @@ in context.
 ## Gates (run and confirm green)
 
 ```
-npx tsc --noEmit          # clean
-npx jest                  # all pass
+npm run verify            # tsc (types) + jest (incl. seams/secrets/cycles) + expo lint
 ```
-Plus the two seam greps above. For Metro-transform / native / asset-import changes,
+`verify` is the single gate — it also runs in the pre-push hook and CI, and must be green
+(0 lint errors; warnings are tracked, see `docs/architecture/lint-debt.md`). For
+Metro-transform / native / asset-import changes,
 a passing `tsc`/`jest` is NOT enough — confirm a real bundle
 (`npx expo export --platform android`) and, where behavior is native, device-verify.
 Native rendering has traps that don't match a web/CSS mental model — e.g. on Android touch

@@ -18,7 +18,7 @@ export default function EditTrailScreen() {
 
   useEffect(() => {
     let active = true
-    trailsRepository.getTrail(id).then((loaded) => {
+    void trailsRepository.getTrail(id).then((loaded) => {
       if (!active) return
       if (!loaded) {
         router.back()
