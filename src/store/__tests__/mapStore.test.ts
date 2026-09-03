@@ -233,6 +233,33 @@ describe('store actions', () => {
     expect(useMapStore.getState().pendingFit).toBeNull()
     expect(useMapStore.getState().selection).toEqual({ kind: 'trail', id: 7 })
   })
+  test('recenter re-arms the pending fit for the selected trail and turns follow off', () => {
+    useMapStore.setState({ followMode: 'positionAndBearing', selection: { kind: 'trail', id: 7 }, pendingFit: null })
+    useMapStore.getState().recenter()
+    expect(useMapStore.getState().pendingFit).toEqual({ kind: 'trail', id: 7 })
+    expect(useMapStore.getState().followMode).toBe('off')
+    expect(useMapStore.getState().selection).toEqual({ kind: 'trail', id: 7 })
+  })
+  test('recenter re-arms the pending fit for the selected activity', () => {
+    useMapStore.setState({ followMode: 'position', selection: { kind: 'activity', id: 4 }, pendingFit: null })
+    useMapStore.getState().recenter()
+    expect(useMapStore.getState().pendingFit).toEqual({ kind: 'activity', id: 4 })
+    expect(useMapStore.getState().followMode).toBe('off')
+  })
+  test('recenter is a no-op when nothing is selected', () => {
+    useMapStore.setState({ selection: null, pendingFit: null, followMode: 'position' })
+    useMapStore.getState().recenter()
+    expect(useMapStore.getState().pendingFit).toBeNull()
+    expect(useMapStore.getState().followMode).toBe('position')
+  })
+  test('recenter produces a fresh pendingFit reference even when it already targets the selection', () => {
+    const existing = { kind: 'trail' as const, id: 7 }
+    useMapStore.setState({ selection: { kind: 'trail', id: 7 }, pendingFit: existing, followMode: 'off' })
+    useMapStore.getState().recenter()
+    const next = useMapStore.getState().pendingFit
+    expect(next).toEqual({ kind: 'trail', id: 7 })
+    expect(next).not.toBe(existing)
+  })
   test('northPressed from compass follow demotes to position, flattening pitch, without bumping the nonce', () => {
     useMapStore.setState({ followMode: 'positionAndBearing', cameraPitch: 60, northResetNonce: 0 })
     useMapStore.getState().northPressed()

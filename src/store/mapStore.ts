@@ -190,6 +190,7 @@ interface MapStore {
   select: (kind: 'trail' | 'activity', id: number) => void
   clearSelection: () => void
   clearPendingFit: () => void
+  recenter: () => void
   setCameraPitch: (p: number) => void
   setCameraPitchAnimated: (p: number) => void
   setCameraHeading: (h: number) => void
@@ -235,6 +236,12 @@ export const useMapStore = create<MapStore>()(
       select: (kind, id) => set({ selection: { kind, id }, followMode: 'off', pendingFit: { kind, id } }),
       clearSelection: () => set({ selection: null, pendingFit: null }),
       clearPendingFit: () => set({ pendingFit: null }),
+      recenter: () =>
+        set((s) =>
+          s.selection
+            ? { pendingFit: { kind: s.selection.kind, id: s.selection.id }, followMode: 'off' }
+            : {},
+        ),
       setCameraPitch: (p) => set({ cameraPitch: p, pitchAnimated: false }),
       setCameraPitchAnimated: (p) => set({ cameraPitch: p, pitchAnimated: true }),
       setCameraHeading: (h) => set({ cameraHeading: h }),
