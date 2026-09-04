@@ -73,3 +73,4 @@
 - Reconcile `smoothProfile` (`feat/elevation-graph`) onto `smoothElevationSeries` once that branch merges.
 - Re-calibrate the two constants against captured real tracks.
 - Filter the same jitter out of **distance** (`tasks.md`: "smoothen activity").
+- Confirm on device whether Android delivers `ele: 0` for fixes without altitude (see the design's "Known risk"), and guard `src/recording/track.ts` if it does.

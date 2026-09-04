@@ -211,6 +211,22 @@ named reconciliation, not two forks left to drift.
   existing test encoded that shape and is rewritten with spaced points — same
   intent, physical geometry.
 
+## Known risk, to verify on device
+
+`expo-location` on Android reads `location.altitude` with no `hasAltitude()` guard
+(`node_modules/expo-location/android/…/LocationResults.kt`), and Android's
+`Location.getAltitude()` returns **0.0** when altitude is unavailable. A fix
+without altitude therefore reaches `toTrackPoint` as `0`, not `null`: it does not
+break the elevation run, and a step of hundreds of metres to and from sea level is
+far beyond any deadband, so this filter cannot remove it. The `.d.ts` types it as
+`number | null`, so `tsc` and Jest (native module mocked) both stay green.
+
+Pre-existing and outside this change, but it is the one thing that could defeat
+"gain means the same thing everywhere". Device verification of this feature should
+include one recording checked for `ele: 0` outliers; the fix, if confirmed, belongs
+in `src/recording/track.ts` behind the recording seam (`altitudeAccuracy` is the
+signal available on the payload).
+
 ## Test plan (Jest, written first)
 
 `smoothElevationSeries`

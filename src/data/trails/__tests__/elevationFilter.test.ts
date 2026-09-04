@@ -116,6 +116,10 @@ describe('elevationChange', () => {
     expect(elevationChange(samples)).toEqual(expected)
   })
 
+  it('reads a 40 m stretch of 30 m spikes at the shipped constants', () => {
+    expect(elevationChange(series([100, 130, 100, 130, 100]))).toEqual({ gainMeters: 12, lossMeters: 12 })
+  })
+
   // GPS altitude error is not white noise: it wanders, correlated over minutes, which is what
   // makes a flat walk read as a climb. These fixtures model it as AR(1) over 10 m fixes.
   const wander = (seed: number, sigma: number, rho: number) => {
@@ -144,6 +148,6 @@ describe('elevationChange', () => {
     const { gainMeters, lossMeters } = elevationChange(series(eles))
     expect(gainMeters).toBeGreaterThan(290)
     expect(gainMeters).toBeLessThan(330)
-    expect(lossMeters).toBeLessThan(30)
+    expect(lossMeters).toBeLessThan(5)
   })
 })

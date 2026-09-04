@@ -36,13 +36,14 @@ describe('computeMetrics', () => {
     // moved 10 m, so a stop reads as a slow crawl with a wandering altitude.
     const wander = Array.from({ length: 60 }, (_, i) => p(0, i * 0.0001, 200 + (i % 6 < 3 ? 4 : -4)))
     const m = computeMetrics(wander)
-    const rawGain = 8 * 9 // every 6 fixes swing 4 m up and 4 m down
     expect(m.distanceMeters).toBeGreaterThan(600)
-    expect(m.elevationGainMeters).toBeLessThan(rawGain / 8)
-    expect(m.elevationLossMeters).toBeLessThan(rawGain / 8)
+    expect(m.elevationGainMeters).toBe(0)
+    // A run keeps its end samples unsmoothed, and this wander both starts and ends on an
+    // extreme, so one 4 m step at each end survives — against the 72 m a raw sum would report.
+    expect(m.elevationLossMeters).toBeLessThanOrEqual(8)
   })
   test('skips elevation deltas when either endpoint lacks elevation', () => {
-    const m = computeMetrics([p(0, 0, 100), p(0, 0, null), p(0, 0, 200)])
+    const m = computeMetrics([p(0, 0, 100), p(0, 0.01, null), p(0, 0.02, 200)])
     expect(m.elevationGainMeters).toBe(0)
     expect(m.elevationLossMeters).toBe(0)
   })
