@@ -68,9 +68,14 @@
 - [x] Confirm no other call site needed changing: `grep -rn "computeMetrics\|metricsForSegments" src app`.
 - [x] Post-work quality control per `POST-WORK.md`, then `/if-from-zero`.
 
+## Task 7 — One smoother (after the elevation graph landed on master)
+
+- [x] `smoothProfile` delegates to `smoothElevationSeries`; the segment walk it shared with `slopeBands` is extracted as `segmentRanges`.
+- [x] Pin the endpoint guarantee in `src/elevation/__tests__/slope.test.ts`; the existing assertions pass unchanged.
+- [ ] Device-verify the profile graph and the slope-coloured route: segment ends now keep their measured altitude.
+
 ## Deferred, named in the design
 
-- Reconcile `smoothProfile` (`feat/elevation-graph`) onto `smoothElevationSeries` once that branch merges.
 - Re-calibrate the two constants against captured real tracks.
 - Filter the same jitter out of **distance** (`tasks.md`: "smoothen activity").
 - Confirm on device whether Android delivers `ele: 0` for fixes without altitude (see the design's "Known risk"), and guard `src/recording/track.ts` if it does.

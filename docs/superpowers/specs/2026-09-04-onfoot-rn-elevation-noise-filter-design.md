@@ -167,25 +167,23 @@ elevation at all still reports `null` gain/loss.
 Segments already come in separately via `metricsForSegments`, so a run never
 spans a recording break either.
 
-## Relationship to the elevation graph (`feat/elevation-graph`)
+## One smoother, two windows
 
-That branch — in flight, not yet merged — introduces `src/elevation/slope.ts`
-`smoothProfile`: the same centred distance-window average, over an
-`ElevationProfile`, with a **user-tunable** window (`elevationSmoothingMeters`,
-default 50) used for *drawing* the profile and colouring the route by slope.
-After both land the app would carry two implementations of one idea.
+`src/elevation/slope.ts` `smoothProfile` — which the profile graph and the
+slope-coloured route use — was the same centred distance-window average written a
+second time, with a **user-tunable** window (`elevationSmoothingMeters`, default
+50) and its own quirks: a window that leaned inward at the ends, and an O(n·w)
+scan.
 
-They are not the same function today: `smoothProfile` breaks its window at
-**segment** boundaries and ignores nulls; `smoothElevationSeries` takes a single
-run (segments and nulls already split upstream) and never reaches past its ends.
-The dependency direction already allows unification — `src/elevation/profile.ts`
-imports from `src/data/trails/gpx/metrics` — so the data layer is the right owner.
+It now delegates to `smoothElevationSeries`. The segment walk both functions
+needed is extracted as `segmentRanges`, so nothing — a smoothing window or a slope
+run — can span a segment break, and the rule lives in one place. The graph keeps
+its tunable window; the metric keeps its fixed one. What is shared is the
+*algorithm*, not the parameter: the window is a display choice, the metric is not.
 
-**Follow-up, to be done when the two branches meet:** refactor `smoothProfile`
-onto `smoothElevationSeries` (splitting per segment at the call site, as
-`computeMetrics` splits per run), keeping the preference as what it is — the
-*display* window — and leaving the metric window fixed. This is a deliberate,
-named reconciliation, not two forks left to drift.
+Two behaviours change for the graph, both in its favour: a segment now starts and
+ends at the altitude actually measured there instead of being pulled toward its
+middle, and the scan is linear.
 
 ## Consequences accepted
 

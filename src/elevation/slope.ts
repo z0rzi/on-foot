@@ -1,24 +1,15 @@
+import { smoothElevationSeries } from '../data/trails/gpx/elevationFilter'
 import { ElevationProfile, ElevationSample, GradeBand, gradeBand } from './profile'
 
 export function smoothProfile(profile: ElevationProfile, windowMeters: number): ElevationProfile {
   if (windowMeters <= 0) return profile
-  const half = windowMeters / 2
   const src = profile.samples
-  const samples: ElevationSample[] = src.map((sample, i) => {
-    let sum = 0
-    let count = 0
-    for (let j = i; j >= 0 && sample.distance - src[j].distance <= half; j--) {
-      if (src[j].segment !== sample.segment) break
-      sum += src[j].ele
-      count++
-    }
-    for (let j = i + 1; j < src.length && src[j].distance - sample.distance <= half; j++) {
-      if (src[j].segment !== sample.segment) break
-      sum += src[j].ele
-      count++
-    }
-    return { ...sample, ele: sum / count }
-  })
+  const samples: ElevationSample[] = []
+  for (const [lo, hi] of segmentRanges(src)) {
+    smoothElevationSeries(src.slice(lo, hi + 1), windowMeters).forEach((ele, k) => {
+      samples.push({ ...src[lo + k], ele })
+    })
+  }
   let minEle = Infinity
   let maxEle = -Infinity
   for (const s of samples) {
@@ -28,18 +19,28 @@ export function smoothProfile(profile: ElevationProfile, windowMeters: number): 
   return { samples, minEle, maxEle, totalDistance: profile.totalDistance }
 }
 
+// Index bounds [lo, hi] of each run of samples sharing a segment. Nothing — a smoothing window,
+// a slope run — may span two segments: the gap between them is ground that was never walked.
+function segmentRanges(samples: ElevationSample[]): [number, number][] {
+  const ranges: [number, number][] = []
+  let i = 0
+  while (i < samples.length) {
+    let j = i
+    while (j + 1 < samples.length && samples[j + 1].segment === samples[i].segment) j++
+    ranges.push([i, j])
+    i = j + 1
+  }
+  return ranges
+}
+
 export interface SlopeBand { start: number; end: number; band: GradeBand }
 
 export function slopeBands(smoothed: ElevationProfile, minRunMeters: number): SlopeBand[] {
   const s = smoothed.samples
   const bands: SlopeBand[] = []
-  let i = 0
-  while (i < s.length) {
-    let j = i
-    while (j + 1 < s.length && s[j + 1].segment === s[i].segment) j++
-    const runs = segmentRuns(s, i, j)
+  for (const [lo, hi] of segmentRanges(s)) {
+    const runs = segmentRuns(s, lo, hi)
     bands.push(...(minRunMeters <= 0 ? runs : dissolveShortRuns(runs, minRunMeters)))
-    i = j + 1
   }
   return bands
 }
