@@ -3,6 +3,7 @@ import { StyleSheet, View, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated'
+import { Ionicons } from '@expo/vector-icons'
 import { ControlButton } from '../components/ControlButton'
 import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
@@ -15,9 +16,11 @@ import { PositionFollowIcon } from '../assets/icons/position-follow'
 
 export function MapControls({
   onOpenLayers,
+  onFrameRoute,
   animatedBottom,
 }: {
   onOpenLayers: () => void
+  onFrameRoute?: () => void
   // When set (a selection is active), the cluster tracks the sheet's animated top edge so it rides
   // above the variable-height sheet. Otherwise it sits above the static overlay.
   animatedBottom?: SharedValue<number>
@@ -130,13 +133,21 @@ export function MapControls({
           <LayersIcon size={MapTokens.controlIconSize} color={c.controlContent} />
         </ControlButton>
       </GestureDetector>
-      <ControlButton accessibilityLabel="Center on your location" onPress={cycleFollowMode}>
-        <LocationIcon size={MapTokens.controlIconSize} color={following ? c.controlAccent : c.controlContent} />
-      </ControlButton>
+      <View style={styles.bottomRow}>
+        {onFrameRoute && (
+          <ControlButton accessibilityLabel="Frame the whole route" onPress={onFrameRoute}>
+            <Ionicons name="scan-outline" size={MapTokens.controlIconSize} color={c.controlContent} />
+          </ControlButton>
+        )}
+        <ControlButton accessibilityLabel="Center on your location" onPress={cycleFollowMode}>
+          <LocationIcon size={MapTokens.controlIconSize} color={following ? c.controlAccent : c.controlContent} />
+        </ControlButton>
+      </View>
     </Animated.View>
   )
 }
 
 const styles = StyleSheet.create({
   col: { position: 'absolute', gap: MapTokens.controlsSpacing, alignItems: 'flex-end' },
+  bottomRow: { flexDirection: 'row', alignItems: 'center', gap: MapTokens.controlsSpacing },
 })

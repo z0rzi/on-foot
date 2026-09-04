@@ -31,6 +31,7 @@ export function MapScreen() {
   const activity = useSelectedActivity()
   const select = useMapStore((s) => s.select)
   const clearSelection = useMapStore((s) => s.clearSelection)
+  const recenter = useMapStore((s) => s.recenter)
   const selection = useMapStore((s) => s.selection)
   const phase = useRecordingStore((s) => recordingPhase(s.session))
   const recording = phase !== 'idle'
@@ -79,6 +80,7 @@ export function MapScreen() {
         )}
         <MapControls
           onOpenLayers={() => sheetRef.current?.present()}
+          onFrameRoute={mode === 'trail' || mode === 'activity' ? recenter : undefined}
           animatedBottom={mode !== 'free' ? controlsBottom : undefined}
         />
         {mode === 'trail' && trail && (
