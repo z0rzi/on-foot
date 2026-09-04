@@ -32,6 +32,11 @@ export interface CameraProps {
   onUserTrackingModeChange?: (following: boolean) => void
 }
 
+export interface ColouredLine {
+  coordinates: [number, number][]
+  color: string
+}
+
 export interface TrailOverlayProps {
   // Track segments as a MultiLineString: each entry is one segment's [lng, lat] pairs, in order.
   lines: [number, number][][]
@@ -42,6 +47,10 @@ export interface TrailOverlayProps {
   endpoints: [number, number][]
   color: string
   lineWidth: number
+  // When set, per-slope coloured polylines drawn instead of the single-colour `lines` (each
+  // carries its own colour; the adapter draws them with a data-driven line colour). Stays
+  // provider- and slope-agnostic: shared code maps slope band → colour before it reaches here.
+  colouredLines?: ColouredLine[]
   // Directional arrows are optional: omit arrowImage to render a plain trail line + endpoints
   // (used for recorded activity tracks, where arrows on noisy GPS look cluttered).
   arrowImage?: number
@@ -58,6 +67,15 @@ export interface RouteLineProps {
   connectorDashArray: number[]
   color: string
   lineWidth: number
+}
+
+export interface ScrubMarkerProps {
+  // [lng, lat] of the point being scrubbed on the elevation graph.
+  coordinate: [number, number]
+  color: string
+  radius: number
+  strokeColor: string
+  strokeWidth: number
 }
 
 export interface TerrainProps {
@@ -99,6 +117,7 @@ export interface MapComponents {
   UserPuck: React.ComponentType<UserPuckProps>
   TrailOverlay: React.ComponentType<TrailOverlayProps>
   RouteLine: React.ComponentType<RouteLineProps>
+  ScrubMarker: React.ComponentType<ScrubMarkerProps>
 }
 
 export interface OfflinePackDescriptor {

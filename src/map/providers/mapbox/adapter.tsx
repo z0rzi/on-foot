@@ -2,7 +2,7 @@ import React, { forwardRef, useImperativeHandle, useRef } from 'react'
 import Mapbox, { type MapState } from '@rnmapbox/maps'
 import type {
   MapProvider, MapViewProps, CameraProps, TerrainProps, CameraController, TrailOverlayProps,
-  RouteLineProps, UserPuckProps,
+  RouteLineProps, ScrubMarkerProps, UserPuckProps,
 } from '../../provider/types'
 import { mapboxCapabilities } from './capabilities'
 import { mapboxOfflineController } from './offline'
@@ -10,6 +10,8 @@ import { TERRAIN_DEM } from './styles'
 import { MAPBOX_ACCESS_TOKEN } from './token'
 
 Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN)
+
+const TRAIL_CASING = '#333333'
 
 const View = ({ styleURL, onCameraChanged, style, children }: MapViewProps) => (
   <Mapbox.MapView
@@ -86,7 +88,7 @@ const multiLine = (lines: [number, number][][]) => ({
 })
 
 const TrailOverlay = ({
-  lines, connectors, connectorDashArray, endpoints, color, lineWidth, arrowImage, arrowSpacing, arrowSize,
+  lines, connectors, connectorDashArray, endpoints, color, lineWidth, colouredLines, arrowImage, arrowSpacing, arrowSize,
   endpointRadius, endpointStrokeColor, endpointStrokeWidth,
 }: TrailOverlayProps) => {
   const endpointShape = {
@@ -97,12 +99,7 @@ const TrailOverlay = ({
       properties: {},
     })),
   }
-  const lineChildren = [
-    <Mapbox.LineLayer
-      key="line"
-      id="trail-line"
-      style={{ lineColor: color, lineWidth, lineCap: 'round', lineJoin: 'round' }}
-    />,
+  const arrowsLayer =
     arrowImage != null ? (
       <Mapbox.SymbolLayer
         key="arrows"
@@ -116,15 +113,53 @@ const TrailOverlay = ({
           iconRotationAlignment: 'map',
         }}
       />
-    ) : null,
-  ].filter((el): el is React.ReactElement => el != null)
+    ) : null
+  const useColoured = colouredLines != null && colouredLines.length > 0
+  const slopeShape = {
+    type: 'FeatureCollection' as const,
+    features: (colouredLines ?? []).map((l) => ({
+      type: 'Feature' as const,
+      geometry: { type: 'LineString' as const, coordinates: l.coordinates },
+      properties: { color: l.color },
+    })),
+  }
   return (
     <>
       {arrowImage != null && <Mapbox.Images images={{ 'trail-arrow': arrowImage }} />}
-      {lines.length > 0 && (
-        <Mapbox.ShapeSource id="trail-line-source" shape={multiLine(lines)}>
-          {lineChildren}
+      {useColoured ? (
+        <Mapbox.ShapeSource id="trail-slope-source" shape={slopeShape}>
+          {[
+            <Mapbox.LineLayer
+              key="slope-casing"
+              id="trail-slope-casing"
+              style={{ lineColor: TRAIL_CASING, lineWidth: lineWidth + 3, lineCap: 'round', lineJoin: 'round' }}
+            />,
+            <Mapbox.LineLayer
+              key="slope-line"
+              id="trail-slope-line"
+              style={{ lineColor: ['get', 'color'], lineWidth, lineCap: 'round', lineJoin: 'round' }}
+            />,
+            arrowsLayer,
+          ].filter((el): el is React.ReactElement => el != null)}
         </Mapbox.ShapeSource>
+      ) : (
+        lines.length > 0 && (
+          <Mapbox.ShapeSource id="trail-line-source" shape={multiLine(lines)}>
+            {[
+              <Mapbox.LineLayer
+                key="casing"
+                id="trail-line-casing"
+                style={{ lineColor: TRAIL_CASING, lineWidth: lineWidth + 3, lineCap: 'round', lineJoin: 'round' }}
+              />,
+              <Mapbox.LineLayer
+                key="line"
+                id="trail-line"
+                style={{ lineColor: color, lineWidth, lineCap: 'round', lineJoin: 'round' }}
+              />,
+              arrowsLayer,
+            ].filter((el): el is React.ReactElement => el != null)}
+          </Mapbox.ShapeSource>
+        )
       )}
       {connectors.length > 0 && (
         <Mapbox.ShapeSource id="trail-connector-source" shape={multiLine(connectors)}>
@@ -170,8 +205,20 @@ const RouteLine = ({ lines, connectors, connectorDashArray, color, lineWidth }: 
   </>
 )
 
+const ScrubMarker = ({ coordinate, color, radius, strokeColor, strokeWidth }: ScrubMarkerProps) => (
+  <Mapbox.ShapeSource
+    id="scrub-marker-source"
+    shape={{ type: 'Feature', geometry: { type: 'Point', coordinates: coordinate }, properties: {} }}
+  >
+    <Mapbox.CircleLayer
+      id="scrub-marker"
+      style={{ circleColor: color, circleRadius: radius, circleStrokeColor: strokeColor, circleStrokeWidth: strokeWidth }}
+    />
+  </Mapbox.ShapeSource>
+)
+
 export const mapboxProvider: MapProvider = {
   capabilities: mapboxCapabilities,
-  components: { View, Camera, Terrain, UserPuck, TrailOverlay, RouteLine },
+  components: { View, Camera, Terrain, UserPuck, TrailOverlay, RouteLine, ScrubMarker },
   offline: mapboxOfflineController,
 }

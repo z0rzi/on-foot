@@ -9,6 +9,8 @@ import { useTheme } from '../theme/useTheme'
 import { DifficultyBadge } from './DifficultyBadge'
 import { MapInfoSheet } from '../map/MapInfoSheet'
 import { MetricsGrid } from '../map/MetricsGrid'
+import { ElevationGraph } from '../elevation/ElevationGraph'
+import type { ElevationProfile } from '../elevation/profile'
 import { useMapCapabilities, useOfflineController } from '../map/provider'
 import { useOfflineStore } from '../map/offline/offlineStore'
 import { offlineStateForTrail } from '../map/offline/badge'
@@ -24,9 +26,11 @@ import { guardDownload } from '../map/offline/downloadConsent'
 
 export function TrailInfoSheet({
   trail,
+  profile,
   animatedPosition,
 }: {
   trail: Trail
+  profile: ElevationProfile | null
   animatedPosition?: SharedValue<number>
 }) {
   const c = useTheme()
@@ -136,6 +140,8 @@ export function TrailInfoSheet({
           </Text>
         </View>
       )}
+
+      {profile && <ElevationGraph profile={profile} placement="inSheet" />}
 
       <MetricsGrid
         items={[

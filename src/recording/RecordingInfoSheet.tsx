@@ -9,14 +9,18 @@ import { groupPointsBySegment } from '../data/activities/mapping'
 import { formatPace, formatSpeed, formatStopwatch } from '../activities/format'
 import { MapInfoSheet } from '../map/MapInfoSheet'
 import { MetricsGrid } from '../map/MetricsGrid'
+import { ElevationGraph } from '../elevation/ElevationGraph'
+import type { ElevationProfile } from '../elevation/profile'
 import { useMovingStopwatch } from './useMovingStopwatch'
 
 export function RecordingInfoSheet({
   followedTrailName,
+  profile,
   onRemoveTrail,
   animatedPosition,
 }: {
   followedTrailName: string | null
+  profile: ElevationProfile | null
   onRemoveTrail: () => void
   animatedPosition?: SharedValue<number>
 }) {
@@ -55,6 +59,8 @@ export function RecordingInfoSheet({
           </Pressable>
         )}
       </View>
+
+      {profile && <ElevationGraph profile={profile} placement="inSheet" />}
 
       <MetricsGrid
         items={[

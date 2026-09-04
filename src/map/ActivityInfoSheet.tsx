@@ -10,13 +10,17 @@ import { formatActivityDate, formatActivitySummary, formatDuration } from '../ac
 import { formatDistance, formatElevation } from '../data/trails/gpx/metrics'
 import { MapInfoSheet } from './MapInfoSheet'
 import { MetricsGrid } from './MetricsGrid'
+import { ElevationGraph } from '../elevation/ElevationGraph'
+import type { ElevationProfile } from '../elevation/profile'
 
 export function ActivityInfoSheet({
   activity,
+  profile,
   onViewLinkedTrail,
   animatedPosition,
 }: {
   activity: Activity
+  profile: ElevationProfile | null
   onViewLinkedTrail: (trailId: number) => void
   animatedPosition?: SharedValue<number>
 }) {
@@ -47,6 +51,8 @@ export function ActivityInfoSheet({
           {formatActivitySummary(activity.metrics)}  ·  {formatActivityDate(activity.startedAt)}
         </Text>
       </View>
+
+      {profile && <ElevationGraph profile={profile} placement="inSheet" />}
 
       <MetricsGrid
         items={[

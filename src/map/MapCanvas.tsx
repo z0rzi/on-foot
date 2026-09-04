@@ -10,6 +10,8 @@ import { Activity } from '../data/activities/types'
 import { groupPointsBySegment } from '../data/activities/mapping'
 import { boundsForPoints, flattenSegments } from './geo'
 import { MapOverlays, type OverlayRoute } from './MapOverlays'
+import { ScrubMarkerLayer } from './ScrubMarkerLayer'
+import { useRouteColouring } from '../elevation/useRouteColouring'
 
 export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: Activity | null }) {
   const { components } = useMapProvider()
@@ -52,6 +54,7 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
     : hasTrail
       ? { segments, kind: 'trail' }
       : null
+  const colouredLines = useRouteColouring(route?.segments ?? null)
 
   // Frame the trail a user tap requested, once that trail's own geometry has loaded. select()
   // sets pendingFit; the loaded trail prop lags it (getTrail resolves async), so the fit waits
@@ -104,7 +107,13 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
       />
       {caps.supportsTerrain && <Terrain exaggeration={MapTokens.terrainExaggeration} />}
       <UserPuck scale={MapTokens.puckBearingScale} />
-      <MapOverlays route={route} liveSegments={liveSegments} showLiveTrack={showLiveTrack} />
+      <MapOverlays
+        route={route}
+        liveSegments={liveSegments}
+        showLiveTrack={showLiveTrack}
+        colouredLines={colouredLines}
+      />
+      <ScrubMarkerLayer />
     </MapView>
   )
 }

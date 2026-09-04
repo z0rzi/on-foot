@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { View } from 'react-native'
 import { useSharedValue, useDerivedValue } from 'react-native-reanimated'
 import { BottomSheetModal } from '@gorhom/bottom-sheet'
@@ -18,6 +18,10 @@ import { useMapStore, mapMode, trailToShow } from '../store/mapStore'
 import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
 import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
+import { buildElevationProfile } from '../elevation/profile'
+import { ElevationGraph, GRAPH_HEIGHT } from '../elevation/ElevationGraph'
+import { usePreferencesStore } from '../settings/preferencesStore'
+import { groupPointsBySegment } from '../data/activities/mapping'
 
 export function MapScreen() {
   const sheetRef = useRef<BottomSheetModal>(null)
@@ -35,10 +39,32 @@ export function MapScreen() {
   // activity is selected, so the cluster rides continuously above the variable-height sheet.
   const rootHeight = useSharedValue(0)
   const sheetTop = useSharedValue(0)
-  const controlsAnimatedBottom = useDerivedValue(() =>
-    rootHeight.value === 0 || sheetTop.value === 0
-      ? 0
-      : rootHeight.value - sheetTop.value + MapTokens.controlsSpacing,
+  // The sheet's live top edge, as a bottom offset; the fundamental quantity everything below rides on.
+  const graphBottom = useDerivedValue(() =>
+    rootHeight.value === 0 || sheetTop.value === 0 ? 0 : rootHeight.value - sheetTop.value,
+  )
+  const baseControlsBottom = useDerivedValue(() =>
+    graphBottom.value === 0 ? 0 : graphBottom.value + MapTokens.controlsSpacing,
+  )
+  const livePoints = useRecordingStore((s) => s.livePoints)
+  const graphPlacement = usePreferencesStore((s) => s.elevationGraphPlacement)
+
+  const activeProfile = useMemo(() => {
+    const segments =
+      mode === 'trail' ? trail?.geometry.segments
+      : mode === 'activity' ? activity?.geometry.segments
+      : mode === 'recording' ? (trail ? trail.geometry.segments : groupPointsBySegment(livePoints))
+      : undefined
+    return segments ? buildElevationProfile(segments) : null
+  }, [mode, trail, activity, livePoints])
+
+  // The graph either floats over the map (flush on the sheet's top edge) or lives inside the sheet.
+  const showFloatingGraph = graphPlacement === 'floating' && activeProfile != null
+  const sheetProfile = graphPlacement === 'inSheet' ? activeProfile : null
+  // Lift the controls above the floating graph so it doesn't cover them; sit them flush on the
+  // graph's top edge (stuck to it). Otherwise ride the sheet top.
+  const controlsBottom = useDerivedValue(() =>
+    showFloatingGraph ? graphBottom.value + GRAPH_HEIGHT : baseControlsBottom.value,
   )
 
   return (
@@ -46,14 +72,14 @@ export function MapScreen() {
       <View style={{ flex: 1 }} onLayout={(e) => { rootHeight.value = e.nativeEvent.layout.height }}>
         <MapCanvas trail={trailToShow(mode, trail)} activity={mode === 'activity' ? activity : null} />
         {mode !== 'activity' && phase !== 'paused' && (
-          <RecordButton animatedBottom={mode === 'trail' || mode === 'recording' ? controlsAnimatedBottom : undefined} />
+          <RecordButton animatedBottom={mode === 'trail' || mode === 'recording' ? controlsBottom : undefined} />
         )}
         {phase === 'paused' && (
-          <PausedControls animatedBottom={mode === 'recording' ? controlsAnimatedBottom : undefined} />
+          <PausedControls animatedBottom={mode === 'recording' ? controlsBottom : undefined} />
         )}
         <MapControls
           onOpenLayers={() => sheetRef.current?.present()}
-          animatedBottom={mode !== 'free' ? controlsAnimatedBottom : undefined}
+          animatedBottom={mode !== 'free' ? controlsBottom : undefined}
         />
         {mode === 'trail' && trail && (
           <>
@@ -64,7 +90,7 @@ export function MapScreen() {
               onExit={clearSelection}
               exitAccessibilityLabel="Exit trail view"
             />
-            <TrailInfoSheet trail={trail} animatedPosition={sheetTop} />
+            <TrailInfoSheet trail={trail} profile={sheetProfile} animatedPosition={sheetTop} />
           </>
         )}
         {mode === 'activity' && activity && (
@@ -78,6 +104,7 @@ export function MapScreen() {
             />
             <ActivityInfoSheet
               activity={activity}
+              profile={sheetProfile}
               onViewLinkedTrail={(id) => select('trail', id)}
               animatedPosition={sheetTop}
             />
@@ -90,10 +117,14 @@ export function MapScreen() {
             )}
             <RecordingInfoSheet
               followedTrailName={trail?.name ?? null}
+              profile={sheetProfile}
               onRemoveTrail={clearSelection}
               animatedPosition={sheetTop}
             />
           </>
+        )}
+        {showFloatingGraph && (
+          <ElevationGraph profile={activeProfile} placement="floating" animatedBottom={graphBottom} />
         )}
       </View>
       <LayersSheet ref={sheetRef} />
