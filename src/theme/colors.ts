@@ -22,6 +22,11 @@ export interface AppColors {
   success: string
   warning: string
   danger: string
+  slopeSteep: string
+  slopeRough: string
+  slopeUphill: string
+  slopeDownhill: string
+  slopeFlat: string
 }
 
 export const lightColors: AppColors = {
@@ -48,6 +53,11 @@ export const lightColors: AppColors = {
   success: '#2E7D32',
   warning: '#E65100',
   danger: '#C62828',
+  slopeSteep: '#000000',
+  slopeRough: '#D32F2F',
+  slopeUphill: '#F57C00',
+  slopeDownhill: '#43A047',
+  slopeFlat: '#EEEEEE',
 }
 
 export const darkColors: AppColors = {
@@ -74,6 +84,11 @@ export const darkColors: AppColors = {
   success: '#66BB6A',
   warning: '#FFA726',
   danger: '#EF5350',
+  slopeSteep: '#000000',
+  slopeRough: '#EF5350',
+  slopeUphill: '#FFB74D',
+  slopeDownhill: '#66BB6A',
+  slopeFlat: '#EEEEEE',
 }
 
 export function getColors(scheme: 'light' | 'dark' | null): AppColors {

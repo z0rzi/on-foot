@@ -227,3 +227,72 @@ A deliberate big **shortcut that skips far ahead** and rejoins: "closest to last
 biased toward where you left (behind you), so the dot can sit behind or stall until the
 geometry is unambiguous. Rare, predictable, self-corrects on a normal trail. Small detours
 (step off, rejoin nearby — the common off-trail case) are handled perfectly.
+
+---
+
+## Revision 2026-09-02 — device feedback: colour pipeline redesign, transparency, Y-axis
+
+On-device the first cut showed a "barcode" of black/red/orange stripes even on a gentle
+8.3 km / 528 m hike, with orange inside descents. Root cause: **GPS elevation noise**
+amplified by two original choices — colouring each pixel-bin by its **MAX** grade, and
+computing grade over raw consecutive samples. A 5 m noise blip over 20 m reads as a 25%
+grade (black); MAX makes one noisy pair paint a whole bin; a single up-blip inside a
+descent makes that bin orange. This revision **replaces the colour pipeline** (not a
+patch) and addresses three feedback points.
+
+### Decisions (from the user)
+
+1. **Flat sections:** truly no fill (transparent through to the map). Not a neutral fill.
+2. **Smoothing window:** default **50 m**, and **user-configurable in the Settings tab**.
+3. **Elevation line:** stays **accurate** (raw) — a short steep step is real information the
+   hiker should see. Only the *colours/grades* are smoothed.
+
+### Redesigned colour pipeline (clean, intentional)
+
+Two representations, deliberately separate:
+
+- **Accurate profile** (`buildElevationProfile`, unchanged): raw samples with cumulative,
+  gap-excluded distance. Drives the **line** and the scrub tooltip's **elevation**.
+- **Smoothed slope** (new `slope.ts`, replacing `bins.ts`): the terrain's *steepness
+  character*, computed for colouring only.
+
+The old `bins.ts` (fixed-width pixel bins + max-grade) is **deleted**. The new pipeline:
+
+1. `smoothProfile(profile, windowMeters)` — moving average of elevation over a **distance**
+   window (default 50 m), computed **per segment** (never across a break). `windowMeters ≤ 0`
+   → identity (smoothing "Off"). Returns a new `ElevationProfile` (smoothed eles, same
+   distances/segments, recomputed min/max).
+2. `slopeBands(smoothed, minRunMeters)` — grade per consecutive **smoothed** same-segment
+   pair → `gradeBand` → coalesced contiguous **runs in distance space**; runs shorter than
+   `minRunMeters` (the graph passes the smoothing window) dissolve into their longer
+   neighbour and recoalesce. Output `SlopeBand[] = { start, end, band }[]`.
+3. Colour is the band's own (smoothed) grade — **no MAX, no pixel bins**. Bands are semantic
+   constant-slope runs, independent of pixel width, so the barcode cannot recur. A descent
+   with a small bump smooths to net downhill → green; black/red appear only for genuinely
+   steep runs sustained over ≥ the window.
+
+`buildBandAreas` is retargeted from `ColorBin[]` to `SlopeBand[]` (identical shape) and still
+fills **under the accurate line** — accurate silhouette, smoothed colour. The scrub
+tooltip's **grade** comes from the smoothed profile (`sampleAt(smoothed, d).grade`) so the
+number under the finger matches the colour there; its **elevation** stays from the raw line.
+
+### Transparency
+
+The graph container drops its opaque panel background — it floats over the map. Flat
+sections (no fill) reveal the map beneath the line (decision 1). To stay legible over the
+varied map, the **line** is drawn with a thin dark halo (a wider translucent stroke beneath
+the coloured stroke) and **axis labels** use an SVG text halo (stroke).
+
+### Y-axis
+
+Replaces the single "min–max" corner label with `buildAxisTicks(profile, height, targetCount)`
+→ nice round elevations (1/2/5·10ⁿ step) within `[minEle, maxEle]`, each with its `y`. Rendered
+as faint full-width gridlines with left-gutter labels, so elevation values are always visible.
+The scrub tooltip (elevation · distance · grade) still appears while scrubbing.
+
+### Settings
+
+`preferencesStore` gains `elevationSmoothingMeters` (default 50, persisted) + a setter, and the
+Settings tab gets a smoothing control (preset chips: Off / 25 / 50 / 100 / 200 m). The metrics
+tiles (e.g. "528 m gain") stay computed from raw data and are intentionally left unchanged.
+

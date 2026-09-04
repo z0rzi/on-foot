@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useMapProvider } from './provider'
+import type { ColouredLine } from './provider'
 import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
 import { segmentLines, connectorLines, overallEndpoints } from './geo'
@@ -17,10 +18,12 @@ export function MapOverlays({
   route,
   liveSegments,
   showLiveTrack,
+  colouredLines,
 }: {
   route: OverlayRoute | null
   liveSegments: TrackPoint[][]
   showLiveTrack: boolean
+  colouredLines?: ColouredLine[]
 }) {
   const { components } = useMapProvider()
   const c = useTheme()
@@ -45,6 +48,7 @@ export function MapOverlays({
             endpoints={routeEndpoints}
             color={c.activityLine}
             lineWidth={MapTokens.trailLineWidth}
+            colouredLines={colouredLines}
             endpointRadius={MapTokens.endpointRadius}
             endpointStrokeColor={c.trailEndpointStroke}
             endpointStrokeWidth={MapTokens.endpointStrokeWidth}
@@ -57,6 +61,7 @@ export function MapOverlays({
             endpoints={routeEndpoints}
             color={c.trailLine}
             lineWidth={MapTokens.trailLineWidth}
+            colouredLines={colouredLines}
             arrowImage={trailArrow}
             arrowSpacing={MapTokens.arrowSpacing}
             arrowSize={MapTokens.arrowSize}

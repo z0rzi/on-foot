@@ -76,6 +76,10 @@
     "setupFilesAfterEnv": [
       "<rootDir>/jest.setup.js"
     ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/.claude/worktrees/"
+    ],
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@rnmapbox/.*|react-navigation|@react-navigation/.*|@gorhom/.*|zustand))"
     ]
