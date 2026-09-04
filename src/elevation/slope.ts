@@ -1,4 +1,4 @@
-import { smoothElevationSeries } from '../data/trails/gpx/elevationFilter'
+import { smoothElevationSeries } from '../data/geo/elevationFilter'
 import { ElevationProfile, ElevationSample, GradeBand, gradeBand } from './profile'
 
 export function smoothProfile(profile: ElevationProfile, windowMeters: number): ElevationProfile {

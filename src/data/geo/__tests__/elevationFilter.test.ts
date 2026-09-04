@@ -5,7 +5,7 @@ import {
   accumulateGainLoss,
   elevationChange,
   smoothElevationSeries,
-} from '../gpx/elevationFilter'
+} from '../elevationFilter'
 
 const series = (eles: number[], spacingMeters = 10): ElevationPoint[] =>
   eles.map((ele, i) => ({ distance: i * spacingMeters, ele }))

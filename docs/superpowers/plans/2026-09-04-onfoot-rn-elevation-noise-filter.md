@@ -4,7 +4,7 @@
 
 **Design:** `docs/superpowers/specs/2026-09-04-onfoot-rn-elevation-noise-filter-design.md`
 
-**Architecture:** A new pure module `src/data/trails/gpx/elevationFilter.ts` owns the two stages and the two constants. `computeMetrics` keeps ownership of distance and of splitting a point list into elevation runs (breaks at null elevations); it delegates each run's gain/loss to the filter. No other production file changes: every gain surface already routes through `computeMetrics` / `metricsForSegments`.
+**Architecture:** A new pure module `src/data/geo/elevationFilter.ts` owns the two stages and the two constants. `computeMetrics` keeps ownership of distance and of splitting a point list into elevation runs (breaks at null elevations); it delegates each run's gain/loss to the filter. No other production file changes: every gain surface already routes through `computeMetrics` / `metricsForSegments`.
 
 **Tech Stack:** React Native (Expo v57), TypeScript (strict), Jest (jest-expo preset).
 
@@ -21,11 +21,11 @@
 ## File Structure
 
 **New (pure, TDD):**
-- `src/data/trails/gpx/elevationFilter.ts` — `ELEVATION_SMOOTHING_WINDOW_METERS`, `ELEVATION_DEADBAND_METERS`, `ElevationPoint`, `ElevationChange`, `smoothElevationSeries`, `accumulateGainLoss`, `elevationChange`.
+- `src/data/geo/elevationFilter.ts` — `ELEVATION_SMOOTHING_WINDOW_METERS`, `ELEVATION_DEADBAND_METERS`, `ElevationPoint`, `ElevationChange`, `smoothElevationSeries`, `accumulateGainLoss`, `elevationChange`.
 - `src/data/trails/__tests__/elevationFilter.test.ts`
 
 **Changed:**
-- `src/data/trails/gpx/metrics.ts` — `computeMetrics` builds elevation runs and delegates to `elevationChange`.
+- `src/data/geo/metrics.ts` — `computeMetrics` builds elevation runs and delegates to `elevationChange`.
 - `src/data/trails/__tests__/metrics.test.ts` — the coincident-points case is rewritten with spaced points; a standstill case is added.
 
 **Docs:** spec + this plan.

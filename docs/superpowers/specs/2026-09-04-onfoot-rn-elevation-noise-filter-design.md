@@ -54,9 +54,9 @@ a clean 500 m climb reads 500 m, a clean 300 m out-and-back reads 298 m).
 
 - **Pure logic is TDD'd.** The filter is pure arithmetic over an array — Jest
   tests first, no device verification needed for the numbers themselves.
-- **Layering:** the filter is a pure sibling of `metrics.ts` in
-  `src/data/trails/gpx/`, imported by it. No new dependency direction, no UI or
-  I/O in the data layer, no seam touched.
+- **Layering:** the filter is a pure sibling of `metrics.ts` in `src/data/geo/`,
+  imported by it. No new dependency direction, no UI or I/O in the data layer, no
+  seam touched.
 - **No change-narrating comments.**
 
 ## The algorithm
@@ -166,6 +166,22 @@ elevation at all still reports `null` gain/loss.
 
 Segments already come in separately via `metricsForSegments`, so a run never
 spans a recording break either.
+
+## Where this lives
+
+`metrics.ts` was under `src/data/trails/gpx/` although neither it nor this filter
+is GPX-specific: haversine distance and elevation gain are computed for activities
+and live recordings too, and 14 modules across trails, activities, recording, the
+map and the elevation graph import them. Both now live in **`src/data/geo/`**;
+`src/data/trails/gpx/` keeps `parse.ts` and `readFile.ts`, which really are about
+the file format. `GpxPoint` / `TrailMetrics` stay in `src/data/trails/types` — a
+type-only import from `geo`, and renaming the app's point type is a change of its
+own.
+
+Still there and untouched: `metrics.ts` also holds `formatDistance`,
+`formatElevation` and `formatMetricsSummary` — presentation helpers living in the
+data layer. Pre-existing, and worth splitting out the next time that file is
+opened for a real reason.
 
 ## One smoother, two windows
 

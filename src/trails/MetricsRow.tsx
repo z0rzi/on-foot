@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native'
 import { TrailMetrics } from '../data/trails/types'
-import { formatDistance, formatElevation } from '../data/trails/gpx/metrics'
+import { formatDistance, formatElevation } from '../data/geo/metrics'
 import { useTheme } from '../theme/useTheme'
 
 function MetricItem({ label, value, color, muted }: { label: string; value: string; color: string; muted: string }) {

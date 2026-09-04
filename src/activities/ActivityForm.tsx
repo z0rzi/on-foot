@@ -5,7 +5,7 @@ import {
 } from 'react-native'
 import { Stack } from 'expo-router'
 import { ActivityMetrics, Effort } from '../data/activities/types'
-import { formatDistance, formatElevation } from '../data/trails/gpx/metrics'
+import { formatDistance, formatElevation } from '../data/geo/metrics'
 import { formatDuration } from './format'
 import { EffortSelector } from './EffortSelector'
 import { useTheme } from '../theme/useTheme'

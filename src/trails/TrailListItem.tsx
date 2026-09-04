@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { TrailSummary } from '../data/trails/types'
-import { formatMetricsSummary } from '../data/trails/gpx/metrics'
+import { formatMetricsSummary } from '../data/geo/metrics'
 import { useTheme } from '../theme/useTheme'
 import { DifficultyBadge } from './DifficultyBadge'
 

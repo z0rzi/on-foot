@@ -1,4 +1,4 @@
-import { metricsForSegments } from '../trails/gpx/metrics'
+import { metricsForSegments } from '../geo/metrics'
 import { movingDurationMs } from './duration'
 import {
   Activity, ActivityGeometry, ActivityMetrics, ActivitySummary,

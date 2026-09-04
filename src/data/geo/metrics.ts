@@ -1,4 +1,4 @@
-import { GpxPoint, TrailMetrics } from '../types'
+import { GpxPoint, TrailMetrics } from '../trails/types'
 import { ElevationPoint, elevationChange } from './elevationFilter'
 
 const EARTH_RADIUS_M = 6371000

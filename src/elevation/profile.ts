@@ -1,4 +1,4 @@
-import { haversineMeters } from '../data/trails/gpx/metrics'
+import { haversineMeters } from '../data/geo/metrics'
 
 export interface ElePoint { lat: number; lng: number; ele: number | null }
 export interface ElevationSample { distance: number; ele: number; lat: number; lng: number; segment: number }

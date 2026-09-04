@@ -1,5 +1,5 @@
-import { haversineMeters, computeMetrics, metricsForSegments, formatDistance, formatElevation, formatMetricsSummary } from '../gpx/metrics'
-import { GpxPoint } from '../types'
+import { haversineMeters, computeMetrics, metricsForSegments, formatDistance, formatElevation, formatMetricsSummary } from '../metrics'
+import { GpxPoint } from '../../trails/types'
 
 const p = (lat: number, lng: number, ele: number | null = null): GpxPoint => ({ lat, lng, ele })
 
