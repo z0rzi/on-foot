@@ -26,10 +26,20 @@ describe('computeMetrics', () => {
     expect(m.elevationLossMeters).toBeNull()
   })
   test('sums distance and splits elevation into gain and loss', () => {
-    const m = computeMetrics([p(0, 0, 100), p(0, 0, 130), p(0, 0, 110)])
-    expect(m.distanceMeters).toBe(0)
+    const m = computeMetrics([p(0, 0, 100), p(0, 0.001, 130), p(0, 0.002, 110)])
+    expect(m.distanceMeters).toBeGreaterThan(200)
     expect(m.elevationGainMeters).toBe(30)
     expect(m.elevationLossMeters).toBe(20)
+  })
+  test('altitude wander while barely moving is not climb', () => {
+    // Standing still still yields fixes: the OS delivers one whenever it believes the walker
+    // moved 10 m, so a stop reads as a slow crawl with a wandering altitude.
+    const wander = Array.from({ length: 60 }, (_, i) => p(0, i * 0.0001, 200 + (i % 6 < 3 ? 4 : -4)))
+    const m = computeMetrics(wander)
+    const rawGain = 8 * 9 // every 6 fixes swing 4 m up and 4 m down
+    expect(m.distanceMeters).toBeGreaterThan(600)
+    expect(m.elevationGainMeters).toBeLessThan(rawGain / 8)
+    expect(m.elevationLossMeters).toBeLessThan(rawGain / 8)
   })
   test('skips elevation deltas when either endpoint lacks elevation', () => {
     const m = computeMetrics([p(0, 0, 100), p(0, 0, null), p(0, 0, 200)])
