@@ -117,6 +117,19 @@ Three properties make this correct with no other logic:
 No new camera code, and **the map-provider seam is untouched** — `fitBounds` is already a
 declared affordance on the provider port.
 
+**Follow-off must land before the fit (the "no-op while following" trap).** rnmapbox drops
+*any* camera move — declarative `bounds` or imperative `fitBounds`/`setCamera` — while
+`followUserLocation` is true (confirmed in the SDK source: `buildNativeStop` returns `null`
+under that condition), and a programmatic follow-off only reaches the native camera on the
+next frame. Setting `followMode:'off'` and firing the fit in the same commit therefore races
+and the first fit is swallowed (the pre-existing `select` path only worked by luck — its
+geometry loads async, deferring the fit to a later frame). So `MapCanvas` runs every one-shot
+camera op — the `pendingFit` fits **and** the `northResetNonce` reset — inside a
+`requestAnimationFrame`, one frame after the follow-off commit. `pendingFit` is cleared inside
+that frame (not before) so the effect cleanup can't cancel its own pending fit. The same trap
+is why **`northPressed` now also drops follow** (its old `else` branch signalled the reset but
+left `position`-follow on, so the reset was silently swallowed until the user panned).
+
 ### Section 2 — Control wiring (native, device-verified)
 
 - **`MapControls`** gains an optional prop (e.g. `onFrameRoute?: () => void`). When set,
