@@ -233,13 +233,25 @@ export const useMapStore = create<MapStore>()(
           const target = resolveQuickSwitch(s.mapStyleId, s.previousMapStyleId, styles)
           return target === s.mapStyleId ? {} : { mapStyleId: target, previousMapStyleId: s.mapStyleId }
         }),
-      select: (kind, id) => set({ selection: { kind, id }, followMode: 'off', pendingFit: { kind, id } }),
+      select: (kind, id) =>
+        set({
+          selection: { kind, id },
+          followMode: 'off',
+          pendingFit: { kind, id },
+          cameraPitch: MapTokens.pitchMin,
+          pitchAnimated: true,
+        }),
       clearSelection: () => set({ selection: null, pendingFit: null }),
       clearPendingFit: () => set({ pendingFit: null }),
       recenter: () =>
         set((s) =>
           s.selection
-            ? { pendingFit: { kind: s.selection.kind, id: s.selection.id }, followMode: 'off' }
+            ? {
+                pendingFit: { kind: s.selection.kind, id: s.selection.id },
+                followMode: 'off',
+                cameraPitch: MapTokens.pitchMin,
+                pitchAnimated: true,
+              }
             : {},
         ),
       setCameraPitch: (p) => set({ cameraPitch: p, pitchAnimated: false }),

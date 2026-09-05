@@ -80,7 +80,7 @@ export function MapScreen() {
         )}
         <MapControls
           onOpenLayers={() => sheetRef.current?.present()}
-          onFrameRoute={mode === 'trail' || mode === 'activity' ? recenter : undefined}
+          onFrameRoute={selection ? recenter : undefined}
           animatedBottom={mode !== 'free' ? controlsBottom : undefined}
         />
         {mode === 'trail' && trail && (

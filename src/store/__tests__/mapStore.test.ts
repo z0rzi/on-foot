@@ -206,19 +206,23 @@ describe('store actions', () => {
     useMapStore.getState().setCameraHeading(42)
     expect(useMapStore.getState().cameraHeading).toBe(42)
   })
-  test('select("trail") selects the trail, turns follow off, and marks it pending fit', () => {
-    useMapStore.setState({ followMode: 'positionAndBearing', selection: { kind: 'activity', id: 3 }, pendingFit: null })
+  test('select("trail") selects the trail, turns follow off, marks it pending fit, and flattens to 2D', () => {
+    useMapStore.setState({ followMode: 'positionAndBearing', selection: { kind: 'activity', id: 3 }, pendingFit: null, cameraPitch: 60, pitchAnimated: false })
     useMapStore.getState().select('trail', 7)
     expect(useMapStore.getState().selection).toEqual({ kind: 'trail', id: 7 })
     expect(useMapStore.getState().followMode).toBe('off')
     expect(useMapStore.getState().pendingFit).toEqual({ kind: 'trail', id: 7 })
+    expect(useMapStore.getState().cameraPitch).toBe(0)
+    expect(useMapStore.getState().pitchAnimated).toBe(true)
   })
-  test('select("activity") replaces a trail selection, turns follow off, and marks it pending fit', () => {
-    useMapStore.setState({ followMode: 'positionAndBearing', selection: { kind: 'trail', id: 9 }, pendingFit: null })
+  test('select("activity") replaces a trail selection, turns follow off, marks it pending fit, and flattens to 2D', () => {
+    useMapStore.setState({ followMode: 'positionAndBearing', selection: { kind: 'trail', id: 9 }, pendingFit: null, cameraPitch: 60, pitchAnimated: false })
     useMapStore.getState().select('activity', 4)
     expect(useMapStore.getState().selection).toEqual({ kind: 'activity', id: 4 })
     expect(useMapStore.getState().followMode).toBe('off')
     expect(useMapStore.getState().pendingFit).toEqual({ kind: 'activity', id: 4 })
+    expect(useMapStore.getState().cameraPitch).toBe(0)
+    expect(useMapStore.getState().pitchAnimated).toBe(true)
   })
   test('clearSelection clears the selection and pending fit, leaving follow untouched', () => {
     useMapStore.setState({ selection: { kind: 'trail', id: 7 }, pendingFit: { kind: 'trail', id: 7 }, followMode: 'position' })
@@ -233,24 +237,28 @@ describe('store actions', () => {
     expect(useMapStore.getState().pendingFit).toBeNull()
     expect(useMapStore.getState().selection).toEqual({ kind: 'trail', id: 7 })
   })
-  test('recenter re-arms the pending fit for the selected trail and turns follow off', () => {
-    useMapStore.setState({ followMode: 'positionAndBearing', selection: { kind: 'trail', id: 7 }, pendingFit: null })
+  test('recenter re-arms the pending fit for the selected trail, turns follow off, and flattens to 2D', () => {
+    useMapStore.setState({ followMode: 'positionAndBearing', selection: { kind: 'trail', id: 7 }, pendingFit: null, cameraPitch: 60, pitchAnimated: false })
     useMapStore.getState().recenter()
     expect(useMapStore.getState().pendingFit).toEqual({ kind: 'trail', id: 7 })
     expect(useMapStore.getState().followMode).toBe('off')
     expect(useMapStore.getState().selection).toEqual({ kind: 'trail', id: 7 })
+    expect(useMapStore.getState().cameraPitch).toBe(0)
+    expect(useMapStore.getState().pitchAnimated).toBe(true)
   })
-  test('recenter re-arms the pending fit for the selected activity', () => {
-    useMapStore.setState({ followMode: 'position', selection: { kind: 'activity', id: 4 }, pendingFit: null })
+  test('recenter re-arms the pending fit for the selected activity and flattens to 2D', () => {
+    useMapStore.setState({ followMode: 'position', selection: { kind: 'activity', id: 4 }, pendingFit: null, cameraPitch: 60 })
     useMapStore.getState().recenter()
     expect(useMapStore.getState().pendingFit).toEqual({ kind: 'activity', id: 4 })
     expect(useMapStore.getState().followMode).toBe('off')
+    expect(useMapStore.getState().cameraPitch).toBe(0)
   })
-  test('recenter is a no-op when nothing is selected', () => {
-    useMapStore.setState({ selection: null, pendingFit: null, followMode: 'position' })
+  test('recenter is a no-op when nothing is selected, leaving pitch untouched', () => {
+    useMapStore.setState({ selection: null, pendingFit: null, followMode: 'position', cameraPitch: 60 })
     useMapStore.getState().recenter()
     expect(useMapStore.getState().pendingFit).toBeNull()
     expect(useMapStore.getState().followMode).toBe('position')
+    expect(useMapStore.getState().cameraPitch).toBe(60)
   })
   test('recenter produces a fresh pendingFit reference even when it already targets the selection', () => {
     const existing = { kind: 'trail' as const, id: 7 }
