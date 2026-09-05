@@ -214,13 +214,15 @@ export const useMapStore = create<MapStore>()(
       cycleFollowMode: () => set((s) => followModeChange(nextFollowMode(s.followMode), s.cameraPitch)),
       disableFollow: () => set({ followMode: 'off' }),
       // Compass-follow → demote to north-up Position (follow viewport snaps bearing to north, and
-      // followModeChange flattens the pitch + keeps the 2D/3D label in sync). Otherwise (off /
-      // manually-rotated) → signal MapCanvas to one-shot rotate the camera north.
+      // followModeChange flattens the pitch + keeps the 2D/3D label in sync). Otherwise → drop
+      // follow and signal MapCanvas to one-shot rotate the camera north. Follow must go off: an
+      // imperative camera move is a no-op while rnmapbox is following, so leaving position-follow
+      // on would swallow the reset.
       northPressed: () =>
         set((s) =>
           s.followMode === 'positionAndBearing'
             ? followModeChange(demoteBearing(s.followMode), s.cameraPitch)
-            : { northResetNonce: s.northResetNonce + 1 },
+            : { northResetNonce: s.northResetNonce + 1, followMode: 'off' },
         ),
       // Record the outgoing style as previous (only on an actual change) so the swipe quick-switch
       // can A/B-toggle back to it — whether the change came from the sheet or from a swipe.

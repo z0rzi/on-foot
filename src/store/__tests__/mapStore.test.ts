@@ -283,9 +283,10 @@ describe('store actions', () => {
     expect(useMapStore.getState().followMode).toBe('off')
     expect(useMapStore.getState().northResetNonce).toBe(1)
   })
-  test('northPressed while position bumps the reset nonce (harmless)', () => {
+  test('northPressed while position drops follow to off and bumps the reset nonce so the imperative reset is not swallowed', () => {
     useMapStore.setState({ followMode: 'position', northResetNonce: 5 })
     useMapStore.getState().northPressed()
+    expect(useMapStore.getState().followMode).toBe('off')
     expect(useMapStore.getState().northResetNonce).toBe(6)
   })
   test('setMapStyle records the outgoing style as previous on change', () => {

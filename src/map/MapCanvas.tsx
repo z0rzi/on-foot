@@ -34,8 +34,15 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
   const clearPendingFit = useMapStore((s) => s.clearPendingFit)
   const cameraRef = useRef<CameraController>(null)
 
+  // rnmapbox drops any camera move (imperative or declarative) while follow is active, and a
+  // programmatic follow-off only reaches the native camera on the next frame. The store actions
+  // that trigger a one-shot camera op (northPressed / recenter / select) turn follow off in the
+  // same commit, so these effects run the imperative op one frame later — by which point follow is
+  // released and the move lands. Running it synchronously here races the follow-off and is swallowed.
   useEffect(() => {
-    if (northResetNonce > 0) cameraRef.current?.resetNorth(true)
+    if (northResetNonce <= 0) return
+    const id = requestAnimationFrame(() => cameraRef.current?.resetNorth(true))
+    return () => cancelAnimationFrame(id)
   }, [northResetNonce])
 
   const segments = trail?.geometry.segments ?? []
@@ -59,17 +66,21 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
   // Frame the trail a user tap requested, once that trail's own geometry has loaded. select()
   // sets pendingFit; the loaded trail prop lags it (getTrail resolves async), so the fit waits
   // until trail.id matches — switching A → B skips A's stale geometry and frames B once B loads.
-  // Clearing pendingFit once fitted stops it re-firing. A restored selection leaves pendingFit
-  // null, so it never fits and the camera keeps following the user.
+  // pendingFit is cleared only after the deferred fit fires (not before), so the effect cleanup
+  // can't cancel its own pending frame. A restored selection leaves pendingFit null, so it never
+  // fits and the camera keeps following the user.
   useEffect(() => {
     if (trail == null || pendingFit?.kind !== 'trail' || pendingFit.id !== trail.id) return
     const flat = flattenSegments(trail.geometry.segments)
     if (flat.length < 2) return
     const bounds = boundsForPoints(flat)
     if (!bounds) return
-    clearPendingFit()
     const { top, sides, bottom } = MapTokens.cameraPadding
-    cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs)
+    const id = requestAnimationFrame(() => {
+      cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs)
+      clearPendingFit()
+    })
+    return () => cancelAnimationFrame(id)
   }, [trail, pendingFit, clearPendingFit])
 
   useEffect(() => {
@@ -78,9 +89,12 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
     if (flat.length < 2) return
     const bounds = boundsForPoints(flat)
     if (!bounds) return
-    clearPendingFit()
     const { top, sides, bottom } = MapTokens.cameraPadding
-    cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs)
+    const id = requestAnimationFrame(() => {
+      cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs)
+      clearPendingFit()
+    })
+    return () => cancelAnimationFrame(id)
   }, [activity, pendingFit, clearPendingFit])
 
   const follow = followCameraProps(followMode)
