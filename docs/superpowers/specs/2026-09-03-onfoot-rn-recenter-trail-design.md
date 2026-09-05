@@ -18,15 +18,25 @@ trail or activity, identical to the framing that happens on initial selection.
 ### Scope (this feature)
 
 - A new map control button that re-fits the camera to the selected route's bounds.
-- Shown only while a **trail** or an **activity** is selected.
+- Shown whenever a route is selected to frame: a **trail**, an **activity**, or a
+  **followed trail while recording**. Hidden in free recording (no followed trail) and
+  when nothing is selected. In code this is the single condition "a selection exists",
+  since a followed trail is the selection during recording.
 - Re-fits the whole route (same bounds fit as selection) — not a centre-only pan.
+- **Flattens the camera to 2D on focus** (pitch → `pitchMin`, animated); **bearing is left
+  untouched** (no rotate-to-north). This applies both to the button and to the automatic
+  framing when a trail/activity is first opened (`select`), so an opened route is always
+  shown top-down.
 
 ### Out of scope
 
-- **Recording mode.** The recording camera is about following your own puck; framing the
-  followed trail is a distinct, lower-value behaviour and is deliberately left out of v1.
+- **Framing a free recording (live track).** When recording without a followed trail there
+  is no selection and no trail/activity geometry to fit; framing the live recorded track
+  would need new plumbing (a live-track fit path in `MapCanvas`) and is deliberately left
+  out. The button is simply hidden in that case.
 - **Centre-only-keep-zoom.** Would need a new camera affordance on the provider port; not
   worth it. "Frame the route" is the useful action and reuses the existing fit path.
+- **Rotate-to-north on focus.** Bearing is intentionally preserved; only pitch is reset.
 - **Tapping the title.** Considered and rejected — see UX rationale below.
 
 ## UX decision — a map control, not a tappable title
@@ -78,20 +88,31 @@ Add a single store action to `src/store/mapStore.ts` that re-arms that one-shot 
 the **already-selected** item:
 
 ```ts
-recenter: () => {
-  const sel = get().selection
-  if (!sel) return
-  set({ pendingFit: { kind: sel.kind, id: sel.id }, followMode: 'off' })
-}
+recenter: () =>
+  set((s) =>
+    s.selection
+      ? {
+          pendingFit: { kind: s.selection.kind, id: s.selection.id },
+          followMode: 'off',
+          cameraPitch: MapTokens.pitchMin,
+          pitchAnimated: true,
+        }
+      : {},
+  ),
 ```
 
-Two properties make this correct with no other logic:
+Three properties make this correct with no other logic:
 
 - **Fresh `pendingFit` reference** re-fires the `MapCanvas` effect even though the same
   item is still selected (the effect keys on `pendingFit`).
 - **`followMode: 'off'`** guarantees the imperative `fitBounds` is not swallowed while
   rnmapbox is following the puck — mirrors exactly what `select()` already does. Without
   it, tapping frame-route after center-on-location would be a silent no-op.
+- **`cameraPitch: pitchMin` + `pitchAnimated`** flattens a 3D view to top-down 2D on focus
+  (MapCanvas applies the declarative pitch once follow is off); bearing is deliberately
+  left alone. The **same two fields are added to `select`**, so the automatic framing when
+  a route is first opened is also 2D. Uses the `set((s) => … : {})` no-op form of
+  `quickSwitchMapStyle`; no `get` introduced.
 
 No new camera code, and **the map-provider seam is untouched** — `fitBounds` is already a
 declared affordance on the provider port.
@@ -103,10 +124,11 @@ declared affordance on the provider port.
   existing center-on-location button, so the frame button sits to its left and nothing
   above reflows. Everything continues to ride the sheet via the existing `animatedBottom`.
 - **`MapScreen`** pulls `recenter` from the store (next to `select` / `clearSelection`)
-  and passes `onFrameRoute={recenter}` to `MapControls` only when
-  `mode === 'trail' || mode === 'activity'`; omitted otherwise (so the button is absent in
-  free / recording modes). This follows the existing callback-passing pattern
-  (`onExit`, `onViewLinkedTrail`) rather than having `MapControls` reach into the
+  and passes `onFrameRoute={selection ? recenter : undefined}` to `MapControls` — i.e.
+  whenever a route is selected to frame (trail, activity, or followed trail while
+  recording), and omitted otherwise (free recording, free mode). This follows the existing
+  callback-passing pattern (`onExit`, `onViewLinkedTrail`) rather than having `MapControls`
+  reach into the
   selection state itself.
 
 ### Section 3 — Testing
