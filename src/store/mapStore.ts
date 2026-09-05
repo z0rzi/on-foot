@@ -235,6 +235,9 @@ export const useMapStore = create<MapStore>()(
           const target = resolveQuickSwitch(s.mapStyleId, s.previousMapStyleId, styles)
           return target === s.mapStyleId ? {} : { mapStyleId: target, previousMapStyleId: s.mapStyleId }
         }),
+      // Any action that triggers a one-shot camera op (pendingFit here / northResetNonce) MUST set
+      // followMode: 'off' — rnmapbox ignores a camera move while following, and MapCanvas defers the
+      // op a frame past this follow-off (see the deferral there). Leave follow on and it is swallowed.
       select: (kind, id) =>
         set({
           selection: { kind, id },
