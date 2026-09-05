@@ -1,5 +1,5 @@
 import { buildElevationProfile, buildElevationProfile as build, ElePoint, gradeBand, sampleAt } from '../profile'
-import { haversineMeters } from '../../data/trails/gpx/metrics'
+import { haversineMeters } from '../../data/geo/metrics'
 
 const seg = (lngs: number[], eles: (number | null)[]): ElePoint[] =>
   lngs.map((lng, i) => ({ lat: 0, lng, ele: eles[i] }))

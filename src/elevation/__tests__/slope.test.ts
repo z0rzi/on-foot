@@ -32,6 +32,15 @@ describe('smoothProfile', () => {
     expect(s.samples[3].ele).toBe(200)
   })
 
+  it('keeps each segment its own first and last elevation', () => {
+    // The window shrinks at a segment's ends rather than leaning inward, so the drawn profile
+    // starts and finishes at the altitudes actually measured there.
+    const p = buildElevationProfile([seg([100, 130, 110])])!
+    const s = smoothProfile(p, 100000)
+    expect(s.samples[0].ele).toBe(100)
+    expect(s.samples[2].ele).toBe(110)
+  })
+
   it('preserves distances, coordinates and segment tags', () => {
     const p = buildElevationProfile([seg([100, 120, 140])])!
     const s = smoothProfile(p, 50)

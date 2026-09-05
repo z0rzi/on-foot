@@ -1,5 +1,5 @@
 import { ActivityMetrics } from '../data/activities/types'
-import { formatDistance } from '../data/trails/gpx/metrics'
+import { formatDistance } from '../data/geo/metrics'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 

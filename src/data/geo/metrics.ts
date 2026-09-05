@@ -1,4 +1,5 @@
-import { GpxPoint, TrailMetrics } from '../types'
+import { GpxPoint, TrailMetrics } from '../trails/types'
+import { ElevationPoint, elevationChange } from './elevationFilter'
 
 const EARTH_RADIUS_M = 6371000
 
@@ -15,24 +16,35 @@ export function haversineMeters(aLat: number, aLng: number, bLat: number, bLng: 
 
 export function computeMetrics(points: GpxPoint[]): TrailMetrics {
   let distanceMeters = 0
+  // Runs of consecutive points that carry elevation. A point without elevation breaks the run:
+  // bridging the gap would invent gain over ground whose profile is unknown.
+  const runs: ElevationPoint[][] = []
+  let run: ElevationPoint[] = []
+  for (let i = 0; i < points.length; i++) {
+    if (i > 0) {
+      const prev = points[i - 1]
+      distanceMeters += haversineMeters(prev.lat, prev.lng, points[i].lat, points[i].lng)
+    }
+    const { ele } = points[i]
+    if (ele === null) {
+      if (run.length > 0) runs.push(run)
+      run = []
+      continue
+    }
+    run.push({ distance: distanceMeters, ele })
+  }
+  if (run.length > 0) runs.push(run)
+  if (runs.length === 0) {
+    return { distanceMeters, elevationGainMeters: null, elevationLossMeters: null }
+  }
   let elevationGainMeters = 0
   let elevationLossMeters = 0
-  const hasElevation = points.some((point) => point.ele !== null)
-  for (let i = 1; i < points.length; i++) {
-    const prev = points[i - 1]
-    const cur = points[i]
-    distanceMeters += haversineMeters(prev.lat, prev.lng, cur.lat, cur.lng)
-    if (prev.ele !== null && cur.ele !== null) {
-      const delta = cur.ele - prev.ele
-      if (delta > 0) elevationGainMeters += delta
-      else elevationLossMeters += Math.abs(delta)
-    }
+  for (const elevated of runs) {
+    const change = elevationChange(elevated)
+    elevationGainMeters += change.gainMeters
+    elevationLossMeters += change.lossMeters
   }
-  return {
-    distanceMeters,
-    elevationGainMeters: hasElevation ? elevationGainMeters : null,
-    elevationLossMeters: hasElevation ? elevationLossMeters : null,
-  }
+  return { distanceMeters, elevationGainMeters, elevationLossMeters }
 }
 
 export function metricsForSegments(segments: GpxPoint[][]): TrailMetrics {
