@@ -41,10 +41,3 @@ effect, or imperative callback.
   Note this file was written deliberately (there is a design comment about never reading
   `Date.now()` inside render); the fix must preserve the paused/resumed stopwatch semantics
   and be **device-verified** with pause/resume, background, and app-restart cases.
-
-## `react-hooks/exhaustive-deps` — incomplete effect/memo dependency arrays
-
-Lower risk, but each is a potential stale-closure bug. Verify each is either a genuine
-intentional omission (and document why) or add the missing dep.
-
-- `src/elevation/ElevationGraph.tsx:88` — `useMemo` missing `scrubTo`, `setPoint`.

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native'
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -73,6 +73,22 @@ export function ElevationGraph({
   const fillColour = (band: GradeBand): string =>
     band === 'flat' && !floating ? c.panelBackground : slopeBandColour(band, c)
 
+  const scrubTo = useCallback(
+    (px: number) => {
+      if (width === 0) return
+      const x = Math.max(0, Math.min(px, width))
+      const distance = (x / width) * profile.totalDistance
+      const s = sampleAt(profile, distance)
+      const grade = Math.round(sampleAt(smoothed, distance).grade)
+      setCursor({
+        x,
+        label: `${formatElevation(s.ele)} · ${formatDistance(distance)} · ${grade > 0 ? '+' : ''}${grade}%`,
+      })
+      setPoint({ lat: s.lat, lng: s.lng })
+    },
+    [width, profile, smoothed, setPoint],
+  )
+
   const pan = useMemo(
     () =>
       Gesture.Pan()
@@ -85,21 +101,8 @@ export function ElevationGraph({
           setPoint(null)
         })
         .runOnJS(true),
-    [width, profile, smoothed],
+    [scrubTo, setPoint],
   )
-
-  function scrubTo(px: number) {
-    if (width === 0) return
-    const x = Math.max(0, Math.min(px, width))
-    const distance = (x / width) * profile.totalDistance
-    const s = sampleAt(profile, distance)
-    const grade = Math.round(sampleAt(smoothed, distance).grade)
-    setCursor({
-      x,
-      label: `${formatElevation(s.ele)} · ${formatDistance(distance)} · ${grade > 0 ? '+' : ''}${grade}%`,
-    })
-    setPoint({ lat: s.lat, lng: s.lng })
-  }
 
   const floatingStyle = useAnimatedStyle(() => ({
     bottom: animatedBottom ? animatedBottom.value : insets.bottom + MapTokens.overlayPadding,
