@@ -46,7 +46,7 @@ export const LayersSheet = forwardRef<BottomSheetModal>((_props, ref) => {
             style={[styles.row, { borderColor: c.panelDivider }]}
             onPress={() => {
               setMapStyle(s.id)
-              ;(ref as any)?.current?.dismiss()
+              ;(ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
             }}
           >
             <Image source={s.preview} style={styles.preview} resizeMode="cover" />

@@ -1,4 +1,5 @@
 import React from 'react'
+import type { StyleProp, ViewStyle } from 'react-native'
 
 export interface StyleDescriptor {
   id: string
@@ -92,7 +93,7 @@ export interface MapViewProps {
   // Fires as the camera moves; heading only (all the North button needs). SDK-neutral.
   onCameraChanged?: (e: { heading: number }) => void
   children?: React.ReactNode
-  style?: any
+  style?: StyleProp<ViewStyle>
 }
 
 // The one imperative camera affordance: a one-shot rotate back to north, used only when
@@ -161,15 +162,16 @@ export interface MapProvider {
   offline: OfflineController
 }
 
-export function isValidCapabilities(c: any): boolean {
+export function isValidCapabilities(c: unknown): boolean {
+  if (typeof c !== 'object' || c === null) return false
+  const o = c as Record<string, unknown>
   return (
-    !!c &&
-    typeof c.id === 'string' &&
-    typeof c.requiresToken === 'boolean' &&
-    typeof c.supportsTerrain === 'boolean' &&
-    typeof c.supportsDataDrivenLayers === 'boolean' &&
-    typeof c.offline === 'boolean' &&
-    Array.isArray(c.styles) &&
-    c.styles.length > 0
+    typeof o.id === 'string' &&
+    typeof o.requiresToken === 'boolean' &&
+    typeof o.supportsTerrain === 'boolean' &&
+    typeof o.supportsDataDrivenLayers === 'boolean' &&
+    typeof o.offline === 'boolean' &&
+    Array.isArray(o.styles) &&
+    o.styles.length > 0
   )
 }

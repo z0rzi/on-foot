@@ -33,6 +33,9 @@ function str(value: unknown): string | null {
   return s.length === 0 ? null : s
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- fast-xml-parser emits untyped nodes; the
+   nested shapes are dynamically typed and every leaf value is validated by num()/str(), so typing
+   the tree rigorously would add casts without adding real safety. */
 function requireCoord(node: any, kind: string): { lat: number; lng: number } {
   const lat = num(node?.['@_lat'])
   const lng = num(node?.['@_lon'])
@@ -62,6 +65,7 @@ export function parseGpx(xml: string, fallbackName: string | null = null): GpxPa
       : asArray(gpx.trk).flatMap((trk: any) =>
           asArray(trk.trkseg).map((seg: any) => asArray(seg.trkpt).map(toPoint)),
         )
+  /* eslint-enable @typescript-eslint/no-explicit-any */
   const nonEmpty = segments.filter((s) => s.length > 0)
 
   const trackTitle = str(asArray(gpx.trk)[0]?.name)

@@ -25,16 +25,26 @@ module.exports = tseslint.config(
     settings: {
       'import/core-modules': ['@env'],
     },
+    // A rule that stays at `warn` is neither enforced nor removed — it becomes ambient noise that
+    // trains everyone (human and AI) to ignore the gate. So heuristic rules are `error`, and the
+    // escape hatch for a genuine false positive or deliberate choice is a LOCAL, justified inline
+    // `eslint-disable` (see AGENTS.md). `reportUnusedDisableDirectives` keeps those honest: a
+    // disable that stops suppressing anything (e.g. the compiler fixes its false positive) errors.
+    linterOptions: {
+      reportUnusedDisableDirectives: 'error',
+    },
     rules: {
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: { attributes: false } }],
-      '@typescript-eslint/no-explicit-any': 'warn',
-      // React Compiler correctness rules; pre-existing violations in device-verified render
-      // code are tracked in docs/architecture/lint-debt.md, so these warn until burned down.
-      'react-hooks/set-state-in-effect': 'warn',
-      'react-hooks/immutability': 'warn',
-      'react-hooks/refs': 'warn',
-      'react-hooks/purity': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
+      'import/first': 'error',
+      // React Compiler correctness rules. Enforced; the few genuine false positives (idiomatic
+      // gesture/reanimated code) and deliberate exceptions carry inline justified disables.
+      'react-hooks/exhaustive-deps': 'error',
+      'react-hooks/set-state-in-effect': 'error',
+      'react-hooks/immutability': 'error',
+      'react-hooks/refs': 'error',
+      'react-hooks/purity': 'error',
     },
   },
   {
@@ -48,6 +58,13 @@ module.exports = tseslint.config(
     files: ['**/jest.setup.js', '**/*.test.ts', '**/*.test.tsx', '**/__tests__/**'],
     languageOptions: {
       globals: { ...globals.node, ...globals.jest },
+    },
+    // In tests these rules stop earning their keep: `any` is the norm for mocks/partial fixtures,
+    // and `import/first` fights the mock-before-import ordering tests legitimately need. Off here
+    // (not `warn`) — a rule that isn't trustworthy in a context should be silent there, not noisy.
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      'import/first': 'off',
     },
   },
 )

@@ -38,6 +38,14 @@ uphold the original design, do not let it erode one expedient change at a time.
   without a one-line justification of why it is necessary. `npm run verify` (types, tests,
   seams/secrets/cycles, lint) must be green before a change is done — it runs in the pre-push
   hook and in CI.
+- **A check enforces a *response*, not an *outcome*.** Lint rules are heuristics, not oracles:
+  going red does not always mean the code is wrong (`react-hooks/exhaustive-deps` and friends
+  have legitimate deliberate exceptions). So a red heuristic rule may be resolved **either** by
+  fixing the code **or** by an inline `eslint-disable` with a one-line justification — a justified
+  disable is a first-class outcome, not a failure. **Never reshape correct, clear code solely to
+  satisfy a rule** — that is the linter contorting your architecture. But if you cannot write an
+  *honest* justification, it is a real finding: fix it at the source. (Facts — type errors, test
+  failures, the seam/secret/cycle tests — are not heuristics and have no discretionary escape.)
 - **Icon-only controls carry an `accessibilityLabel`.** Prefer routing icon buttons through
   `ControlButton`, which requires the label at compile time; text buttons are auto-labeled by
   React Native and need none.

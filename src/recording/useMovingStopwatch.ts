@@ -14,6 +14,10 @@ export function useMovingStopwatch(session: RecordingSession | null): number {
   const [prevPhase, setPrevPhase] = useState(phase)
   if (phase !== prevPhase) {
     setPrevPhase(phase)
+    // Deliberate impurity: read the wall-clock instant synchronously on resume so the first frame
+    // reflects the accumulated pause; without it the timer jumps back by the pause duration for one
+    // frame. See docs/architecture/lint-debt.md.
+    // eslint-disable-next-line react-hooks/purity -- intentional synchronous resume read (above)
     if (phase === 'recording') setNow(Date.now())
   }
   useEffect(() => {

@@ -1,44 +1,53 @@
-# Lint debt — React Compiler findings
+# Lint policy — React Compiler & type rules
 
-When `expo lint` was first wired into the gate, it surfaced a set of **pre-existing**
-`react-hooks` (React Compiler) findings. They were **baselined to `warn`** in `eslint.config.js`
-(they do not block the gate) and tracked here to be burned down deliberately — real behavioural
-fixes TDD'd where the logic is pure and verified on-device per `AGENTS.md` / `POST-WORK.md`.
+This started as a warn-baselined backlog of pre-existing `react-hooks` (React Compiler) findings.
+That backlog is **burned down and the rules are now enforced as `error`** (see `eslint.config.js`).
+`npm run verify` / the pre-push hook now runs at **0 warnings, 0 errors** — there is no ambient
+yellow to train the gate to be ignored.
 
-**Burn-down done.** The `exhaustive-deps` and `set-state-in-effect` findings were genuine and are
-fixed (honest deps via memoized callbacks; selected/linked trail derived during render instead of
-cleared in an effect). The `refs`/`immutability` findings were **false positives** on idiomatic
-gesture code (resolved with justified inline disables). The one `purity` finding is a **deliberate
-exception** — see below. What remains is not this backlog: a separate, untracked set of non-render
-warnings (`@typescript-eslint/no-explicit-any`, `import/first`, `no-unused-expressions`) that are
-their own small cleanups if ever worth doing.
+## Principle
 
-The lesson worth keeping: green ≠ clean. These rules earned real improvements in the honest middle
-(dishonest deps, cascading effects) and were simply wrong at the edges (correct gesture code, a
-deliberately-synchronous clock read). Fix what the rule is right about; document what it is wrong
-about. Don't refactor working code to satisfy a tool's blind spot.
+A lint rule is a **heuristic**, not an oracle. Enforcing at `error` does not claim the rule is
+always right (`react-hooks/exhaustive-deps` has legitimate deliberate exceptions); it claims you
+must **consciously respond**. Two responses are valid: fix the code, or an inline `eslint-disable`
+with a one-line justification. A justified disable is a first-class outcome — **never reshape
+correct, clear code just to satisfy a rule.** If you can't write an honest justification, it's a
+real finding: fix it. `reportUnusedDisableDirectives: error` keeps the disables honest — one that
+stops suppressing anything (e.g. the compiler fixes its false positive) errors, so they can't rot.
 
-New violations of these rules in *new* code should still be fixed at the source, not added to
-this list. This is a shrinking backlog, not a parking lot.
+Facts (type errors, test failures, the seam/secret/cycle tests) are not heuristics and have no
+discretionary escape. See the "A check enforces a response, not an outcome" principle in `AGENTS.md`.
 
-## `react-hooks/refs` and `react-hooks/immutability` — RESOLVED as false positives
+## What was fixed (real findings)
 
-The `refs` (ref access) and `immutability` (shared-value mutation) findings in `MapControls`
-(`pan` gesture) and `RecordButton` (`hold` gesture) were **false positives**: every access is
-inside a *deferred gesture callback* (`onBegin`/`onUpdate`/`onStart`/`onFinalize`) that runs at
-gesture time, never during render — the compiler just can't see the deferral through the
-`useMemo(() => Gesture…)` builder that the RNGH docs prescribe. Rewriting working, device-verified
-drag/hold animation code to dodge a false positive would add risk for no behavioural gain, so
-each gesture builder carries a scoped `eslint-disable` with a one-line justification instead
-(`AGENTS.md`-sanctioned earned escape hatch). No behaviour change.
+- **`exhaustive-deps`** — dishonest dep arrays made honest by memoizing the callbacks the effect/memo
+  actually used (`app/activity/save.tsx`, `src/elevation/ElevationGraph.tsx`).
+- **`set-state-in-effect`** — selected/linked trail/activity now **derived during render** (keyed to
+  the id it loaded) instead of cleared with a `setState` in an effect
+  (`useSelectedTrail`, `useSelectedActivity`, `ActivityInfoSheet`).
+- **`no-explicit-any` / `no-unused-expressions`** — real fixes where a proper type or statement was
+  clearer (`provider/types.ts` `isValidCapabilities` → `unknown`, `MapViewProps.style` →
+  `StyleProp<ViewStyle>`; `LayersSheet` ref cast; `OfflineLayerChooser` ternary → `if/else`).
 
-## `react-hooks/purity` — ACCEPTED as a deliberate exception
+## Standing inline exceptions (justified disables)
 
-- `src/recording/useMovingStopwatch.ts:17` — `setNow(Date.now())` on the transition into
-  recording. This reads the wall-clock instant *synchronously* on resume so the first frame
-  already reflects the accumulated pause; without it the timer jumps backward by the pause
-  duration for one frame. Every local alternative only moves the finding (a layout effect trades
-  `purity` for `set-state-in-effect`), and the only warning-free version is a data-model refactor
-  (plumbing a resume timestamp through the session/store) — not worth it to satisfy a rule that
-  can't model "I need the current time synchronously here." Left as a documented, intentional
-  impurity. Revisit only if the recording session gains a resume timestamp for other reasons.
+- **`react-hooks/refs` + `react-hooks/immutability`** in `src/map/MapControls.tsx` (`pan`) and
+  `src/map/RecordButton.tsx` (`hold`) — **false positives**: every access is inside a deferred
+  gesture callback (runs at gesture time, never during render), which the compiler can't see through
+  the `useMemo(() => Gesture…)` builder the RNGH docs prescribe. Rewriting working, device-verified
+  animation code to dodge a false positive would add risk for no gain.
+- **`react-hooks/purity`** in `src/recording/useMovingStopwatch.ts` — **deliberate**: reads the
+  wall-clock instant synchronously on resume so the first frame reflects the accumulated pause;
+  without it the timer jumps back by the pause duration for one frame. Every local alternative only
+  moves the finding; the only warning-free version is a data-model refactor (a resume timestamp on
+  the session) not worth doing to satisfy a rule that can't model "I need the current time here."
+- **`@typescript-eslint/no-explicit-any`** in `src/data/trails/gpx/parse.ts` — the `fast-xml-parser`
+  boundary emits untyped nodes; leaf values are validated by `num()`/`str()`, so typing the tree
+  rigorously would add casts without adding safety.
+
+## Scoped relaxations
+
+In **test files** `@typescript-eslint/no-explicit-any` and `import/first` are `off` (not `warn`):
+`any` is the norm for mocks/partial fixtures, and `import/first` fights the mock-before-import
+ordering tests legitimately need. A rule that isn't trustworthy in a context should be silent there,
+not noisy.
