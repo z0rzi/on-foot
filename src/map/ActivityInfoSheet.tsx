@@ -25,22 +25,24 @@ export function ActivityInfoSheet({
   animatedPosition?: SharedValue<number>
 }) {
   const c = useTheme()
-  const [linkedTrail, setLinkedTrail] = useState<Trail | null>(null)
+  // Keyed to the id it loaded, so a stale link (or the no-link case) is derived away during render
+  // instead of cleared with a setState-in-effect.
+  const [loaded, setLoaded] = useState<{ id: number; trail: Trail | null } | null>(null)
+  const linkedTrailId = activity.linkedTrailId
 
   useEffect(() => {
-    const id = activity.linkedTrailId
-    if (id == null) {
-      setLinkedTrail(null)
-      return
-    }
+    if (linkedTrailId == null) return
     let active = true
-    void trailsRepository.getTrail(id).then((t) => {
-      if (active) setLinkedTrail(t)
+    void trailsRepository.getTrail(linkedTrailId).then((t) => {
+      if (active) setLoaded({ id: linkedTrailId, trail: t })
     })
     return () => {
       active = false
     }
-  }, [activity.linkedTrailId])
+  }, [linkedTrailId])
+
+  const linkedTrail =
+    linkedTrailId != null && loaded?.id === linkedTrailId ? loaded.trail : null
 
   return (
     <MapInfoSheet animatedPosition={animatedPosition}>

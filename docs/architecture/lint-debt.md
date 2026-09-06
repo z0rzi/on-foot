@@ -10,18 +10,6 @@ verified on a device per `AGENTS.md` and `POST-WORK.md`.
 New violations of these rules in *new* code should still be fixed at the source, not added to
 this list. This is a shrinking backlog, not a parking lot.
 
-## `react-hooks/set-state-in-effect` — setState synchronously inside an effect
-
-Cascading renders. Usually fixed by deriving the value during render, or gating the
-`setState` behind the async result rather than calling it unconditionally in the effect body.
-
-- `src/map/useSelectedTrail.ts:15` — `setTrail(null)` in the effect when there is no selection.
-- `src/map/useSelectedActivity.ts:15` — `setActivity(null)`, same shape.
-- `src/map/ActivityInfoSheet.tsx:29` — `setLinkedTrail(null)` when the activity has no linked trail.
-
-*Likely fix:* derive the "no selection / no link" state from the current props/store during
-render instead of writing it back with `setState`, so the effect only runs for the async load.
-
 ## `react-hooks/refs` — accessing a ref during render
 
 Reading `ref.current` during render is unstable. Move the access into an event handler,
