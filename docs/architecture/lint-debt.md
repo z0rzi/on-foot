@@ -47,4 +47,4 @@ effect, or imperative callback.
 Lower risk, but each is a potential stale-closure bug. Verify each is either a genuine
 intentional omission (and document why) or add the missing dep.
 
-- `app/activity/save.tsx:42` — missing `goToMap`.
+- `src/elevation/ElevationGraph.tsx:88` — `useMemo` missing `scrubTo`, `setPoint`.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { RecordingSession, TrackPoint, activitiesRepository } from '../../src/data/activities'
@@ -18,7 +18,10 @@ export default function SaveActivityScreen() {
   // This screen is pushed over the map, so return by popping back to the existing map instance —
   // replacing the root would mount a second map on top of the live one (stacking, camera reset).
   // The replace fallback only matters if there is somehow no history to pop.
-  const goToMap = () => (router.canGoBack() ? router.back() : router.replace('/'))
+  const goToMap = useCallback(
+    () => (router.canGoBack() ? router.back() : router.replace('/')),
+    [router],
+  )
 
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState<RecordingSession | null>(null)
@@ -39,7 +42,7 @@ export default function SaveActivityScreen() {
       setLoading(false)
     })
     return () => { active = false }
-  }, [router])
+  }, [goToMap])
 
   if (loading || !session) {
     return (
