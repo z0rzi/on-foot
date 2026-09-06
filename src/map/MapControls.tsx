@@ -67,6 +67,9 @@ export function MapControls({
   // `.onBegin` reads the live pitch imperatively from the store instead of closing over it.
   // `disableFollow`/`setCameraPitch` are Zustand actions (stable by default), so these deps never
   // change and the memoized gesture keeps a stable identity across drag-frame re-renders.
+  /* eslint-disable react-hooks/refs -- dragSeed is written/read only inside the deferred gesture
+     callbacks (onBegin/onUpdate), which run at gesture time, never during render; the compiler
+     can't see that through the useMemo builder. */
   const pan = useMemo(
     () =>
       Gesture.Pan()
@@ -81,6 +84,7 @@ export function MapControls({
         .runOnJS(true),
     [disableFollow, setCameraPitch],
   )
+  /* eslint-enable react-hooks/refs */
 
   // The provider's styles as the seam-neutral choices the store's quick-switch logic consumes
   // (id + satellite flag) — the store never learns provider-specific style ids this way.

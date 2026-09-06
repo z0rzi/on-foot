@@ -10,18 +10,16 @@ verified on a device per `AGENTS.md` and `POST-WORK.md`.
 New violations of these rules in *new* code should still be fixed at the source, not added to
 this list. This is a shrinking backlog, not a parking lot.
 
-## `react-hooks/refs` — accessing a ref during render
+## `react-hooks/refs` and `react-hooks/immutability` — RESOLVED as false positives
 
-Reading `ref.current` during render is unstable. Move the access into an event handler,
-effect, or imperative callback.
-
-- `src/map/MapControls.tsx:70`, `74`
-- `src/map/RecordButton.tsx:77`, `80`
-
-## `react-hooks/immutability` — mutating a value that must not be modified
-
-- `src/map/RecordButton.tsx:74`, `75`, `81`, `82` — a value the compiler considers immutable
-  is being mutated during render.
+The `refs` (ref access) and `immutability` (shared-value mutation) findings in `MapControls`
+(`pan` gesture) and `RecordButton` (`hold` gesture) were **false positives**: every access is
+inside a *deferred gesture callback* (`onBegin`/`onUpdate`/`onStart`/`onFinalize`) that runs at
+gesture time, never during render — the compiler just can't see the deferral through the
+`useMemo(() => Gesture…)` builder that the RNGH docs prescribe. Rewriting working, device-verified
+drag/hold animation code to dodge a false positive would add risk for no behavioural gain, so
+each gesture builder carries a scoped `eslint-disable` with a one-line justification instead
+(`AGENTS.md`-sanctioned earned escape hatch). No behaviour change.
 
 ## `react-hooks/purity` — impure call during render
 

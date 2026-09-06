@@ -65,6 +65,10 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
     pausedRef.current = false
   }, [])
 
+  /* eslint-disable react-hooks/immutability, react-hooks/refs -- pressScale/progress shared values
+     and pausedRef (via doPause/onRelease) are mutated/read only inside the deferred gesture
+     callbacks, which run at gesture time, never during render. Idiomatic reanimated + RNGH
+     useMemo pattern; the compiler can't see the deferral through the builder. */
   const hold = useMemo(
     () =>
       Gesture.LongPress()
@@ -84,6 +88,7 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
         }),
     [doPause, onRelease, progress, pressScale],
   )
+  /* eslint-enable react-hooks/immutability, react-hooks/refs */
 
   const ringProps = useAnimatedProps(() => ({
     strokeDashoffset: CIRCUMFERENCE * (1 - progress.value),
