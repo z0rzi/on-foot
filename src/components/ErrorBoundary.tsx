@@ -14,7 +14,7 @@ function ErrorFallback({ error, onRetry }: { error: Error; onRetry: () => void }
         onPress={onRetry}
         style={[styles.button, { backgroundColor: c.controlAccent }]}
       >
-        <Text style={[styles.buttonLabel, { color: c.surface }]}>Try again</Text>
+        <Text style={[styles.buttonLabel, { color: c.onControlAccent }]}>Try again</Text>
       </Pressable>
     </View>
   )

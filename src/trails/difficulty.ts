@@ -12,9 +12,9 @@ export function difficultyLabel(difficulty: Difficulty): string {
 
 export function difficultyColor(difficulty: Difficulty, colors: AppColors): string {
   switch (difficulty) {
-    case 'easy': return colors.difficultyEasy
-    case 'medium': return colors.difficultyMedium
-    case 'hard': return colors.difficultyHard
+    case 'easy': return colors.intensityLow
+    case 'medium': return colors.intensityMedium
+    case 'hard': return colors.intensityHigh
   }
 }
 

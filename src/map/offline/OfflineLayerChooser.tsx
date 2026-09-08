@@ -168,7 +168,7 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
             onPress={apply}
             style={[styles.apply, { backgroundColor: c.controlAccent, opacity: hasChanges ? 1 : 0.5 }]}
           >
-            <Text style={{ color: c.surface, fontWeight: '700', fontSize: 14 }}>Apply</Text>
+            <Text style={{ color: c.onControlAccent, fontWeight: '700', fontSize: 14 }}>Apply</Text>
           </Pressable>
         </BottomSheetView>
       </BottomSheetModal>

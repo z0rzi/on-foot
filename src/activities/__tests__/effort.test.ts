@@ -13,9 +13,9 @@ test('effortLabel capitalizes each level', () => {
 })
 
 test('effortColor maps each level to its theme color', () => {
-  expect(effortColor('easy', lightColors)).toBe(lightColors.difficultyEasy)
-  expect(effortColor('moderate', lightColors)).toBe(lightColors.difficultyMedium)
-  expect(effortColor('hard', lightColors)).toBe(lightColors.difficultyHard)
+  expect(effortColor('easy', lightColors)).toBe(lightColors.intensityLow)
+  expect(effortColor('moderate', lightColors)).toBe(lightColors.intensityMedium)
+  expect(effortColor('hard', lightColors)).toBe(lightColors.intensityHigh)
   expect(effortColor('max', lightColors)).toBe(lightColors.danger)
 })
 

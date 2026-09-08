@@ -89,7 +89,7 @@ export default function TrailsScreen() {
           onPress={pickGpx}
           style={[styles.addButton, { backgroundColor: c.controlAccent, opacity: pending ? 0.6 : 1 }]}
         >
-          <Text style={[styles.addLabel, { color: c.surface }]}>Add a GPX file</Text>
+          <Text style={[styles.addLabel, { color: c.onControlAccent }]}>Add a GPX file</Text>
         </Pressable>
       }
     />

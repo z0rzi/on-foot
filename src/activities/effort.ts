@@ -12,9 +12,9 @@ export function effortLabel(effort: Effort): string {
 
 export function effortColor(effort: Effort, colors: AppColors): string {
   switch (effort) {
-    case 'easy': return colors.difficultyEasy
-    case 'moderate': return colors.difficultyMedium
-    case 'hard': return colors.difficultyHard
+    case 'easy': return colors.intensityLow
+    case 'moderate': return colors.intensityMedium
+    case 'hard': return colors.intensityHigh
     case 'max': return colors.danger
   }
 }

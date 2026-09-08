@@ -81,7 +81,7 @@ export function SubmitButton({
       onPress={onPress}
       style={[styles.save, { backgroundColor: c.controlAccent, opacity: disabled ? 0.5 : 1 }]}
     >
-      {busy ? <ActivityIndicator color={c.surface} /> : <Text style={[styles.saveLabel, { color: c.surface }]}>{label}</Text>}
+      {busy ? <ActivityIndicator color={c.onControlAccent} /> : <Text style={[styles.saveLabel, { color: c.onControlAccent }]}>{label}</Text>}
     </Pressable>
   )
 }

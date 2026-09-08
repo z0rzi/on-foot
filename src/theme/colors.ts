@@ -1,3 +1,5 @@
+import type { ColorSchemeName } from 'react-native'
+
 export interface AppColors {
   primary: string
   background: string
@@ -15,10 +17,11 @@ export interface AppColors {
   controlSurface: string
   controlContent: string
   controlAccent: string
+  onControlAccent: string
   controlsText: string
-  difficultyEasy: string
-  difficultyMedium: string
-  difficultyHard: string
+  intensityLow: string
+  intensityMedium: string
+  intensityHigh: string
   success: string
   warning: string
   danger: string
@@ -46,10 +49,11 @@ export const lightColors: AppColors = {
   controlSurface: '#FFFFFF',
   controlContent: '#1C1B1F',
   controlAccent: '#2196F3',
+  onControlAccent: '#FFFFFF',
   controlsText: '#000000',
-  difficultyEasy: '#2E7D32',
-  difficultyMedium: '#F9A825',
-  difficultyHard: '#C62828',
+  intensityLow: '#2E7D32',
+  intensityMedium: '#F9A825',
+  intensityHigh: '#C62828',
   success: '#2E7D32',
   warning: '#E65100',
   danger: '#C62828',
@@ -77,10 +81,11 @@ export const darkColors: AppColors = {
   controlSurface: '#2D2D2D',
   controlContent: '#FFFFFF',
   controlAccent: '#42A5F5',
+  onControlAccent: '#1E1E1E',
   controlsText: '#FFFFFF',
-  difficultyEasy: '#66BB6A',
-  difficultyMedium: '#FFB300',
-  difficultyHard: '#EF5350',
+  intensityLow: '#66BB6A',
+  intensityMedium: '#FFB300',
+  intensityHigh: '#EF5350',
   success: '#66BB6A',
   warning: '#FFA726',
   danger: '#EF5350',
@@ -91,6 +96,6 @@ export const darkColors: AppColors = {
   slopeFlat: '#EEEEEE',
 }
 
-export function getColors(scheme: 'light' | 'dark' | null): AppColors {
+export function getColors(scheme: ColorSchemeName): AppColors {
   return scheme === 'dark' ? darkColors : lightColors
 }
