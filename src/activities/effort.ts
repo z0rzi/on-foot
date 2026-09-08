@@ -1,3 +1,4 @@
+import { EnumField } from '../components/enumField'
 import { Effort } from '../data/activities/types'
 import { AppColors } from '../theme/colors'
 
@@ -16,4 +17,11 @@ export function effortColor(effort: Effort, colors: AppColors): string {
     case 'hard': return colors.difficultyHard
     case 'max': return colors.danger
   }
+}
+
+export const effortField: EnumField<Effort> = {
+  name: 'Effort',
+  values: EFFORTS,
+  label: effortLabel,
+  color: effortColor,
 }

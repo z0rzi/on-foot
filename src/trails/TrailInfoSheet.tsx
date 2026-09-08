@@ -6,9 +6,10 @@ import type { BottomSheetModal } from '@gorhom/bottom-sheet'
 import { Trail } from '../data/trails/types'
 import { formatDistance, formatElevation, formatMetricsSummary } from '../data/geo/metrics'
 import { useTheme } from '../theme/useTheme'
-import { DifficultyBadge } from './DifficultyBadge'
+import { EnumBadge } from '../components/EnumBadge'
+import { difficultyField } from './difficulty'
 import { MapInfoSheet } from '../map/MapInfoSheet'
-import { MetricsGrid } from '../map/MetricsGrid'
+import { MetricsGrid } from '../components/MetricsGrid'
 import { ElevationGraph } from '../elevation/ElevationGraph'
 import type { ElevationProfile } from '../elevation/profile'
 import { useMapCapabilities, useOfflineController } from '../map/provider'
@@ -136,7 +137,7 @@ export function TrailInfoSheet({
         </View>
       ) : (
         <View style={styles.summaryRow}>
-          <DifficultyBadge difficulty={trail.difficulty} />
+          <EnumBadge field={difficultyField} value={trail.difficulty} />
           <Text style={[styles.summary, { color: c.onSurfaceVariant }]}>
             {formatMetricsSummary(trail.metrics)}
           </Text>

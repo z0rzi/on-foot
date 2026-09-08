@@ -5,11 +5,12 @@ import { Ionicons } from '@expo/vector-icons'
 import { Activity } from '../data/activities/types'
 import { Trail, trailsRepository } from '../data/trails'
 import { useTheme } from '../theme/useTheme'
-import { EffortBadge } from '../activities/EffortBadge'
+import { EnumBadge } from '../components/EnumBadge'
+import { effortField } from '../activities/effort'
 import { formatActivityDate, formatActivitySummary, formatDuration } from '../activities/format'
 import { formatDistance, formatElevation } from '../data/geo/metrics'
 import { MapInfoSheet } from './MapInfoSheet'
-import { MetricsGrid } from './MetricsGrid'
+import { MetricsGrid } from '../components/MetricsGrid'
 import { ElevationGraph } from '../elevation/ElevationGraph'
 import type { ElevationProfile } from '../elevation/profile'
 
@@ -48,7 +49,7 @@ export function ActivityInfoSheet({
     <MapInfoSheet animatedPosition={animatedPosition}>
       <Text style={[styles.name, { color: c.panelContent }]} numberOfLines={1}>{activity.name}</Text>
       <View style={styles.summaryRow}>
-        <EffortBadge effort={activity.effort} />
+        <EnumBadge field={effortField} value={activity.effort} />
         <Text style={[styles.summary, { color: c.onSurfaceVariant }]}>
           {formatActivitySummary(activity.metrics)}  ·  {formatActivityDate(activity.startedAt)}
         </Text>

@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react'
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Alert, Pressable, StyleSheet, Text } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import * as DocumentPicker from 'expo-document-picker'
 import { useTrailsStore } from '../../src/store/trailsStore'
@@ -8,12 +7,12 @@ import { useMapStore } from '../../src/store/mapStore'
 import { useOfflineController } from '../../src/map/provider'
 import { useOfflineStore } from '../../src/map/offline/offlineStore'
 import { TrailListItem } from '../../src/trails/TrailListItem'
+import { ListScreen } from '../../src/components/ListScreen'
 import { useTheme } from '../../src/theme/useTheme'
 import { TrailSummary } from '../../src/data/trails/types'
 
 export default function TrailsScreen() {
   const c = useTheme()
-  const insets = useSafeAreaInsets()
   const router = useRouter()
   const trails = useTrailsStore((s) => s.trails)
   const loadTrails = useTrailsStore((s) => s.loadTrails)
@@ -75,23 +74,15 @@ export default function TrailsScreen() {
   }, [router])
 
   return (
-    <View style={[styles.screen, { backgroundColor: c.background, paddingTop: insets.top }]}>
-      <Text style={[styles.title, { color: c.onSurface }]}>Trails</Text>
-      {trails.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={{ color: c.onSurfaceVariant, fontSize: 16 }}>No trails saved yet.</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={trails}
-          keyExtractor={(t) => String(t.id)}
-          renderItem={({ item }) => (
-            <TrailListItem trail={item} onSelect={onSelect} onEdit={(id) => router.push(`/trail/${id}/edit`)} onDelete={() => confirmDelete(item)} />
-          )}
-          contentContainerStyle={styles.list}
-        />
+    <ListScreen
+      title="Trails"
+      items={trails}
+      keyOf={(t) => String(t.id)}
+      emptyMessage="No trails saved yet."
+      renderItem={(trail) => (
+        <TrailListItem trail={trail} onSelect={onSelect} onEdit={(id) => router.push(`/trail/${id}/edit`)} onDelete={() => confirmDelete(trail)} />
       )}
-      <View style={{ padding: 16, paddingBottom: insets.bottom + 16 }}>
+      footer={
         <Pressable
           accessibilityLabel="Add a GPX file"
           disabled={pending}
@@ -100,16 +91,12 @@ export default function TrailsScreen() {
         >
           <Text style={[styles.addLabel, { color: c.surface }]}>Add a GPX file</Text>
         </Pressable>
-      </View>
-    </View>
+      }
+    />
   )
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  title: { fontSize: 28, fontWeight: '700', paddingHorizontal: 16, paddingVertical: 12 },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list: { gap: 8, paddingVertical: 8 },
   addButton: { borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
   addLabel: { fontSize: 16, fontWeight: '700' },
 })

@@ -1,17 +1,14 @@
 import { useCallback } from 'react'
-import { Alert, FlatList, StyleSheet, Text, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Alert } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { useActivitiesStore } from '../../src/store/activitiesStore'
 import { useMapStore } from '../../src/store/mapStore'
 import { useRecordingStore, recordingPhase } from '../../src/recording/recordingStore'
 import { ActivityListItem } from '../../src/activities/ActivityListItem'
-import { useTheme } from '../../src/theme/useTheme'
+import { ListScreen } from '../../src/components/ListScreen'
 import { ActivitySummary } from '../../src/data/activities/types'
 
 export default function ActivitiesScreen() {
-  const c = useTheme()
-  const insets = useSafeAreaInsets()
   const router = useRouter()
   const activities = useActivitiesStore((s) => s.activities)
   const loadActivities = useActivitiesStore((s) => s.loadActivities)
@@ -53,29 +50,14 @@ export default function ActivitiesScreen() {
   )
 
   return (
-    <View style={[styles.screen, { backgroundColor: c.background, paddingTop: insets.top }]}>
-      <Text style={[styles.title, { color: c.onSurface }]}>Activities</Text>
-      {activities.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={{ color: c.onSurfaceVariant, fontSize: 16 }}>No activities recorded yet.</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={activities}
-          keyExtractor={(a) => String(a.id)}
-          renderItem={({ item }) => (
-            <ActivityListItem activity={item} onSelect={onSelect} onDelete={() => confirmDelete(item)} />
-          )}
-          contentContainerStyle={styles.list}
-        />
+    <ListScreen
+      title="Activities"
+      items={activities}
+      keyOf={(a) => String(a.id)}
+      emptyMessage="No activities recorded yet."
+      renderItem={(activity) => (
+        <ActivityListItem activity={activity} onSelect={onSelect} onDelete={() => confirmDelete(activity)} />
       )}
-    </View>
+    />
   )
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  title: { fontSize: 28, fontWeight: '700', paddingHorizontal: 16, paddingVertical: 12 },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list: { gap: 8, paddingVertical: 8 },
-})

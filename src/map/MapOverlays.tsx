@@ -37,39 +37,28 @@ export function MapOverlays({
   const liveLines = useMemo(() => segmentLines(liveSegments), [liveSegments])
   const liveConnectors = useMemo(() => connectorLines(liveSegments), [liveSegments])
 
+  const isActivity = routeKind === 'activity'
+  const arrowProps = isActivity
+    ? {}
+    : { arrowImage: trailArrow, arrowSpacing: MapTokens.arrowSpacing, arrowSize: MapTokens.arrowSize }
+
   return (
     <>
-      {routeLines && routeConnectors && routeEndpoints && routeLines.length > 0 &&
-        (routeKind === 'activity' ? (
-          <TrailOverlay
-            lines={routeLines}
-            connectors={routeConnectors}
-            connectorDashArray={[...MapTokens.connectorDashArray]}
-            endpoints={routeEndpoints}
-            color={c.activityLine}
-            lineWidth={MapTokens.trailLineWidth}
-            colouredLines={colouredLines}
-            endpointRadius={MapTokens.endpointRadius}
-            endpointStrokeColor={c.trailEndpointStroke}
-            endpointStrokeWidth={MapTokens.endpointStrokeWidth}
-          />
-        ) : (
-          <TrailOverlay
-            lines={routeLines}
-            connectors={routeConnectors}
-            connectorDashArray={[...MapTokens.connectorDashArray]}
-            endpoints={routeEndpoints}
-            color={c.trailLine}
-            lineWidth={MapTokens.trailLineWidth}
-            colouredLines={colouredLines}
-            arrowImage={trailArrow}
-            arrowSpacing={MapTokens.arrowSpacing}
-            arrowSize={MapTokens.arrowSize}
-            endpointRadius={MapTokens.endpointRadius}
-            endpointStrokeColor={c.trailEndpointStroke}
-            endpointStrokeWidth={MapTokens.endpointStrokeWidth}
-          />
-        ))}
+      {routeLines && routeConnectors && routeEndpoints && routeLines.length > 0 && (
+        <TrailOverlay
+          lines={routeLines}
+          connectors={routeConnectors}
+          connectorDashArray={[...MapTokens.connectorDashArray]}
+          endpoints={routeEndpoints}
+          color={isActivity ? c.activityLine : c.trailLine}
+          lineWidth={MapTokens.trailLineWidth}
+          colouredLines={colouredLines}
+          {...arrowProps}
+          endpointRadius={MapTokens.endpointRadius}
+          endpointStrokeColor={c.trailEndpointStroke}
+          endpointStrokeWidth={MapTokens.endpointStrokeWidth}
+        />
+      )}
       {showLiveTrack && (
         <RouteLine
           lines={liveLines}

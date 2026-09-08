@@ -13,6 +13,11 @@ import { MapOverlays, type OverlayRoute } from './MapOverlays'
 import { ScrubMarkerLayer } from './ScrubMarkerLayer'
 import { useRouteColouring } from '../elevation/useRouteColouring'
 
+// Counts points without allocating the flattened copy flattenSegments would build.
+function pointCount<T>(segments: T[][]): number {
+  return segments.reduce((total, segment) => total + segment.length, 0)
+}
+
 export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: Activity | null }) {
   const { components } = useMapProvider()
   const caps = useMapCapabilities()
@@ -46,10 +51,10 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
   }, [northResetNonce])
 
   const segments = trail?.geometry.segments ?? []
-  const hasTrail = flattenSegments(segments).length >= 2
+  const hasTrail = pointCount(segments) >= 2
 
   const activitySegments = activity?.geometry.segments ?? []
-  const hasActivity = flattenSegments(activitySegments).length >= 2
+  const hasActivity = pointCount(activitySegments) >= 2
 
   const active = useRecordingStore((s) => recordingPhase(s.session) !== 'idle')
   const livePoints = useRecordingStore((s) => s.livePoints)
@@ -63,29 +68,24 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
       : null
   const colouredLines = useRouteColouring(route?.segments ?? null)
 
-  // Frame the trail a user tap requested, once that trail's own geometry has loaded. select()
-  // sets pendingFit; the loaded trail prop lags it (getTrail resolves async), so the fit waits
-  // until trail.id matches — switching A → B skips A's stale geometry and frames B once B loads.
-  // pendingFit is cleared only after the deferred fit fires (not before), so the effect cleanup
-  // can't cancel its own pending frame. A restored selection leaves pendingFit null, so it never
-  // fits and the camera keeps following the user.
-  useEffect(() => {
-    if (trail == null || pendingFit?.kind !== 'trail' || pendingFit.id !== trail.id) return
-    const flat = flattenSegments(trail.geometry.segments)
-    if (flat.length < 2) return
-    const bounds = boundsForPoints(flat)
-    if (!bounds) return
-    const { top, sides, bottom } = MapTokens.cameraPadding
-    const id = requestAnimationFrame(() => {
-      cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs)
-      clearPendingFit()
-    })
-    return () => cancelAnimationFrame(id)
-  }, [trail, pendingFit, clearPendingFit])
+  // Frame the entity (trail or activity) a user tap requested, once that entity's own geometry
+  // has loaded. select() sets pendingFit; the loaded trail/activity prop lags it (data resolves
+  // async), so fitSegments stays null until the prop's id matches pendingFit's — switching A → B
+  // skips A's stale geometry and frames B once B loads. trail.geometry.segments and
+  // activity.geometry.segments are stable references for a given loaded entity, so fitSegments is
+  // a sound effect dependency. pendingFit is cleared only after the deferred fit fires (not
+  // before), so the effect cleanup can't cancel its own pending frame. A restored selection leaves
+  // pendingFit null, so it never fits and the camera keeps following the user.
+  const fitSegments =
+    pendingFit?.kind === 'trail' && trail?.id === pendingFit.id
+      ? trail.geometry.segments
+      : pendingFit?.kind === 'activity' && activity?.id === pendingFit.id
+        ? activity.geometry.segments
+        : null
 
   useEffect(() => {
-    if (activity == null || pendingFit?.kind !== 'activity' || pendingFit.id !== activity.id) return
-    const flat = flattenSegments(activity.geometry.segments)
+    if (fitSegments == null) return
+    const flat = flattenSegments(fitSegments)
     if (flat.length < 2) return
     const bounds = boundsForPoints(flat)
     if (!bounds) return
@@ -95,7 +95,7 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
       clearPendingFit()
     })
     return () => cancelAnimationFrame(id)
-  }, [activity, pendingFit, clearPendingFit])
+  }, [fitSegments, clearPendingFit])
 
   const follow = followCameraProps(followMode)
   const manualPitch =

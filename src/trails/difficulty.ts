@@ -1,3 +1,4 @@
+import { EnumField } from '../components/enumField'
 import { Difficulty } from '../data/trails/types'
 import { AppColors } from '../theme/colors'
 
@@ -15,4 +16,11 @@ export function difficultyColor(difficulty: Difficulty, colors: AppColors): stri
     case 'medium': return colors.difficultyMedium
     case 'hard': return colors.difficultyHard
   }
+}
+
+export const difficultyField: EnumField<Difficulty> = {
+  name: 'Difficulty',
+  values: DIFFICULTIES,
+  label: difficultyLabel,
+  color: difficultyColor,
 }

@@ -1,11 +1,14 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme } from '../theme/useTheme'
 
-export function MetricsGrid({
-  items,
-}: {
-  items: { label: string; value: string; onPress?: () => void; accessibilityLabel?: string }[]
-}) {
+export interface MetricTile {
+  label: string
+  value: string
+  onPress?: () => void
+  accessibilityLabel?: string
+}
+
+export function MetricsGrid({ items }: { items: MetricTile[] }) {
   const c = useTheme()
   return (
     <View style={[styles.metrics, { backgroundColor: c.surface }]}>

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef } from 'react'
-import { Alert, Pressable, StyleSheet } from 'react-native'
+import { Alert, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, { runOnJS, useAnimatedProps, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated'
@@ -10,6 +10,7 @@ import { MapTokens } from '../theme/tokens'
 import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
 import { startRecording, pauseRecording } from '../recording/recordingController'
 import { showToast } from '../components/toast'
+import { ControlButton, controlSurfaceStyle } from '../components/ControlButton'
 import { PlayIcon } from '../assets/icons/play'
 import { PauseIcon } from '../assets/icons/pause'
 
@@ -108,7 +109,7 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
         <GestureDetector gesture={hold}>
           <Animated.View
             accessibilityLabel="Pause recording (press and hold)"
-            style={[styles.btn, { backgroundColor: c.controlSurface }, holdScaleStyle]}
+            style={[controlSurfaceStyle, { backgroundColor: c.controlSurface }, holdScaleStyle]}
           >
             <Svg width={SIZE} height={SIZE} style={StyleSheet.absoluteFill}>
               <AnimatedCircle
@@ -128,13 +129,9 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
           </Animated.View>
         </GestureDetector>
       ) : (
-        <Pressable
-          accessibilityLabel="Start recording"
-          onPress={onPlay}
-          style={[styles.btn, { backgroundColor: c.controlSurface }]}
-        >
+        <ControlButton accessibilityLabel="Start recording" onPress={onPlay}>
           <PlayIcon size={MapTokens.controlIconSize} color={c.recordingLine} />
-        </Pressable>
+        </ControlButton>
       )}
     </Animated.View>
   )
@@ -142,16 +139,4 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
 
 const styles = StyleSheet.create({
   anchor: { position: 'absolute' },
-  btn: {
-    width: SIZE,
-    height: SIZE,
-    borderRadius: SIZE / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
 })

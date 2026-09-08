@@ -8,7 +8,7 @@ import { metricsForSegments, formatDistance, formatElevation } from '../data/geo
 import { groupPointsBySegment } from '../data/activities/mapping'
 import { formatPace, formatSpeed, formatStopwatch } from '../activities/format'
 import { MapInfoSheet } from '../map/MapInfoSheet'
-import { MetricsGrid } from '../map/MetricsGrid'
+import { MetricsGrid } from '../components/MetricsGrid'
 import { ElevationGraph } from '../elevation/ElevationGraph'
 import type { ElevationProfile } from '../elevation/profile'
 import { useMovingStopwatch } from './useMovingStopwatch'

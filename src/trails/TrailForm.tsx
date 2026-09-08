@@ -1,13 +1,13 @@
 import { useCallback, useState } from 'react'
-import {
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView,
-  StyleSheet, Text, TextInput, View,
-} from 'react-native'
+import { Alert, Pressable } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Stack, useRouter } from 'expo-router'
 import { Difficulty, TrailMetrics } from '../data/trails/types'
-import { DifficultySelector } from './DifficultySelector'
-import { MetricsRow } from './MetricsRow'
+import { formatDistance, formatElevation } from '../data/geo/metrics'
+import { EnumSelector } from '../components/EnumSelector'
+import { MetricsGrid } from '../components/MetricsGrid'
+import { FormField, FormScreen, FormTextInput, SubmitButton } from '../components/form'
+import { difficultyField } from './difficulty'
 import { useTheme } from '../theme/useTheme'
 
 export interface TrailFormValues {
@@ -60,7 +60,7 @@ export function TrailForm({
   }, [description, difficulty, name, onSubmit, router])
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.background }}>
+    <>
       <Stack.Screen
         options={{
           headerShown: true,
@@ -72,51 +72,35 @@ export function TrailForm({
           ),
         }}
       />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <MetricsRow metrics={metrics} />
+      <FormScreen>
+        <MetricsGrid
+          items={[
+            { label: 'Distance', value: formatDistance(metrics.distanceMeters) },
+            { label: 'Elevation Gain', value: formatElevation(metrics.elevationGainMeters) },
+            { label: 'Elevation Loss', value: formatElevation(metrics.elevationLossMeters) },
+          ]}
+        />
 
-          <Text style={[styles.label, { color: c.onSurface }]}>Name *</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="Trail name"
-            placeholderTextColor={c.onSurfaceVariant}
-            style={[styles.input, { color: c.onSurface, borderColor: c.panelDivider }]}
-          />
+        <FormField label="Name *">
+          <FormTextInput value={name} onChangeText={setName} placeholder="Trail name" />
+        </FormField>
 
-          <Text style={[styles.label, { color: c.onSurface }]}>Difficulty *</Text>
-          <DifficultySelector value={difficulty} onChange={setDifficulty} />
+        <FormField label="Difficulty *">
+          <EnumSelector field={difficultyField} value={difficulty} onChange={setDifficulty} />
+        </FormField>
 
-          <Text style={[styles.label, { color: c.onSurface }]}>Description</Text>
-          <TextInput
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Optional"
-            placeholderTextColor={c.onSurfaceVariant}
-            multiline
-            style={[styles.input, styles.multiline, { color: c.onSurface, borderColor: c.panelDivider }]}
-          />
+        <FormField label="Description">
+          <FormTextInput value={description} onChangeText={setDescription} placeholder="Optional" multiline />
+        </FormField>
 
-          <Pressable
-            accessibilityLabel="Save trail"
-            disabled={!canSave}
-            onPress={onSave}
-            style={[styles.save, { backgroundColor: c.controlAccent, opacity: canSave ? 1 : 0.5 }]}
-          >
-            {saving ? <ActivityIndicator color={c.surface} /> : <Text style={[styles.saveLabel, { color: c.surface }]}>{submitLabel}</Text>}
-          </Pressable>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+        <SubmitButton
+          accessibilityLabel="Save trail"
+          label={submitLabel}
+          busy={saving}
+          disabled={!canSave}
+          onPress={onSave}
+        />
+      </FormScreen>
+    </>
   )
 }
-
-const styles = StyleSheet.create({
-  content: { padding: 16, gap: 12 },
-  label: { fontSize: 14, fontWeight: '600', marginTop: 4 },
-  input: { borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 16 },
-  multiline: { minHeight: 90, textAlignVertical: 'top' },
-  save: { marginTop: 12, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
-  saveLabel: { fontSize: 16, fontWeight: '700' },
-})

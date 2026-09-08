@@ -1,13 +1,13 @@
 import { useCallback, useState } from 'react'
-import {
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView,
-  StyleSheet, Text, TextInput, View,
-} from 'react-native'
+import { Alert, Pressable, StyleSheet, Text } from 'react-native'
 import { Stack } from 'expo-router'
 import { ActivityMetrics, Effort } from '../data/activities/types'
 import { formatDistance, formatElevation } from '../data/geo/metrics'
 import { formatDuration } from './format'
-import { EffortSelector } from './EffortSelector'
+import { EnumSelector } from '../components/EnumSelector'
+import { MetricsGrid } from '../components/MetricsGrid'
+import { FormField, FormScreen, FormTextInput, SubmitButton } from '../components/form'
+import { effortField } from './effort'
 import { useTheme } from '../theme/useTheme'
 
 export interface ActivityFormValues {
@@ -72,76 +72,46 @@ export function ActivityForm({
   }, [onDiscard])
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.background }}>
+    <>
       <Stack.Screen options={{ headerShown: true, title: 'Save activity' }} />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <View style={[styles.metrics, { backgroundColor: c.surface }]}>
-            <Metric label="Distance" value={formatDistance(metrics.distanceMeters)} color={c.onSurface} muted={c.onSurfaceVariant} />
-            <Metric label="Duration" value={formatDuration(metrics.durationSeconds)} color={c.onSurface} muted={c.onSurfaceVariant} />
-            <Metric label="Elevation Gain" value={formatElevation(metrics.elevationGainMeters)} color={c.onSurface} muted={c.onSurfaceVariant} />
-          </View>
+      <FormScreen>
+        <MetricsGrid
+          items={[
+            { label: 'Distance', value: formatDistance(metrics.distanceMeters) },
+            { label: 'Duration', value: formatDuration(metrics.durationSeconds) },
+            { label: 'Elevation Gain', value: formatElevation(metrics.elevationGainMeters) },
+          ]}
+        />
 
-          <Text style={[styles.label, { color: c.onSurface }]}>Name *</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="Activity name"
-            placeholderTextColor={c.onSurfaceVariant}
-            style={[styles.input, { color: c.onSurface, borderColor: c.panelDivider }]}
-          />
+        <FormField label="Name *">
+          <FormTextInput value={name} onChangeText={setName} placeholder="Activity name" />
+        </FormField>
 
-          <Text style={[styles.label, { color: c.onSurface }]}>Effort *</Text>
-          <EffortSelector value={effort} onChange={setEffort} />
+        <FormField label="Effort *">
+          <EnumSelector field={effortField} value={effort} onChange={setEffort} />
+        </FormField>
 
-          <Text style={[styles.label, { color: c.onSurface }]}>Comments</Text>
-          <TextInput
-            value={comments}
-            onChangeText={setComments}
-            placeholder="Optional"
-            placeholderTextColor={c.onSurfaceVariant}
-            multiline
-            style={[styles.input, styles.multiline, { color: c.onSurface, borderColor: c.panelDivider }]}
-          />
+        <FormField label="Comments">
+          <FormTextInput value={comments} onChangeText={setComments} placeholder="Optional" multiline />
+        </FormField>
 
-          <Pressable
-            accessibilityLabel="Save activity"
-            disabled={!canSave}
-            onPress={handleSave}
-            style={[styles.save, { backgroundColor: c.controlAccent, opacity: canSave ? 1 : 0.5 }]}
-          >
-            {busy ? <ActivityIndicator color={c.surface} /> : <Text style={[styles.saveLabel, { color: c.surface }]}>Save activity</Text>}
-          </Pressable>
+        <SubmitButton
+          accessibilityLabel="Save activity"
+          label="Save activity"
+          busy={busy}
+          disabled={!canSave}
+          onPress={handleSave}
+        />
 
-          <Pressable accessibilityLabel="Discard activity" disabled={busy} onPress={handleDiscard} style={styles.discard}>
-            <Text style={[styles.discardLabel, { color: c.danger }]}>Discard</Text>
-          </Pressable>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
-  )
-}
-
-function Metric({ label, value, color, muted }: { label: string; value: string; color: string; muted: string }) {
-  return (
-    <View style={styles.metricItem}>
-      <Text style={[styles.metricValue, { color }]}>{value}</Text>
-      <Text style={[styles.metricLabel, { color: muted }]}>{label}</Text>
-    </View>
+        <Pressable accessibilityLabel="Discard activity" disabled={busy} onPress={handleDiscard} style={styles.discard}>
+          <Text style={[styles.discardLabel, { color: c.danger }]}>Discard</Text>
+        </Pressable>
+      </FormScreen>
+    </>
   )
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, gap: 12 },
-  metrics: { flexDirection: 'row', justifyContent: 'space-evenly', borderRadius: 12, padding: 16 },
-  metricItem: { alignItems: 'center' },
-  metricValue: { fontSize: 16, fontWeight: '700' },
-  metricLabel: { fontSize: 12, marginTop: 2 },
-  label: { fontSize: 14, fontWeight: '600', marginTop: 4 },
-  input: { borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 16 },
-  multiline: { minHeight: 90, textAlignVertical: 'top' },
-  save: { marginTop: 12, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
-  saveLabel: { fontSize: 16, fontWeight: '700' },
   discard: { marginTop: 4, paddingVertical: 12, alignItems: 'center' },
   discardLabel: { fontSize: 15, fontWeight: '600' },
 })
