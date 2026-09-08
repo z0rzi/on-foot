@@ -22,6 +22,11 @@ source (`src` + `app`, excluding `__tests__`) and fails if any file outside `all
 forbidden token. It runs with every `npm test` / `npm run verify`, locally, in the pre-push
 hook, and in CI. Docs do **not** enumerate seams — they point here.
 
+Two sibling gates use the same scan: `importRules.ts` (one-way directory bans that are not
+native seams) and `duplication.ts` (verbatim copies of 8+ significant lines, across or within
+files). Both fail `npm run verify` with a report naming the files; the only escape is a
+registered entry with a rationale, never an inline disable.
+
 ## How to add a seam
 
 When a change introduces a new boundary — a wrapper around a native SDK, or a new provider

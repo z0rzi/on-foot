@@ -31,6 +31,9 @@ in context.
 **2. Architecture & the inviolable seams**
 - Are the seams intact? `npm run verify` runs the `seams` test, which enforces every entry in
   `src/architecture/seams.ts` (map SDK, DB engine, connectivity) — no manual greps needed.
+- Is anything a verbatim copy? `npm run verify` runs the `duplication` test
+  (`src/architecture/duplication.ts`), which fails on any run of 8+ identical significant lines.
+  It cannot see a copy that renames its identifiers — that is check 3's sibling bullet.
 - **New boundary introduced but not registered?** If this diff wraps a new native module or
   creates a new boundary directory, it must have a `SEAMS` entry — an unregistered boundary is
   a silent future leak that nothing will catch. See `docs/architecture/seams.md`.
@@ -107,10 +110,11 @@ in context.
 ## Gates (run and confirm green)
 
 ```
-npm run verify            # tsc (types) + jest (incl. seams/secrets/cycles) + expo lint
+npm run verify            # tsc (types) + jest (incl. seams/secrets/cycles/duplication) + expo lint
 ```
 `verify` is the single gate — it also runs in the pre-push hook and CI, and must be green
-(0 lint errors; warnings are tracked, see `docs/architecture/lint-debt.md`). For
+(0 lint errors and 0 warnings; the standing justified disables are listed in
+`docs/architecture/lint-debt.md`). For
 Metro-transform / native / asset-import changes,
 a passing `tsc`/`jest` is NOT enough — confirm a real bundle
 (`npx expo export --platform android`) and, where behavior is native, device-verify.
