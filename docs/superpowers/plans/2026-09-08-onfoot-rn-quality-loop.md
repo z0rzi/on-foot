@@ -35,7 +35,7 @@
 - Consumes: `collectSourceFiles()` and `SourceFile` from `src/architecture/sourceScan.ts` (existing).
 - Produces: `findDuplicateBlocks(files: SourceFile[], window?: number, exempt?: DuplicateExemption[]): DuplicateBlock[]`, `significantLines(content: string): SignificantLine[]`, `DUPLICATION_WINDOW = 8`, `DUPLICATION_EXEMPT: DuplicateExemption[]`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `src/architecture/__tests__/duplication.test.ts`:
 
@@ -131,12 +131,12 @@ describe('verbatim duplication', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx jest src/architecture/__tests__/duplication.test.ts`
 Expected: FAIL with `Cannot find module '../duplication'`.
 
-- [ ] **Step 3: Write the detector**
+- [x] **Step 3: Write the detector**
 
 `src/architecture/duplication.ts`:
 
@@ -269,12 +269,12 @@ export function findDuplicateBlocks(
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx jest src/architecture/__tests__/duplication.test.ts`
 Expected: PASS, 7 tests. If the whole-tree test reports a block, the tree has drifted since calibration: extract the shared shape (never register an exemption for production code just to go green).
 
-- [ ] **Step 5: Mutation-check the gate against a real copy**
+- [x] **Step 5: Mutation-check the gate against a real copy**
 
 Run:
 
@@ -286,7 +286,7 @@ rm src/components/__mutation_copy.tsx
 
 Expected: the middle command FAILS and the report names `src/components/EntityListItem.tsx` against `src/components/__mutation_copy.tsx`. After the `rm`, the test passes again. (`useSelectedTrail.ts` is not a usable fixture: since the health check it is a four-line wrapper, below the window.)
 
-- [ ] **Step 6: Wire the gate into the docs that list the gates**
+- [x] **Step 6: Wire the gate into the docs that list the gates**
 
 `AGENTS.md`, "Hold the type and quality line" bullet, change
 
@@ -362,12 +362,12 @@ files). Both fail `npm run verify` with a report naming the files; the only esca
 registered entry with a rationale, never an inline disable.
 ```
 
-- [ ] **Step 7: Run the full gate**
+- [x] **Step 7: Run the full gate**
 
 Run: `npm run verify`
 Expected: tsc clean, 50 suites pass (49 + `duplication`), lint 0/0.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/architecture/duplication.ts src/architecture/__tests__/duplication.test.ts AGENTS.md POST-WORK.md docs/architecture/seams.md
@@ -386,7 +386,7 @@ git commit -m "chore(architecture): fail verify on verbatim copies of eight or m
 - Consumes: nothing.
 - Produces: the section heading `## Existing shape` that every later spec must carry when the feature is a second instance of a shape, and that the `/health-check` command (Task 3) audits.
 
-- [ ] **Step 1: Extend the "Respect existing patterns" principle**
+- [x] **Step 1: Extend the "Respect existing patterns" principle**
 
 `AGENTS.md`, change
 
@@ -409,7 +409,7 @@ to
   mechanical gate, so this is a design step, not a lint.
 ```
 
-- [ ] **Step 2: Require the section in specs**
+- [x] **Step 2: Require the section in specs**
 
 `AGENTS.md`, change
 
@@ -428,7 +428,7 @@ to
   "Nothing to share" is an acceptable answer only with the reason.
 ```
 
-- [ ] **Step 3: Add the sibling bullet to POST-WORK check 3**
+- [x] **Step 3: Add the sibling bullet to POST-WORK check 3**
 
 `POST-WORK.md`, in "**3. Cleanliness & maintainability**", after the bullet that starts "Consistent choices across the change", add:
 
@@ -439,7 +439,7 @@ to
   only verbatim copies; a copy that renames its identifiers is caught here or not at all.
 ```
 
-- [ ] **Step 4: Run the gate and commit**
+- [x] **Step 4: Run the gate and commit**
 
 Run: `npm run verify`
 Expected: green (docs-only change).
@@ -461,7 +461,7 @@ git commit -m "docs: require naming the existing sibling before a second instanc
 - Consumes: the `## Existing shape` heading from Task 2; the `DUPLICATION_EXEMPT`, `SEAMS` and `IMPORT_RULES` registries as the places findings turn into gates.
 - Produces: the dated doc format `docs/architecture/health-check-YYYY-MM-DD.md` with a required `## Gates added` section.
 
-- [ ] **Step 1: Write the command**
+- [x] **Step 1: Write the command**
 
 `.claude/commands/health-check.md`:
 
@@ -550,7 +550,7 @@ A finding that became none of these is the next check's finding again. Then run
 `/retro-quality` on the check's own diff and `/if-from-zero` on any abstraction it introduced.
 ```
 
-- [ ] **Step 2: Bring the existing check into the new format**
+- [x] **Step 2: Bring the existing check into the new format**
 
 Append to `docs/architecture/health-check-2026-09-07.md`, after the "All sections resolved" paragraph:
 
@@ -571,7 +571,7 @@ above that became something that runs on every push.
 | §8 dead `ended_at` column, §8 seam candidates | recorded-not-done: needs a migration / device-verified refactors |
 ```
 
-- [ ] **Step 3: Run the gate and commit**
+- [x] **Step 3: Run the gate and commit**
 
 Run: `npm run verify`
 Expected: green.
@@ -590,7 +590,7 @@ git commit -m "docs: add the health-check command with its triggers and a mandat
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Add the bullet**
+- [x] **Step 1: Add the bullet**
 
 `AGENTS.md`, insert before the "Features go through brainstorm → spec → plan" bullet:
 
@@ -605,7 +605,7 @@ git commit -m "docs: add the health-check command with its triggers and a mandat
 Do not add more. The health-check docs keep the full stories; `AGENTS.md` keeps one line per
 lesson, and only lessons that apply to every session.
 
-- [ ] **Step 2: Run the gate and commit**
+- [x] **Step 2: Run the gate and commit**
 
 Run: `npm run verify`
 Expected: green.
@@ -625,17 +625,17 @@ git commit -m "docs: state the evidence rules for reviews that the health check 
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Confirm it is unused**
+- [x] **Step 1: Confirm it is unused**
 
 Run: `grep -rn 'testing-library' src app jest.setup.js babel.config.js`
 Expected: no output. If there is output, stop: the finding is stale and this task is void.
 
-- [ ] **Step 2: Remove it**
+- [x] **Step 2: Remove it**
 
 Run: `npm uninstall @testing-library/react-native`
 Expected: `package.json` devDependencies no longer list it; lockfile updated.
 
-- [ ] **Step 3: Update the record**
+- [x] **Step 3: Update the record**
 
 `docs/architecture/health-check-2026-09-07.md`, change
 
@@ -650,7 +650,7 @@ to
 `@testing-library/react-native` was an unused devDependency; removed 2026-09-08.
 ```
 
-- [ ] **Step 4: Run the gate and commit**
+- [x] **Step 4: Run the gate and commit**
 
 Run: `npm run verify`
 Expected: green, same test count as before.
