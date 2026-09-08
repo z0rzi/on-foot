@@ -55,6 +55,11 @@ uphold the original design, do not let it erode one expedient change at a time.
 - **Icon-only controls carry an `accessibilityLabel`.** Prefer routing icon buttons through
   `ControlButton`, which requires the label at compile time; text buttons are auto-labeled by
   React Native and need none.
+- **Reviewing is evidence-driven.** Trace a finding to its consumers before calling it a
+  defect. Read the platform's actual type or runtime payload before calling an adapter
+  redundant. Prove a fix with a test that fails before it and passes after. Fixing a hot path
+  or extracting a helper is not a licence to stop reading the surrounding code, and never
+  codify accidental drift into a shared API.
 - **Features go through brainstorm → spec → plan** (`docs/superpowers/`), not
   straight-to-code. Small changes still get a design thought through before implementation.
   Every spec carries an **`## Existing shape`** section: the closest existing feature of the
