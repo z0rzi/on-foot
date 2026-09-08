@@ -385,3 +385,18 @@ the list while in 3D — same effect. Native camera behaviour, device-verified r
 open; the retro caught it. It is true now. What remains are two recorded-not-done items: the dead `ended_at` column
 (needs a migration) and the seam candidates in `seams.md` (`expo-location`, async-storage,
 `expo-file-system`), each a device-verified refactor in its own right.
+
+## Gates added
+
+Retrofitted 2026-09-08 when the `/health-check` command was written; these are the findings
+above that became something that runs on every push.
+
+| Finding | Became |
+|---|---|
+| §1 verbatim copies (list items, mapping insert shapes, fit effects, control style) | `duplication` architecture test (`src/architecture/duplication.ts`) |
+| §1 renamed copies (the two selection hooks) | `## Existing shape` spec section + POST-WORK sibling bullet (process) |
+| §5 preference must not reach stored metrics | `IMPORT_RULES` entry (`src/data/` → `settings/preferencesStore`) |
+| §7 row casts hid schema drift | removed; `tsc` is now the gate |
+| §4 recording rollback | `recordingController.test.ts` failure-path tests |
+| §9 `onControlAccent` | theme test locks the token |
+| §8 dead `ended_at` column, §8 seam candidates | recorded-not-done: needs a migration / device-verified refactors |
