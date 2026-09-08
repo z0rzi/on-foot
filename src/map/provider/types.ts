@@ -103,11 +103,14 @@ export interface CameraController {
   // One-shot fit to a geographic box (used to frame a selected trail). padding is
   // [top, right, bottom, left] in points; duration in ms. Like resetNorth, only meaningful
   // when follow is off (an imperative camera move is a no-op while rnmapbox is following).
+  // pitch travels with the fit: a bounds-only camera stop keeps whatever pitch the native camera
+  // has, and being the later op it would override the declarative pitch the store just set.
   fitBounds(
     ne: [number, number],
     sw: [number, number],
     padding: [number, number, number, number],
     duration: number,
+    pitch: number,
   ): void
 }
 

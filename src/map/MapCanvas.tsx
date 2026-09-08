@@ -91,11 +91,11 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
     if (!bounds) return
     const { top, sides, bottom } = MapTokens.cameraPadding
     const id = requestAnimationFrame(() => {
-      cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs)
+      cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs, cameraPitch)
       clearPendingFit()
     })
     return () => cancelAnimationFrame(id)
-  }, [fitSegments, clearPendingFit])
+  }, [fitSegments, clearPendingFit, cameraPitch])
 
   const follow = followCameraProps(followMode)
   const manualPitch =

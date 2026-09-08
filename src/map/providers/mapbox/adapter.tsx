@@ -37,8 +37,13 @@ const Camera = forwardRef<CameraController, CameraProps>(
     useImperativeHandle(ref, () => ({
       resetNorth: (animated: boolean) =>
         inner.current?.setCamera({ heading: 0, animationDuration: animated ? 300 : 0 }),
-      fitBounds: (ne, sw, padding, duration) =>
-        inner.current?.fitBounds(ne, sw, padding, duration),
+      fitBounds: (ne, sw, [paddingTop, paddingRight, paddingBottom, paddingLeft], duration, pitch) =>
+        inner.current?.setCamera({
+          bounds: { ne, sw },
+          padding: { paddingTop, paddingRight, paddingBottom, paddingLeft },
+          pitch,
+          animationDuration: duration,
+        }),
     }))
     return (
       <Mapbox.Camera
