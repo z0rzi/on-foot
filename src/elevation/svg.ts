@@ -1,6 +1,6 @@
 import { ElevationProfile, GradeBand } from './profile'
 import { SlopeBand } from './slope'
-import { bandSamples } from './bandGeometry'
+import { samplesForBands } from './bandGeometry'
 
 export interface PlotScale { width: number; height: number }
 
@@ -18,20 +18,22 @@ export function projectY(ele: number, profile: ElevationProfile, height: number)
   return height - ((ele - profile.minEle) / range) * (height - Y_PAD_TOP)
 }
 
-// Top edge (the curve) of a band as projected points, resolved within the band's own segment.
-function bandTopPoints(profile: ElevationProfile, band: SlopeBand, scale: PlotScale): [number, number][] {
-  return bandSamples(profile, band).map((s): [number, number] => [
-    projectX(s.distance, profile, scale.width),
-    projectY(s.ele, profile, scale.height),
-  ])
+// Top edge (the curve) of every band as projected points, each resolved within its own segment.
+function bandTops(profile: ElevationProfile, bands: SlopeBand[], scale: PlotScale): [number, number][][] {
+  return samplesForBands(profile, bands).map((samples) =>
+    samples.map((s): [number, number] => [
+      projectX(s.distance, profile, scale.width),
+      projectY(s.ele, profile, scale.height),
+    ]),
+  )
 }
 
 export interface BandArea { band: GradeBand; d: string }
 
 export function buildBandAreas(profile: ElevationProfile, bands: SlopeBand[], scale: PlotScale): BandArea[] {
   const baseline = scale.height
-  return bands
-    .map((band) => ({ band: band.band, top: bandTopPoints(profile, band, scale) }))
+  return bandTops(profile, bands, scale)
+    .map((top, i) => ({ band: bands[i].band, top }))
     .filter(({ top }) => top.length >= 2)
     .map(({ band, top }) => {
       const x0 = top[0][0]
@@ -46,8 +48,8 @@ export interface BandLine { band: GradeBand; d: string }
 // Open polyline (the curve itself) per band, so each slope run can be stroked with its own
 // width and contrast — a non-colour channel carrying the same slope information (accessibility).
 export function buildBandLines(profile: ElevationProfile, bands: SlopeBand[], scale: PlotScale): BandLine[] {
-  return bands
-    .map((band) => ({ band: band.band, top: bandTopPoints(profile, band, scale) }))
+  return bandTops(profile, bands, scale)
+    .map((top, i) => ({ band: bands[i].band, top }))
     .filter(({ top }) => top.length >= 2)
     .map(({ band, top }) => {
       const d = `M ${top[0][0]} ${top[0][1]} ` + top.slice(1).map(([x, y]) => `L ${x} ${y}`).join(' ')

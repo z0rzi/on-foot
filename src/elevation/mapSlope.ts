@@ -1,6 +1,6 @@
 import { ElevationProfile, GradeBand } from './profile'
 import { SlopeBand } from './slope'
-import { bandSamples } from './bandGeometry'
+import { samplesForBands } from './bandGeometry'
 
 export interface SlopeRun { band: GradeBand; coordinates: [number, number][] } // [lng, lat]
 
@@ -8,7 +8,10 @@ export interface SlopeRun { band: GradeBand; coordinates: [number, number][] } /
 // never crosses a break. Boundary coords are interpolated within the segment so adjacent runs
 // share their join.
 export function buildSlopeRuns(profile: ElevationProfile, bands: SlopeBand[]): SlopeRun[] {
-  return bands
-    .map((b) => ({ band: b.band, coordinates: bandSamples(profile, b).map((s): [number, number] => [s.lng, s.lat]) }))
+  return samplesForBands(profile, bands)
+    .map((samples, i) => ({
+      band: bands[i].band,
+      coordinates: samples.map((s): [number, number] => [s.lng, s.lat]),
+    }))
     .filter((r) => r.coordinates.length >= 2)
 }

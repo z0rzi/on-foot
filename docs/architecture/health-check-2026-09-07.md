@@ -201,15 +201,27 @@ fragmenting. It is one knob for one user-visible property — band busyness.
 **Lesson for this document:** a finding written from reading two files in isolation can invent a
 conflict that tracing disproves. Trace the consumers before calling something a defect.
 
-## 6. Efficiency
+## 6. Efficiency — RESOLVED 2026-09-08
 
-- **`src/elevation/bandGeometry.ts:34`** — `bandSamples` rebuilds the full `bySegment` map from every
-  profile sample **per band**, and `segmentAt` linear-scans it. It is called three times per band per
-  render pass (`buildBandAreas`, `buildBandLines` in `src/elevation/svg.ts`, and `buildSlopeRuns` in
-  `src/elevation/mapSlope.ts`). O(3 × bands × samples) where one hoisted index makes it O(samples).
-- **`src/recording/RecordingInfoSheet.tsx:35`** — `metricsForSegments(groupPointsBySegment(livePoints))`
-  runs unmemoized on every render, and `useMovingStopwatch` forces a render every second. During a
-  long recording that is a full haversine + smoothing pass over the whole track, once per second.
+- **`bandGeometry.ts`** — `bandSamples` rebuilt the full `bySegment` map from every profile sample
+  **per band**, and `segmentAt` linear-scanned it, three times per band per render pass.
+  **Resolved:** replaced by `samplesForBands(profile, bands)`, which builds the segment index once
+  per pass and locates each band's sample range by binary search instead of a filter, so the per-band
+  cost drops from O(samples) to O(log samples + output). `svg.ts` and `mapSlope.ts` now make one call
+  each instead of one per band.
+- **`RecordingInfoSheet.tsx`** — `metricsForSegments(groupPointsBySegment(livePoints))` ran
+  unmemoized while `useMovingStopwatch` re-rendered the sheet every second, re-measuring the whole
+  track once per tick. **Resolved:** memoized on `livePoints`, which only changes when points arrive.
+
+**How the rewrite was verified.** The three existing unit tests (boundary interpolation, own-segment
+regression, shared boundary) still pass, and two were added for band/result alignment and complete
+inner-sample inclusion. Beyond that the new implementation was differentially tested against a
+verbatim copy of the old one over 300 randomised multi-segment profiles with boundaries forced onto
+exact sample distances — the case a binary-search off-by-one would break. Structure matched exactly.
+The only numeric divergence was 1 ULP on `lat`/`lng` where a boundary coincides with a sample: the
+old code reconstructed the value as `a + (b - a) * 1`, the new one returns the sample itself, so the
+new result is the more accurate of the two. The differential harness was deleted after it passed —
+it required keeping a copy of the dead implementation, which is not worth maintaining.
 
 ## 7. The persistence seam's cost is unenforced
 
@@ -284,6 +296,7 @@ a theme change, not a bug fix.
 3. ~~**Resolve the smoothing double-truth** (§5)~~ — **done 2026-09-08**; the split was already
    correct, so the work was to document, deduplicate and enforce it. See §5.
 4. **Move the four pure blocks out of `.tsx` and TDD them** (§2), and close the unjustified disable (§3).
-5. **Hoist the `bandSamples` index and memoize the live metrics** (§6); add the schema/row assertion (§7).
+5. ~~**Hoist the `bandSamples` index and memoize the live metrics** (§6)~~ — **done 2026-09-08**;
+   add the schema/row assertion (§7).
 6. **Delete the dead exports and the placeholder UI** (§8).
 7. **Add an `onControlAccent` theme token** and retire the `c.surface`-as-button-text convention (§9).

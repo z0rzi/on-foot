@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import type { SharedValue } from 'react-native-reanimated'
 import { Ionicons } from '@expo/vector-icons'
@@ -32,7 +33,9 @@ export function RecordingInfoSheet({
 
   const phase = recordingPhase(session)
   const durationSeconds = useMovingStopwatch(session) / 1000
-  const metrics = metricsForSegments(groupPointsBySegment(livePoints))
+  // useMovingStopwatch re-renders this sheet every second, so without the memo a long recording
+  // re-measures its whole track — haversine plus elevation smoothing — once per tick.
+  const metrics = useMemo(() => metricsForSegments(groupPointsBySegment(livePoints)), [livePoints])
 
   const paceSpeedTile =
     paceSpeedMode === 'pace'
