@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar'
 import { Text, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
+import { KeyboardProvider } from 'react-native-keyboard-controller'
 import { MapProviderProvider, useOfflineController } from '../src/map/provider'
 import { mapboxProvider } from '../src/map/providers/mapbox'
 import { ErrorBoundary } from '../src/components/ErrorBoundary'
@@ -44,14 +45,16 @@ export default function RootLayout() {
             <Text>Database failed to initialize: {error.message}</Text>
           </View>
         ) : success ? (
-          <MapProviderProvider provider={mapboxProvider}>
-            <BottomSheetModalProvider>
-              <Stack screenOptions={{ headerShown: false }} />
-              <ShareIntentHandler />
-              <ResumeRecordingHandler />
-              <OfflineInitHandler />
-            </BottomSheetModalProvider>
-          </MapProviderProvider>
+          <KeyboardProvider>
+            <MapProviderProvider provider={mapboxProvider}>
+              <BottomSheetModalProvider>
+                <Stack screenOptions={{ headerShown: false }} />
+                <ShareIntentHandler />
+                <ResumeRecordingHandler />
+                <OfflineInitHandler />
+              </BottomSheetModalProvider>
+            </MapProviderProvider>
+          </KeyboardProvider>
         ) : null}
       </ErrorBoundary>
     </GestureHandlerRootView>

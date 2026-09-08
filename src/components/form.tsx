@@ -1,19 +1,25 @@
 import { ReactNode } from 'react'
-import {
-  ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView,
-  StyleSheet, Text, TextInput, View,
-} from 'react-native'
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import { useTheme } from '../theme/useTheme'
 
+// Breathing room between the focused field and the top of the keyboard.
+const KEYBOARD_GAP = 16
+
+// KeyboardAwareScrollView rather than KeyboardAvoidingView: the latter is inert on Android under
+// edge-to-edge, where the window no longer resizes for the IME, leaving a focused field covered
+// with nothing to scroll.
 export function FormScreen({ children }: { children: ReactNode }) {
   const c = useTheme()
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          {children}
-        </ScrollView>
-      </KeyboardAvoidingView>
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={KEYBOARD_GAP}
+      >
+        {children}
+      </KeyboardAwareScrollView>
     </View>
   )
 }
