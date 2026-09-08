@@ -10,7 +10,7 @@ import { usePreferencesStore } from '../settings/preferencesStore'
 import { formatDistance, formatElevation } from '../data/geo/metrics'
 import { ElevationProfile, GradeBand, sampleAt } from './profile'
 import { displaySlopeBands } from './slope'
-import { buildBandAreas, buildBandLines } from './svg'
+import { areaPaths, buildBandTops, linePaths } from './svg'
 import { slopeBandColour } from './slopeColour'
 import { useScrubStore } from './scrubStore'
 
@@ -58,14 +58,14 @@ export function ElevationGraph({
   const floating = placement === 'floating'
 
   const { smoothed, bands } = useMemo(() => displaySlopeBands(profile, smoothing), [profile, smoothing])
-  const areas = useMemo(
-    () => (width === 0 ? [] : buildBandAreas(profile, bands, { width, height: PLOT_HEIGHT })),
+  // Both path sets are built from the same projected tops, so the samples are resolved and
+  // projected once per layout rather than once per path set.
+  const tops = useMemo(
+    () => (width === 0 ? [] : buildBandTops(profile, bands, { width, height: PLOT_HEIGHT })),
     [profile, bands, width],
   )
-  const bandLines = useMemo(
-    () => (width === 0 ? [] : buildBandLines(profile, bands, { width, height: PLOT_HEIGHT })),
-    [profile, bands, width],
-  )
+  const areas = useMemo(() => areaPaths(tops, PLOT_HEIGHT), [tops])
+  const bandLines = useMemo(() => linePaths(tops), [tops])
 
   // Fill colour per band. Floating overlays the map, so flat is a theme-independent light grey;
   // in-sheet flat uses the sheet colour so it blends into the (theme-aware) sheet.

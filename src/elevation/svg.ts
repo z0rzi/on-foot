@@ -18,41 +18,48 @@ export function projectY(ele: number, profile: ElevationProfile, height: number)
   return height - ((ele - profile.minEle) / range) * (height - Y_PAD_TOP)
 }
 
-// Top edge (the curve) of every band as projected points, each resolved within its own segment.
-function bandTops(profile: ElevationProfile, bands: SlopeBand[], scale: PlotScale): [number, number][][] {
-  return samplesForBands(profile, bands).map((samples) =>
-    samples.map((s): [number, number] => [
-      projectX(s.distance, profile, scale.width),
-      projectY(s.ele, profile, scale.height),
-    ]),
-  )
+export interface BandTop {
+  band: GradeBand
+  points: [number, number][]
+}
+
+// The projected top edge (the curve) of every band, each resolved within its own segment. Bands too
+// short to draw are dropped here, so the path builders below never have to re-check.
+export function buildBandTops(
+  profile: ElevationProfile,
+  bands: SlopeBand[],
+  scale: PlotScale,
+): BandTop[] {
+  return samplesForBands(profile, bands)
+    .map(({ band, samples }) => ({
+      band,
+      points: samples.map((s): [number, number] => [
+        projectX(s.distance, profile, scale.width),
+        projectY(s.ele, profile, scale.height),
+      ]),
+    }))
+    .filter(({ points }) => points.length >= 2)
 }
 
 export interface BandArea { band: GradeBand; d: string }
 
-export function buildBandAreas(profile: ElevationProfile, bands: SlopeBand[], scale: PlotScale): BandArea[] {
-  const baseline = scale.height
-  return bandTops(profile, bands, scale)
-    .map((top, i) => ({ band: bands[i].band, top }))
-    .filter(({ top }) => top.length >= 2)
-    .map(({ band, top }) => {
-      const x0 = top[0][0]
-      const x1 = top[top.length - 1][0]
-      const d = `M ${x0} ${baseline} ` + top.map(([x, y]) => `L ${x} ${y}`).join(' ') + ` L ${x1} ${baseline} Z`
-      return { band, d }
-    })
+// Closed to the baseline, so the band reads as filled ground beneath the curve.
+export function areaPaths(tops: BandTop[], height: number): BandArea[] {
+  return tops.map(({ band, points }) => {
+    const x0 = points[0][0]
+    const x1 = points[points.length - 1][0]
+    const d = `M ${x0} ${height} ` + points.map(([x, y]) => `L ${x} ${y}`).join(' ') + ` L ${x1} ${height} Z`
+    return { band, d }
+  })
 }
 
 export interface BandLine { band: GradeBand; d: string }
 
 // Open polyline (the curve itself) per band, so each slope run can be stroked with its own
 // width and contrast — a non-colour channel carrying the same slope information (accessibility).
-export function buildBandLines(profile: ElevationProfile, bands: SlopeBand[], scale: PlotScale): BandLine[] {
-  return bandTops(profile, bands, scale)
-    .map((top, i) => ({ band: bands[i].band, top }))
-    .filter(({ top }) => top.length >= 2)
-    .map(({ band, top }) => {
-      const d = `M ${top[0][0]} ${top[0][1]} ` + top.slice(1).map(([x, y]) => `L ${x} ${y}`).join(' ')
-      return { band, d }
-    })
+export function linePaths(tops: BandTop[]): BandLine[] {
+  return tops.map(({ band, points }) => ({
+    band,
+    d: `M ${points[0][0]} ${points[0][1]} ` + points.slice(1).map(([x, y]) => `L ${x} ${y}`).join(' '),
+  }))
 }

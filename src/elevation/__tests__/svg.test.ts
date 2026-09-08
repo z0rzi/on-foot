@@ -1,4 +1,4 @@
-import { projectX, projectY, buildBandLines, buildBandAreas } from '../svg'
+import { projectX, projectY, areaPaths, buildBandTops, linePaths } from '../svg'
 import { buildElevationProfile } from '../profile'
 import type { SlopeBand } from '../slope'
 
@@ -26,13 +26,13 @@ describe('projection', () => {
   })
 })
 
-describe('buildBandLines', () => {
+describe('linePaths', () => {
   it('produces one OPEN polyline per band, tagged with the band', () => {
     const bands: SlopeBand[] = [
       { start: 0, end: oneSeg.totalDistance / 2, band: 'uphill' },
       { start: oneSeg.totalDistance / 2, end: oneSeg.totalDistance, band: 'steep' },
     ]
-    const lines = buildBandLines(oneSeg, bands, { width: 200, height: 50 })
+    const lines = linePaths(buildBandTops(oneSeg, bands, { width: 200, height: 50 }))
     expect(lines.map((l) => l.band)).toEqual(['uphill', 'steep'])
     for (const l of lines) {
       expect(l.d.startsWith('M ')).toBe(true)
@@ -42,7 +42,7 @@ describe('buildBandLines', () => {
   })
 })
 
-describe('buildBandLines multi-segment', () => {
+describe('linePaths multi-segment', () => {
   it("resolves the second segment's band boundary within its own segment (regression)", () => {
     // seg A ends at ele 160; seg B starts at ele 400. B's band must draw from 400, not 160.
     const twoSeg = buildElevationProfile([
@@ -55,7 +55,7 @@ describe('buildBandLines multi-segment', () => {
       { start: 0, end: dA, band: 'uphill' },
       { start: dA, end: twoSeg.totalDistance, band: 'steep' },
     ]
-    const lines = buildBandLines(twoSeg, bands, scale)
+    const lines = linePaths(buildBandTops(twoSeg, bands, scale))
     const secondLineFirstPoint = lines[1].d.match(/^M ([\d.-]+) ([\d.-]+)/)!
     const y = Number(secondLineFirstPoint[2])
     expect(y).toBeCloseTo(projectY(400, twoSeg, scale.height), 6)
@@ -63,10 +63,10 @@ describe('buildBandLines multi-segment', () => {
   })
 })
 
-describe('buildBandAreas', () => {
+describe('areaPaths', () => {
   it('emits a closed filled polygon per non-flat band', () => {
     const bands: SlopeBand[] = [{ start: 0, end: oneSeg.totalDistance, band: 'steep' }]
-    const areas = buildBandAreas(oneSeg, bands, { width: 200, height: 50 })
+    const areas = areaPaths(buildBandTops(oneSeg, bands, { width: 200, height: 50 }), 50)
     expect(areas).toHaveLength(1)
     expect(areas[0].band).toBe('steep')
     expect(areas[0].d.startsWith('M ')).toBe(true)
@@ -77,9 +77,34 @@ describe('buildBandAreas', () => {
       { lat: 0, lng: 0, ele: 10 }, { lat: 0, lng: 0.001, ele: 10 },
     ]])!
     const bands: SlopeBand[] = [{ start: 0, end: flat.totalDistance, band: 'flat' }]
-    const areas = buildBandAreas(flat, bands, { width: 200, height: 50 })
+    const areas = areaPaths(buildBandTops(flat, bands, { width: 200, height: 50 }), 50)
     expect(areas).toHaveLength(1)
     expect(areas[0].band).toBe('flat')
     expect(areas[0].d.trim().endsWith('Z')).toBe(true)
+  })
+})
+
+describe('buildBandTops', () => {
+  it('drops bands too short to draw, so the path builders never see them', () => {
+    const far = oneSeg.totalDistance * 10
+    const tops = buildBandTops(
+      oneSeg,
+      [
+        { start: 0, end: oneSeg.totalDistance, band: 'steep' },
+        { start: far, end: far + 1, band: 'flat' },
+      ],
+      { width: 200, height: 50 },
+    )
+    expect(tops.map((t) => t.band)).toEqual(['steep'])
+  })
+
+  it('feeds both path sets from the same points', () => {
+    const bands: SlopeBand[] = [{ start: 0, end: oneSeg.totalDistance, band: 'steep' }]
+    const tops = buildBandTops(oneSeg, bands, { width: 200, height: 50 })
+    const [area] = areaPaths(tops, 50)
+    const [line] = linePaths(tops)
+    const shared = tops[0].points.map(([x, y]) => `L ${x} ${y}`).join(' ')
+    expect(area.d).toContain(shared)
+    expect(line.d).toContain(shared.replace(/^L /, ''))
   })
 })

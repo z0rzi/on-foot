@@ -9,8 +9,8 @@ export interface SlopeRun { band: GradeBand; coordinates: [number, number][] } /
 // share their join.
 export function buildSlopeRuns(profile: ElevationProfile, bands: SlopeBand[]): SlopeRun[] {
   return samplesForBands(profile, bands)
-    .map((samples, i) => ({
-      band: bands[i].band,
+    .map(({ band, samples }) => ({
+      band,
       coordinates: samples.map((s): [number, number] => [s.lng, s.lat]),
     }))
     .filter((r) => r.coordinates.length >= 2)

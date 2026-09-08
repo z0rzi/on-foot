@@ -1,4 +1,4 @@
-import { ElevationProfile, ElevationSample } from './profile'
+import { ElevationProfile, ElevationSample, GradeBand } from './profile'
 import { SlopeBand } from './slope'
 
 // Samples grouped by segment, each run still ordered by distance. Built once per call and shared by
@@ -59,7 +59,12 @@ function interpAt(segSamples: ElevationSample[], distance: number, hi: number): 
 // Each band's samples within its OWN segment: an interpolated sample at band.start, the strictly
 // inner same-segment samples, and an interpolated sample at band.end. A band is placed by its
 // midpoint, since per-segment distance ranges touch only at their endpoints.
-export function samplesForBands(profile: ElevationProfile, bands: SlopeBand[]): ElevationSample[][] {
+export interface BandSamples {
+  band: GradeBand
+  samples: ElevationSample[]
+}
+
+export function samplesForBands(profile: ElevationProfile, bands: SlopeBand[]): BandSamples[] {
   const bySegment = indexBySegment(profile)
   const segmentFor = (distance: number): ElevationSample[] | null => {
     for (const list of bySegment.values()) {
@@ -69,13 +74,16 @@ export function samplesForBands(profile: ElevationProfile, bands: SlopeBand[]): 
   }
   return bands.map((band) => {
     const segSamples = segmentFor((band.start + band.end) / 2)
-    if (!segSamples) return []
+    if (!segSamples) return { band: band.band, samples: [] }
     const from = upperBound(segSamples, band.start)
     const to = lowerBound(segSamples, band.end)
-    return [
-      interpAt(segSamples, band.start, from),
-      ...segSamples.slice(from, to),
-      interpAt(segSamples, band.end, to),
-    ]
+    return {
+      band: band.band,
+      samples: [
+        interpAt(segSamples, band.start, from),
+        ...segSamples.slice(from, to),
+        interpAt(segSamples, band.end, to),
+      ],
+    }
   })
 }

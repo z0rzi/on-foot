@@ -207,11 +207,24 @@ conflict that tracing disproves. Trace the consumers before calling something a 
   **per band**, and `segmentAt` linear-scanned it, three times per band per render pass.
   **Resolved:** replaced by `samplesForBands(profile, bands)`, which builds the segment index once
   per pass and locates each band's sample range by binary search instead of a filter, so the per-band
-  cost drops from O(samples) to O(log samples + output). `svg.ts` and `mapSlope.ts` now make one call
-  each instead of one per band.
+  cost drops from O(samples) to O(log samples + output). It returns `{ band, samples }` pairs, so no
+  caller reaches back into `bands[i]` by position.
+- **`svg.ts` redundant passes** — the first attempt fixed the per-band cost but left the duplicate
+  work this section had named: `ElevationGraph` calls the area builder and the line builder with
+  identical arguments, so samples were resolved and projected twice to produce identical geometry,
+  and the two builders had grown a verbatim-duplicated prelude. **Resolved** in a follow-up:
+  `buildBandTops` does the resolve, project and short-band filter once, and `areaPaths` / `linePaths`
+  are cheap string builds over those shared tops. `ElevationGraph` memoizes the tops.
+
+  *Worth remembering:* the first pass optimised the inner loop and re-introduced a duplication one
+  level up. Fixing a hot path is not a licence to stop reading the surrounding code.
 - **`RecordingInfoSheet.tsx`** — `metricsForSegments(groupPointsBySegment(livePoints))` ran
   unmemoized while `useMovingStopwatch` re-rendered the sheet every second, re-measuring the whole
   track once per tick. **Resolved:** memoized on `livePoints`, which only changes when points arrive.
+
+**Magnitude, honestly.** On a realistic 3000-sample trail with ~150 bands the original cost was on
+the order of a million operations, on trail selection and smoothing changes — a cold path, not a
+per-frame one. A real win, but not something that was visibly stalling the app.
 
 **How the rewrite was verified.** The three existing unit tests (boundary interpolation, own-segment
 regression, shared boundary) still pass, and two were added for band/result alignment and complete
