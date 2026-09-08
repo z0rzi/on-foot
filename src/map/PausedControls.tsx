@@ -5,7 +5,7 @@ import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reani
 import { useRouter } from 'expo-router'
 import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
-import { resumeRecording, stopToSave } from '../recording/recordingController'
+import { resumeRecording, linkTrailForSave } from '../recording/recordingController'
 import { useMapStore } from '../store/mapStore'
 import { ControlButton } from '../components/ControlButton'
 import { PlayIcon } from '../assets/icons/play'
@@ -28,7 +28,7 @@ export function PausedControls({ animatedBottom }: { animatedBottom?: SharedValu
     try {
       const sel = useMapStore.getState().selection
       const linkedTrailId = sel?.kind === 'trail' ? sel.id : null
-      await stopToSave(linkedTrailId)
+      await linkTrailForSave(linkedTrailId)
       router.push('/activity/save')
     } catch {
       Alert.alert('Could not stop recording', 'Something went wrong. Please try again.')

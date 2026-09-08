@@ -2,10 +2,6 @@ import type { OfflinePackInfo } from '../provider/types'
 import type { LiveProgress } from './types'
 import { packId, parsePackId } from './packId'
 
-export function packIdsForTrail(packs: OfflinePackInfo[], trailId: number): string[] {
-  return packs.filter((p) => parsePackId(p.id)?.trailId === trailId).map((p) => p.id)
-}
-
 interface RetryTarget {
   id: string
   styleId: string

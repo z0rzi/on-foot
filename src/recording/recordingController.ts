@@ -69,7 +69,7 @@ export async function resumeRecording(): Promise<void> {
   useRecordingStore.getState().setSession(next)
 }
 
-export async function stopToSave(linkedTrailId: number | null): Promise<void> {
+export async function linkTrailForSave(linkedTrailId: number | null): Promise<void> {
   const session = await activitiesRepository.getActiveSession()
   if (!session) return
   await activitiesRepository.markLinkedTrail(session.id, linkedTrailId)

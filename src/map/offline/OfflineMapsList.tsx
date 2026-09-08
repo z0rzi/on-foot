@@ -79,11 +79,6 @@ export function OfflineMapsList() {
           </View>
         ))
       )}
-
-      <Text style={[styles.section, { color: c.onSurfaceVariant, marginTop: 20 }]}>AREAS · LATER</Text>
-      <View style={[styles.areaPlaceholder, { borderColor: c.panelDivider }]}>
-        <Text style={{ color: c.onSurfaceVariant, fontSize: 13 }}>＋ Download a custom area</Text>
-      </View>
     </ScrollView>
   )
 }
@@ -95,5 +90,4 @@ const styles = StyleSheet.create({
   group: { borderRadius: 12, paddingHorizontal: 14, marginBottom: 14 },
   groupHead: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12 },
   layer: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11, borderTopWidth: 1 },
-  areaPlaceholder: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 12, padding: 16, alignItems: 'center', opacity: 0.6 },
 })
