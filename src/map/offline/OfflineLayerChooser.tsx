@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useMemo, useState, useEffect } from 'react'
+import React, { forwardRef, useCallback, useMemo, useState } from 'react'
 import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop, type BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import { Ionicons } from '@expo/vector-icons'
@@ -16,6 +16,7 @@ import { OFFLINE_MARGIN_KM, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM } from './constan
 import { showToast } from '../../components/toast'
 import { useSheetBackDismiss } from '../../components/useSheetBackDismiss'
 import { guardDownload } from './downloadConsent'
+import { planOfflineChanges, seedSelection } from './plan'
 import type { Trail } from '../../data/trails/types'
 
 export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }>(
@@ -44,20 +45,18 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
       [packs, trail.id],
     )
 
-    const [selected, setSelected] = useState<Set<string>>(new Set())
-    // Seed ticks whenever the trail's downloaded set or the current style changes.
-    useEffect(() => {
-      setSelected(new Set(downloadedIds.length ? downloadedIds : [currentStyleId]))
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [trail.id, downloadedIds.join(','), currentStyleId])
+    // The user's ticks are kept only while this key holds: they reset when the trail, the
+    // downloaded set (by value, so an unrelated packs reload keeps them) or the current style changes.
+    const seedKey = `${trail.id}|${downloadedIds.join(',')}|${currentStyleId}`
+    const [edit, setEdit] = useState<{ seedKey: string; selected: Set<string> } | null>(null)
+    const selected = edit?.seedKey === seedKey ? edit.selected : seedSelection(downloadedIds, currentStyleId)
 
-    const toggle = (id: string) =>
-      setSelected((prev) => {
-        const next = new Set(prev)
-        if (next.has(id)) next.delete(id)
-        else next.add(id)
-        return next
-      })
+    const toggle = (id: string) => {
+      const next = new Set(selected)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      setEdit({ seedKey, selected: next })
+    }
 
     // Memoized so the per-style tile-count estimate loops only recompute when the trail bounds,
     // downloaded set, or pack sizes change — not on unrelated re-renders.
@@ -73,12 +72,17 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
       [caps.styles, bounds, downloadedIds, packs, trail.id],
     )
 
-    const toDownloadBytes = rows
-      .filter((r) => selected.has(r.style.id) && !r.downloaded && r.estimate)
-      .reduce((sum, r) => sum + (r.estimate?.bytes ?? 0), 0)
+    const plan = planOfflineChanges(
+      rows.map((r) => ({ styleId: r.style.id, downloaded: r.downloaded, estimateBytes: r.estimate?.bytes ?? null })),
+      selected,
+    )
 
-    const renderBackdrop = (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
+    // Dim + tap-outside-to-close: tapping the backdrop dismisses the sheet (swipe-down still works).
+    const renderBackdrop = useCallback(
+      (props: BottomSheetBackdropProps) => (
+        <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
+      ),
+      [],
     )
 
     const apply = () => {
@@ -86,30 +90,25 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
         Alert.alert('Cannot download', 'This trail has no route to cover.')
         return
       }
-      const adds = rows.filter((r) => selected.has(r.style.id) && !r.downloaded)
-      const removes = rows.filter((r) => !selected.has(r.style.id) && r.downloaded)
-
-      if (removes.length) {
-        void remove(controller, removes.map((r) => packId(trail.id, r.style.id))).then(() =>
+      if (plan.removes.length) {
+        void remove(controller, plan.removes.map((id) => packId(trail.id, id))).then(() =>
           showToast('Offline map updated'),
         )
       }
 
       const dismiss = () => (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
 
-      if (adds.length) {
-        void guardDownload(toDownloadBytes || null, () => {
-          adds.forEach((r) => download(controller, packDescriptor(trail.id, r.style, bounds)))
+      if (plan.adds.length) {
+        void guardDownload(plan.toDownloadBytes || null, () => {
+          rows
+            .filter((r) => plan.adds.includes(r.style.id))
+            .forEach((r) => download(controller, packDescriptor(trail.id, r.style, bounds)))
           dismiss()
         })
       } else {
         dismiss()
       }
     }
-
-    const hasChanges =
-      rows.some((r) => selected.has(r.style.id) && !r.downloaded) ||
-      rows.some((r) => !selected.has(r.style.id) && r.downloaded)
 
     return (
       <BottomSheetModal
@@ -158,15 +157,15 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
           <View style={styles.totalRow}>
             <Text style={{ color: c.onSurfaceVariant, fontSize: 12 }}>To download</Text>
             <Text style={{ color: c.panelContent, fontSize: 13, fontWeight: '700' }}>
-              {toDownloadBytes ? `~${formatBytes(toDownloadBytes)}` : '—'}
+              {plan.toDownloadBytes ? `~${formatBytes(plan.toDownloadBytes)}` : '—'}
             </Text>
           </View>
 
           <Pressable
             accessibilityLabel="Apply offline map changes"
-            disabled={!hasChanges}
+            disabled={!plan.hasChanges}
             onPress={apply}
-            style={[styles.apply, { backgroundColor: c.controlAccent, opacity: hasChanges ? 1 : 0.5 }]}
+            style={[styles.apply, { backgroundColor: c.controlAccent, opacity: plan.hasChanges ? 1 : 0.5 }]}
           >
             <Text style={{ color: c.onControlAccent, fontWeight: '700', fontSize: 14 }}>Apply</Text>
           </Pressable>

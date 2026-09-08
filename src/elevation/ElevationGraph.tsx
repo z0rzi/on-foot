@@ -12,6 +12,7 @@ import { ElevationProfile, GradeBand, sampleAt } from './profile'
 import { displaySlopeBands } from './slope'
 import { areaPaths, buildBandTops, linePaths } from './svg'
 import { slopeBandColour } from './slopeColour'
+import { bandLineContrast, bandLineWidth } from './bandStyle'
 import { useScrubStore } from './scrubStore'
 
 const PLOT_HEIGHT = 62
@@ -26,19 +27,6 @@ const GRAPH_LINE = '#1C1B1F'
 const GRAPH_HALO = '#FFFFFF'
 
 interface Cursor { x: number; label: string }
-
-// Non-colour channel (accessibility): steeper UPHILL → thicker, higher-contrast line.
-const lineWidth = (band: GradeBand): number =>
-  band === 'steep' ? 4.5
-  : band === 'rough' ? 3.5
-  : band === 'uphill' ? 2.5
-  : 1 // downhill + flat
-const lineContrast = (band: GradeBand): number =>
-  band === 'steep' ? 1
-  : band === 'rough' ? 0.9
-  : band === 'uphill' ? 0.7
-  : band === 'downhill' ? 0.4
-  : 0.35
 
 export function ElevationGraph({
   profile,
@@ -145,7 +133,7 @@ export function ElevationGraph({
                     d={l.d}
                     stroke={GRAPH_HALO}
                     strokeOpacity={0.6}
-                    strokeWidth={lineWidth(l.band) + 2}
+                    strokeWidth={bandLineWidth(l.band) + 2}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     fill="none"
@@ -156,8 +144,8 @@ export function ElevationGraph({
                   key={`line-${i}`}
                   d={l.d}
                   stroke={floating ? GRAPH_LINE : c.onSurface}
-                  strokeOpacity={lineContrast(l.band)}
-                  strokeWidth={lineWidth(l.band)}
+                  strokeOpacity={bandLineContrast(l.band)}
+                  strokeWidth={bandLineWidth(l.band)}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   fill="none"

@@ -15,6 +15,7 @@ import type { ElevationProfile } from '../elevation/profile'
 import { useMapCapabilities, useOfflineController } from '../map/provider'
 import { useOfflineStore } from '../map/offline/offlineStore'
 import { offlineStateForTrail } from '../map/offline/badge'
+import { offlineMenuItems, type OfflineMenuAction } from '../map/offline/menu'
 import { retryTargetsForTrail } from '../map/offline/operations'
 import { boundsForTrail } from '../map/offline/bounds'
 import { flattenSegments } from '../map/geo'
@@ -90,21 +91,14 @@ export function TrailInfoSheet({
       ? state.styleIds.map((id) => caps.styles.find((s) => s.id === id)?.label ?? id).join(', ')
       : ''
 
-  const menuItems =
-    state.kind === 'none'
-      ? [{ label: 'Download offline map', onPress: () => chooserRef.current?.present() }]
-      : state.kind === 'available'
-        ? [
-            { label: 'Edit offline map', onPress: () => chooserRef.current?.present() },
-            { label: 'Remove offline map', danger: true, onPress: removeAll },
-          ]
-        : state.kind === 'failed'
-          ? [
-              { label: 'Retry download', onPress: retry },
-              { label: 'Edit offline map', onPress: () => chooserRef.current?.present() },
-              { label: 'Remove offline map', danger: true, onPress: removeAll },
-            ]
-          : [{ label: 'Cancel download', danger: true, onPress: cancel }]
+  const handlers: Record<OfflineMenuAction, () => void> = {
+    download: () => chooserRef.current?.present(),
+    edit: () => chooserRef.current?.present(),
+    remove: removeAll,
+    retry,
+    cancel: () => void cancel(),
+  }
+  const menuItems = offlineMenuItems(state).map((item) => ({ ...item, onPress: handlers[item.action] }))
 
   return (
     <MapInfoSheet animatedPosition={animatedPosition}>

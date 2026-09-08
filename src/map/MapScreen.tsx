@@ -21,7 +21,7 @@ import { MapTokens } from '../theme/tokens'
 import { buildElevationProfile } from '../elevation/profile'
 import { ElevationGraph, GRAPH_HEIGHT } from '../elevation/ElevationGraph'
 import { usePreferencesStore } from '../settings/preferencesStore'
-import { groupPointsBySegment } from '../data/activities/mapping'
+import { profileSegmentsFor } from './profileSource'
 
 export function MapScreen() {
   const sheetRef = useRef<BottomSheetModal>(null)
@@ -51,11 +51,7 @@ export function MapScreen() {
   const graphPlacement = usePreferencesStore((s) => s.elevationGraphPlacement)
 
   const activeProfile = useMemo(() => {
-    const segments =
-      mode === 'trail' ? trail?.geometry.segments
-      : mode === 'activity' ? activity?.geometry.segments
-      : mode === 'recording' ? (trail ? trail.geometry.segments : groupPointsBySegment(livePoints))
-      : undefined
+    const segments = profileSegmentsFor(mode, trail, activity, livePoints)
     return segments ? buildElevationProfile(segments) : null
   }, [mode, trail, activity, livePoints])
 

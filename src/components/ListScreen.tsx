@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { ReactElement, ReactNode } from 'react'
 import { FlatList, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../theme/useTheme'
@@ -14,7 +14,7 @@ export function ListScreen<T>({
   title: string
   items: T[]
   keyOf: (item: T) => string
-  renderItem: (item: T) => ReactNode
+  renderItem: (item: T) => ReactElement
   emptyMessage: string
   footer?: ReactNode
 }) {
@@ -32,7 +32,7 @@ export function ListScreen<T>({
         <FlatList
           data={items}
           keyExtractor={keyOf}
-          renderItem={({ item }) => <>{renderItem(item)}</>}
+          renderItem={({ item }) => renderItem(item)}
           contentContainerStyle={styles.list}
         />
       )}
