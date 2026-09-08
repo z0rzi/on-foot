@@ -16,6 +16,11 @@ uphold the original design, do not let it erode one expedient change at a time.
 - **Respect existing patterns.** Before adding code, find how the codebase already solves
   the same shape of problem and follow it. Consistency beats personal preference. If a
   pattern genuinely needs to change, change it deliberately and everywhere — don't fork it.
+  **The second instance of a shape is the moment duplication is born**: a second entity with
+  its own list, form, badge, sheet or selection hook. Before writing it, name the first
+  instance and extract what is shared (`EntityListItem`, `EnumBadge`, `useSelectedEntity` are
+  the results of doing this late). A copy that renames every identifier passes every
+  mechanical gate, so this is a design step, not a lint.
 - **Architectural seams are inviolable and declared in `src/architecture/seams.ts`.** A seam
   confines a native SDK/engine to one directory so the rest of the app stays provider-agnostic
   and swappable. Today: the **map SDK** (`@rnmapbox/maps` → `src/map/providers/<provider>/`;
@@ -52,6 +57,9 @@ uphold the original design, do not let it erode one expedient change at a time.
   React Native and need none.
 - **Features go through brainstorm → spec → plan** (`docs/superpowers/`), not
   straight-to-code. Small changes still get a design thought through before implementation.
+  Every spec carries an **`## Existing shape`** section: the closest existing feature of the
+  same shape (or "none"), what will be reused from it, and what is extracted to be shared.
+  "Nothing to share" is an acceptable answer only with the reason.
 
 When a request tempts you toward a shortcut that violates the above, surface the tension
 instead of silently taking the shortcut.

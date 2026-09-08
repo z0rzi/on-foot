@@ -67,6 +67,10 @@ in context.
 - Consistent choices across the change: cache-update strategy, error handling,
   import style (barrel vs deep path), naming. Flag divergences between sibling
   functions.
+- **Every new file has a named sibling.** For each file this diff creates, name the existing
+  file with the same role (a second `XListItem`, `XForm`, `XBadge`, `useSelectedX`, `XSheet`)
+  and state whether the shared shape was reused or extracted. The `duplication` gate catches
+  only verbatim copies; a copy that renames its identifiers is caught here or not at all.
 - Names describe what things do; no confused or unused parameters in contracts.
 - Error paths handled at the right layer (no swallowed errors, no promises left to
   reject unhandled, no state flags that can stick). `npm run verify`'s
