@@ -289,13 +289,19 @@ Walking the §1 refactor on-device surfaced three bugs, none of them regressions
   `src/components/form.tsx` — Expo's own recommended escalation. The dependency is confined to that
   one file; it is a UI helper, not a swappable engine, so it is not a seam.
 
-**Theme-token naming is now a recurring hazard** (related to the `effortColor` note in §1). There is
+**Theme-token naming — RESOLVED 2026-09-08.** `onControlAccent` added (equal to `surface` in both
+palettes, locked by a test, so nothing changed visually) and used at all four text-on-accent sites.
+`difficultyEasy/Medium/Hard` renamed `intensityLow/Medium/High` — a scale both enums share honestly;
+`effortColor` no longer borrows another enum's tokens. Hex values unchanged. `EnumSelector`'s
+`c.surface` was deliberately left: that is text on the enum's *own* colour, not on `controlAccent`.
+
+*Original note, kept for the record:* Theme-token naming is now a recurring hazard (related to the `effortColor` note in §1). There is
 no token for "text on an accent button": the three existing call sites spell it `c.surface`, which
 is why a fourth reached for the plausible-sounding `c.controlsText` and shipped black-on-blue. An
 `onControlAccent` token would make the role nameable and stop the next occurrence. Not done — it is
 a theme change, not a bug fix.
 
-## 8. Dead code and small snags
+## 8. Dead code and small snags — RESOLVED 2026-09-08
 
 - `src/map/offline/operations.ts:5` — `packIdsForTrail` has **no production caller** but does have a
   passing test, so it reads as covered code. Delete both, or wire it into `offlineStore.removeForTrail`
@@ -305,10 +311,21 @@ a theme change, not a bug fix.
   placeholder that does nothing when tapped.
 - `src/recording/useResumeRecording.ts:14-17` — `.then(() => { /* comments only */ })`; `router` sits
   in the dep array but is unused.
-- `src/theme/useTheme.ts:5` — `getColors(useColorScheme() === 'dark' ? 'dark' : null)` maps a value
-  into a type that immediately re-tests it.
-- `src/recording/recordingController.ts:49` — `stopToSave` does not stop anything; it marks the linked
-  trail (pausing already stopped location updates). The name misleads.
+- ~~`src/theme/useTheme.ts:5` — `getColors(useColorScheme() === 'dark' ? 'dark' : null)` maps a value
+  into a type that immediately re-tests it.~~ **This finding was wrong.** RN 0.86's `ColorSchemeName`
+  is `'light' | 'dark' | 'unspecified'` — the ternary was a correct adapter from the platform's
+  `'unspecified'` to the pure module's `null`, not a redundant re-test. Two attempted "simplifications"
+  failed `tsc` before the real type was read. Resolved properly by typing `getColors` with the
+  platform's `ColorSchemeName` (type-only import) so `useTheme` passes the value straight through and
+  no adapter exists to get wrong. *Lesson: read the platform type before calling an adapter redundant.*
+- `src/recording/recordingController.ts` — `stopToSave` did not stop anything; it marked the linked
+  trail (pausing already stopped location updates). Renamed `linkTrailForSave`.
+- **Found during §7:** `recording_sessions.ended_at` is never written — sessions are deleted on save
+  or discard, never closed. A dead column. Removing it means a migration, so it is recorded here
+  rather than done in a cleanup pass.
+- **Found during §7:** `ActivityInsertValues = Omit<ActivityRow, 'id'>` ties the insert shape to the
+  read shape. Exact today because every column is app-written; the day a DB-computed column appears
+  (a default, a trigger) it belongs in `Row` but not in `Insert`, and the `Omit` needs a second key.
 - `src/store/mapStore.ts` runs ~22% comment lines. They are all genuine *why* comments and earn their
   place, but it is the one file drifting toward what `AGENTS.md` warns about — worth watching, not
   worth stripping.
@@ -328,5 +345,9 @@ a theme change, not a bug fix.
 4. **Move the four pure blocks out of `.tsx` and TDD them** (§2), and close the unjustified disable (§3).
 5. ~~**Hoist the `bandSamples` index and memoize the live metrics** (§6)~~ — **done 2026-09-08**;
    ~~add the schema/row assertion (§7)~~ — **done 2026-09-08**, by removing the casts that hid it.
-6. **Delete the dead exports and the placeholder UI** (§8).
-7. **Add an `onControlAccent` theme token** and retire the `c.surface`-as-button-text convention (§9).
+6. ~~**Delete the dead exports and the placeholder UI** (§8)~~ — **done 2026-09-08.**
+7. ~~**Add an `onControlAccent` theme token** and retire the `c.surface`-as-button-text convention (§9)~~ — **done 2026-09-08.**
+
+**All sections resolved.** What remains are two recorded-not-done items: the dead `ended_at` column
+(needs a migration) and the seam candidates in `seams.md` (`expo-location`, async-storage,
+`expo-file-system`), each a device-verified refactor in its own right.

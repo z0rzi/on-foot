@@ -61,6 +61,9 @@ consolidating them is a separate, device-verified refactor.
   location wrapper (perhaps under `src/recording/`).
 - **`@react-native-async-storage/async-storage`** — `src/store/mapStore.ts`,
   `src/settings/preferencesStore.ts`. Natural boundary: a small persisted-preferences wrapper.
+- **`expo-file-system`** — `src/data/trails/gpx/readFile.ts`, `src/map/offline/diskSpace.ts`.
+  Two unrelated uses (reading a picked file; reading free disk space), so the natural boundary is
+  less obvious than the others — possibly two thin wrappers rather than one.
 
 ## Related checks
 
