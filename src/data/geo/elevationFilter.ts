@@ -6,6 +6,9 @@ export interface ElevationChange { gainMeters: number; lossMeters: number }
 // tame it: an average over a window of travelled distance — the unit that makes the cutoff
 // independent of how densely the source sampled — then a deadband that counts a reversal only
 // once it is larger than what the residual noise can fake.
+// Fixed, and deliberately not the user's elevation-smoothing setting: that one is a graph
+// legibility control (see elevation/slope.ts displaySlopeBands). Gain/loss written to the database
+// must not shift when a display preference changes.
 export const ELEVATION_SMOOTHING_WINDOW_METERS = 150
 export const ELEVATION_DEADBAND_METERS = 3
 

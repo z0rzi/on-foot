@@ -9,7 +9,7 @@ import { MapTokens } from '../theme/tokens'
 import { usePreferencesStore } from '../settings/preferencesStore'
 import { formatDistance, formatElevation } from '../data/geo/metrics'
 import { ElevationProfile, GradeBand, sampleAt } from './profile'
-import { smoothProfile, slopeBands } from './slope'
+import { displaySlopeBands } from './slope'
 import { buildBandAreas, buildBandLines } from './svg'
 import { slopeBandColour } from './slopeColour'
 import { useScrubStore } from './scrubStore'
@@ -57,8 +57,7 @@ export function ElevationGraph({
   const [cursor, setCursor] = useState<Cursor | null>(null)
   const floating = placement === 'floating'
 
-  const smoothed = useMemo(() => smoothProfile(profile, smoothing), [profile, smoothing])
-  const bands = useMemo(() => slopeBands(smoothed, smoothing), [smoothed, smoothing])
+  const { smoothed, bands } = useMemo(() => displaySlopeBands(profile, smoothing), [profile, smoothing])
   const areas = useMemo(
     () => (width === 0 ? [] : buildBandAreas(profile, bands, { width, height: PLOT_HEIGHT })),
     [profile, bands, width],

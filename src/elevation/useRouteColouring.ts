@@ -3,7 +3,7 @@ import type { ColouredLine } from '../map/provider/types'
 import { useTheme } from '../theme/useTheme'
 import { usePreferencesStore } from '../settings/preferencesStore'
 import { buildElevationProfile } from './profile'
-import { smoothProfile, slopeBands } from './slope'
+import { displaySlopeBands } from './slope'
 import { buildSlopeRuns } from './mapSlope'
 import { slopeBandColour } from './slopeColour'
 import type { GpxPoint } from '../data/trails/types'
@@ -19,7 +19,7 @@ export function useRouteColouring(segments: GpxPoint[][] | null): ColouredLine[]
     if (!segments) return undefined
     const profile = buildElevationProfile(segments)
     if (!profile) return undefined
-    const bands = slopeBands(smoothProfile(profile, smoothing), smoothing)
+    const { bands } = displaySlopeBands(profile, smoothing)
     return buildSlopeRuns(profile, bands).map((r) => ({
       coordinates: r.coordinates,
       color: slopeBandColour(r.band, c),

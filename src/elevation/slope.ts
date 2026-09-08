@@ -35,6 +35,22 @@ function segmentRanges(samples: ElevationSample[]): [number, number][] {
 
 export interface SlopeBand { start: number; end: number; band: GradeBand }
 
+export interface DisplayBanding {
+  smoothed: ElevationProfile
+  bands: SlopeBand[]
+}
+
+// Slope banding for display, and the only place the smoothing preference is applied. That
+// preference is a legibility control: it decides where colour bands begin and end, never what is
+// drawn or stored. Callers plot the raw profile and take only the boundaries from here, and stored
+// gain/loss uses the fixed window in data/geo/elevationFilter (enforced by architecture/importRules).
+// One value drives both the averaging window and the minimum run length because both exist for the
+// same reason — to stop the bands fragmenting into confetti.
+export function displaySlopeBands(profile: ElevationProfile, smoothingMeters: number): DisplayBanding {
+  const smoothed = smoothProfile(profile, smoothingMeters)
+  return { smoothed, bands: slopeBands(smoothed, smoothingMeters) }
+}
+
 export function slopeBands(smoothed: ElevationProfile, minRunMeters: number): SlopeBand[] {
   const s = smoothed.samples
   const bands: SlopeBand[] = []

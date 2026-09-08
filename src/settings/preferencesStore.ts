@@ -5,6 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 export type PaceSpeedMode = 'pace' | 'speed'
 export type ElevationGraphPlacement = 'floating' | 'inSheet'
 
+// Display only: widens the slope-colour bands on the elevation graph and the map route. It never
+// reaches stored metrics (see elevation/slope.ts displaySlopeBands, architecture/importRules).
 export const ELEVATION_SMOOTHING_PRESETS = [0, 25, 50, 100, 200] as const
 
 export function nextPaceSpeedMode(mode: PaceSpeedMode): PaceSpeedMode {

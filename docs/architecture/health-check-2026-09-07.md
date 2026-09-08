@@ -163,22 +163,43 @@ catch already shows "Could not start recording", and it is now telling the truth
 through its native failure — a path unreachable on a device. The four failure-path tests were
 mutation-checked: all four fail against the pre-fix controller and pass against the fixed one.
 
-## 5. Two sources of truth for elevation smoothing
+## 5. Elevation smoothing — RESOLVED 2026-09-08 (the original finding overstated it)
 
-- `src/data/geo/elevationFilter.ts:9-10` — fixed 150 m window / 3 m deadband, used by
-  `computeMetrics`, which produces the gain/loss values **written to the DB at import time**.
-- `src/settings/preferencesStore.ts:28` — user-selectable 0/25/50/100/200 m (default 50), used by
-  `ElevationGraph` and `useRouteColouring`.
+The finding as first written called this "two sources of truth" and claimed the gain/loss number and
+the curve above it disagreed. **Tracing every consumer showed the split was already correct**, and
+the owner has since confirmed the intended rule: *the smoothing setting is purely visual and must
+never modify data.*
 
-Consequence: in `TrailInfoSheet` the "Elev. Gain" tile and the curve directly above it come from
-differently-smoothed series, and moving the settings slider changes the graph but never the number.
+What is actually true, verified by tracing:
 
-Related conflation: `src/elevation/useRouteColouring.ts:22` passes the same preference as both the
-smoothing window *and* `minRunMeters` — two different physical quantities behind one slider.
+- The preference reaches only `ElevationGraph`, `useRouteColouring` and the settings screen. **No
+  file under `src/data/` reads it.** Stored gain/loss comes solely from the fixed 150 m / 3 m
+  pipeline in `data/geo/elevationFilter.ts`.
+- The preference does not even reshape what is *drawn*: `buildBandAreas` / `buildBandLines` /
+  `buildSlopeRuns` all take the **raw** profile for geometry and use the smoothed one only to decide
+  where colour bands begin and end. The plotted curve, the elevation readout and the distances are
+  raw throughout.
 
-**Direction:** decide whether stored metrics follow the preference (recompute on read) or the
-preference is graph-only (and say so in one place). If `minRunMeters` should stay coupled, make that
-explicit rather than incidental.
+So the only thing the setting changes is slope-band boundaries — exactly its purpose — plus the
+grade percentage in the scrub tooltip, where a smoothed value is the meaningful one to show.
+
+The real defects were that this contract was **undocumented, unenforced and duplicated**:
+
+- `slopeBands(smoothProfile(profile, smoothing), smoothing)` was computed independently in
+  `ElevationGraph` and `useRouteColouring`. Now a single `displaySlopeBands(profile, smoothing)` in
+  `elevation/slope.ts` — the one place the preference is applied, and where the contract is stated.
+- Nothing stopped a future change from wiring the preference into the metrics pipeline. Now enforced
+  by `src/architecture/importRules.ts`: no file under `src/data/` may import
+  `settings/preferencesStore`. Mutation-checked — adding that import to `data/geo/metrics.ts` fails
+  the suite.
+- Both constants now name their counterpart, so neither reads as the only smoothing in the app.
+
+The one-value-drives-two-parameters point stands but is deliberate and now stated: the preference
+feeds both the averaging window and `minRunMeters` because both exist to stop the colour bands
+fragmenting. It is one knob for one user-visible property — band busyness.
+
+**Lesson for this document:** a finding written from reading two files in isolation can invent a
+conflict that tracing disproves. Trace the consumers before calling something a defect.
 
 ## 6. Efficiency
 
@@ -260,8 +281,8 @@ a theme change, not a bug fix.
 
 1. ~~**Extract the shared trail/activity kit** (§1)~~ — **done 2026-09-07**, see the table in §1.
 2. ~~**Fix the recording rollback** (§4)~~ — **done 2026-09-08**, see §4.
-3. **Resolve the smoothing double-truth** (§5) — a user-visible inconsistency, and a design decision
-   that should be recorded once.
+3. ~~**Resolve the smoothing double-truth** (§5)~~ — **done 2026-09-08**; the split was already
+   correct, so the work was to document, deduplicate and enforce it. See §5.
 4. **Move the four pure blocks out of `.tsx` and TDD them** (§2), and close the unjustified disable (§3).
 5. **Hoist the `bandSamples` index and memoize the live metrics** (§6); add the schema/row assertion (§7).
 6. **Delete the dead exports and the placeholder UI** (§8).
