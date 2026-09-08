@@ -96,8 +96,9 @@ export interface MapViewProps {
   style?: StyleProp<ViewStyle>
 }
 
-// The one imperative camera affordance: a one-shot rotate back to north, used only when
-// follow is off (a declarative follow demote handles the compass-follow case).
+// The imperative camera affordances: one-shot moves with no declarative equivalent. Both are only
+// meaningful when follow is off — an imperative move is a no-op while rnmapbox is following, and the
+// compass-follow case is handled by a declarative follow demote instead.
 export interface CameraController {
   resetNorth(animated: boolean): void
   // One-shot fit to a geographic box (used to frame a selected trail). padding is

@@ -47,7 +47,7 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
 
     // The user's ticks are kept only while this key holds: they reset when the trail, the
     // downloaded set (by value, so an unrelated packs reload keeps them) or the current style changes.
-    const seedKey = `${trail.id}|${downloadedIds.join(',')}|${currentStyleId}`
+    const seedKey = JSON.stringify([trail.id, downloadedIds, currentStyleId])
     const [edit, setEdit] = useState<{ seedKey: string; selected: Set<string> } | null>(null)
     const selected = edit?.seedKey === seedKey ? edit.selected : seedSelection(downloadedIds, currentStyleId)
 
