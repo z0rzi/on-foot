@@ -80,7 +80,7 @@ by accidental drift (padding 12 vs 16, 1px of font size, written in different co
 difference was imperceptible on device — so the prop was removed and all five call sites now share
 the sheet metrics. Codifying accidental drift into a shared API is its own defect.
 
-## 2. Pure logic hiding inside `.tsx`, where the TDD rule cannot reach
+## 2. Pure logic hiding inside `.tsx`, where the TDD rule cannot reach — RESOLVED 2026-09-08
 
 *Principle: "Pure logic is TDD'd; native rendering is device-verified."*
 
@@ -95,10 +95,19 @@ decision logic ended up on the wrong side:
 - `src/map/MapScreen.tsx:53-69` — mode → which segments feed the elevation profile.
 - `src/elevation/ElevationGraph.tsx:31-41` — `lineWidth` / `lineContrast` band mapping.
 
-**Direction:** move each into a plain `.ts` module beside its feature and TDD it, following the
-`offline/badge.ts` precedent. Then either use `@testing-library/react-native` or drop the dependency.
+**Resolved.** Each block now lives in a plain `.ts` module beside its feature, test written first:
 
-## 3. The one unjustified lint escape — and it hides a pattern already burned down
+| Was in | Now | Tests |
+|---|---|---|
+| `TrailInfoSheet` menu ternary | `map/offline/menu.ts` `offlineMenuItems(state)` — exhaustive switch, sheet keeps only a handler map | one per badge kind |
+| `OfflineLayerChooser` adds/removes/bytes/hasChanges | `map/offline/plan.ts` `planOfflineChanges(rows, selected)` + `seedSelection` | 8 |
+| `MapScreen` mode → profile segments | `map/profileSource.ts` `profileSegmentsFor(mode, trail, activity, livePoints)` | 7 |
+| `ElevationGraph` line width/contrast | `elevation/bandStyle.ts` `bandLineWidth` / `bandLineContrast` — locks values *and* the "steeper uphill → thicker" property the comment promised | 8 |
+
+`@testing-library/react-native` is still an unused devDependency; dropping it is a one-line
+`package.json` change left for a dependency pass rather than bundled here.
+
+## 3. The one unjustified lint escape — and it hides a pattern already burned down — RESOLVED 2026-09-08
 
 *Principle: "No new `eslint-disable` without a one-line justification"; and see
 `docs/architecture/lint-debt.md`.*
@@ -119,6 +128,12 @@ during render. This one was missed.
 
 Same file, minor: `renderBackdrop` (line 80) is not memoized, while the sibling
 `src/map/LayersSheet.tsx:24` memoizes it — a forked pattern.
+
+**Resolved.** The effect and its disable are gone. The user's ticks are now *derived during render*,
+keyed by a value string `${trail.id}|${downloadedIds.join(',')}|${currentStyleId}` — the same
+by-value reset the old code wanted, but as a named key rather than a dep-array smuggle. Edits are
+kept only while that key holds, so an unrelated `packs` reload no longer wipes them either.
+`renderBackdrop` now matches `LayersSheet`. `grep eslint-disable` on the file returns nothing.
 
 ## 4. Recording start/resume have no rollback on partial failure — RESOLVED 2026-09-08
 
@@ -263,6 +278,12 @@ drizzle's insert model. `ActivityInsertValues`, `TrailInsertValues` and `Recordi
 are now `Omit<XRow, 'id'>` rather than the same field lists restated — the derivations compile, which
 is itself proof the copies were exact.
 
+*Retraction, for the record:* the §1 step-back recommended changing `useSelectedEntity`'s
+`revalidateOn: unknown` to `deps: DependencyList`. Verified wrong before doing it — spreading a
+`DependencyList` into an effect's dependency array is a `react-hooks/exhaustive-deps` **error**
+("spread element in its dependency array"), so it would have traded an odd-looking parameter for a
+justified disable. The single named trigger stays.
+
 *Scope note:* this catches a column the domain reads being renamed, retyped or made nullable. It does
 not flag a column *added* to the schema that no `Row` mentions — a wider drizzle row is still
 assignable to a narrower `Row`. That is correct: `Row` is the domain's view of the table, not a
@@ -300,6 +321,18 @@ no token for "text on an accent button": the three existing call sites spell it 
 is why a fourth reached for the plausible-sounding `c.controlsText` and shipped black-on-blue. An
 `onControlAccent` token would make the role nameable and stop the next occurrence. Not done — it is
 a theme change, not a bug fix.
+
+## 10. Found by device verification of the §8/§9 pass (2026-09-08)
+
+**Framing a route from 3D left the camera tilted — FIXED.** `recenter` and `select` both set
+`cameraPitch: pitchMin` (the spec's "flatten to 2D on focus"), and `MapCanvas` applied it as a
+declarative `pitch` prop — but one frame later fired the imperative `fitBounds`, which rnmapbox runs
+as a camera stop *without* a pitch, so the native camera kept its 60° and, being the later op, won.
+The 2D/3D label flipped (it reads the store) while the map stayed tilted. The follow button worked
+because `followPitch` rides inside native follow mode with no competing stop. Fixed at the port:
+`CameraController.fitBounds` now takes `pitch`, and the Mapbox adapter emits one `setCamera` stop
+carrying `bounds` + `padding` + `pitch` + `animationDuration`. Also covers selecting a trail from
+the list while in 3D — same effect. Native camera behaviour, device-verified rather than unit-tested.
 
 ## 8. Dead code and small snags — RESOLVED 2026-09-08
 
@@ -342,12 +375,13 @@ a theme change, not a bug fix.
 2. ~~**Fix the recording rollback** (§4)~~ — **done 2026-09-08**, see §4.
 3. ~~**Resolve the smoothing double-truth** (§5)~~ — **done 2026-09-08**; the split was already
    correct, so the work was to document, deduplicate and enforce it. See §5.
-4. **Move the four pure blocks out of `.tsx` and TDD them** (§2), and close the unjustified disable (§3).
+4. ~~**Move the four pure blocks out of `.tsx` and TDD them** (§2), and close the unjustified disable (§3)~~ — **done 2026-09-08.**
 5. ~~**Hoist the `bandSamples` index and memoize the live metrics** (§6)~~ — **done 2026-09-08**;
    ~~add the schema/row assertion (§7)~~ — **done 2026-09-08**, by removing the casts that hid it.
 6. ~~**Delete the dead exports and the placeholder UI** (§8)~~ — **done 2026-09-08.**
 7. ~~**Add an `onControlAccent` theme token** and retire the `c.surface`-as-button-text convention (§9)~~ — **done 2026-09-08.**
 
-**All sections resolved.** What remains are two recorded-not-done items: the dead `ended_at` column
+**All sections resolved** — this line was written once before, prematurely, while item 4 was still
+open; the retro caught it. It is true now. What remains are two recorded-not-done items: the dead `ended_at` column
 (needs a migration) and the seam candidates in `seams.md` (`expo-location`, async-storage,
 `expo-file-system`), each a device-verified refactor in its own right.

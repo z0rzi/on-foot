@@ -24,7 +24,9 @@ discretionary escape. See the "A check enforces a response, not an outcome" prin
   actually used (`app/activity/save.tsx`, `src/elevation/ElevationGraph.tsx`).
 - **`set-state-in-effect`** — selected/linked trail/activity now **derived during render** (keyed to
   the id it loaded) instead of cleared with a `setState` in an effect
-  (`useSelectedTrail`, `useSelectedActivity`, `ActivityInfoSheet`).
+  (`useSelectedTrail`, `useSelectedActivity`, `ActivityInfoSheet`); later `OfflineLayerChooser`'s
+  seeded ticks the same way, keyed by a value string, which also removed the last unjustified
+  `eslint-disable` in the codebase.
 - **`no-explicit-any` / `no-unused-expressions`** — real fixes where a proper type or statement was
   clearer (`provider/types.ts` `isValidCapabilities` → `unknown`, `MapViewProps.style` →
   `StyleProp<ViewStyle>`; `LayersSheet` ref cast; `OfflineLayerChooser` ternary → `if/else`).
