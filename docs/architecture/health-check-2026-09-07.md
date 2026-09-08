@@ -104,8 +104,7 @@ decision logic ended up on the wrong side:
 | `MapScreen` mode → profile segments | `map/profileSource.ts` `profileSegmentsFor(mode, trail, activity, livePoints)` | 7 |
 | `ElevationGraph` line width/contrast | `elevation/bandStyle.ts` `bandLineWidth` / `bandLineContrast` — locks values *and* the "steeper uphill → thicker" property the comment promised | 8 |
 
-`@testing-library/react-native` is still an unused devDependency; dropping it is a one-line
-`package.json` change left for a dependency pass rather than bundled here.
+`@testing-library/react-native` was an unused devDependency; removed 2026-09-08.
 
 ## 3. The one unjustified lint escape — and it hides a pattern already burned down — RESOLVED 2026-09-08
 
