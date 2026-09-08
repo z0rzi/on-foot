@@ -1,7 +1,6 @@
 import { asc, desc, eq } from 'drizzle-orm'
 import { ActivitiesRepository } from '../activities/repository'
 import {
-  ActivityRow, RecordingPointRow, RecordingSessionRow,
   inputToActivityValues, pointsToInsertValues,
   rowToActivity, rowToLivePoint, rowToSession, rowToSummary,
 } from '../activities/mapping'
@@ -19,7 +18,7 @@ export const sqliteActivitiesRepository: ActivitiesRepository = {
   async getActiveSession() {
     // The singleton unique index caps this table at one row, so a single unordered read is it.
     const rows = await db.select().from(recordingSessions).limit(1)
-    return rows.length ? rowToSession(rows[0] as RecordingSessionRow) : null
+    return rows.length ? rowToSession(rows[0]) : null
   },
   async appendPoints(sessionId, segment, points) {
     if (points.length === 0) return
@@ -31,7 +30,7 @@ export const sqliteActivitiesRepository: ActivitiesRepository = {
       .from(recordingPoints)
       .where(eq(recordingPoints.sessionId, sessionId))
       .orderBy(asc(recordingPoints.segment), asc(recordingPoints.t), asc(recordingPoints.id))
-    return (rows as RecordingPointRow[]).map(rowToLivePoint)
+    return rows.map(rowToLivePoint)
   },
   async markPaused(sessionId, pausedAt) {
     await db.update(recordingSessions).set({ pausedAt }).where(eq(recordingSessions.id, sessionId))
@@ -64,11 +63,11 @@ export const sqliteActivitiesRepository: ActivitiesRepository = {
   },
   async listSummaries() {
     const rows = await db.select().from(activities).orderBy(desc(activities.startedAt))
-    return (rows as ActivityRow[]).map(rowToSummary)
+    return rows.map(rowToSummary)
   },
   async getActivity(id) {
     const rows = await db.select().from(activities).where(eq(activities.id, id)).limit(1)
-    return rows.length ? rowToActivity(rows[0] as ActivityRow) : null
+    return rows.length ? rowToActivity(rows[0]) : null
   },
   async deleteActivity(id) {
     await db.delete(activities).where(eq(activities.id, id))

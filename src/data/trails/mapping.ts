@@ -13,17 +13,7 @@ export interface TrailRow {
   updatedAt: number
 }
 
-export interface TrailInsertValues {
-  name: string
-  difficulty: string
-  distanceMeters: number
-  elevationGainMeters: number | null
-  elevationLossMeters: number | null
-  description: string | null
-  geometry: string
-  createdAt: number
-  updatedAt: number
-}
+export type TrailInsertValues = Omit<TrailRow, 'id'>
 
 export function serializeGeometry(geometry: TrailGeometry): string {
   return JSON.stringify(geometry)

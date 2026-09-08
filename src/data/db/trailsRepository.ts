@@ -1,17 +1,17 @@
 import { desc, eq } from 'drizzle-orm'
 import { TrailsRepository } from '../trails/repository'
-import { inputToInsertValues, rowToSummary, rowToTrail, TrailRow, updateToValues } from '../trails/mapping'
+import { inputToInsertValues, rowToSummary, rowToTrail, updateToValues } from '../trails/mapping'
 import { db } from './client'
 import { trails } from './schema'
 
 export const sqliteTrailsRepository: TrailsRepository = {
   async listSummaries() {
     const rows = await db.select().from(trails).orderBy(desc(trails.createdAt))
-    return (rows as TrailRow[]).map(rowToSummary)
+    return rows.map(rowToSummary)
   },
   async getTrail(id) {
     const rows = await db.select().from(trails).where(eq(trails.id, id)).limit(1)
-    return rows.length ? rowToTrail(rows[0] as TrailRow) : null
+    return rows.length ? rowToTrail(rows[0]) : null
   },
   async createTrail(input) {
     const [inserted] = await db

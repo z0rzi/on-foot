@@ -21,20 +21,7 @@ export interface ActivityRow {
   createdAt: number
 }
 
-export interface ActivityInsertValues {
-  name: string
-  effort: string
-  comments: string | null
-  linkedTrailId: number | null
-  geometry: string
-  distanceMeters: number
-  durationSeconds: number
-  elevationGainMeters: number | null
-  elevationLossMeters: number | null
-  startedAt: number
-  endedAt: number
-  createdAt: number
-}
+export type ActivityInsertValues = Omit<ActivityRow, 'id'>
 
 export interface RecordingSessionRow {
   id: number
@@ -55,14 +42,7 @@ export interface RecordingPointRow {
   segment: number
 }
 
-export interface RecordingPointInsertValues {
-  sessionId: number
-  lat: number
-  lng: number
-  ele: number | null
-  t: number
-  segment: number
-}
+export type RecordingPointInsertValues = Omit<RecordingPointRow, 'id'>
 
 export interface ActivityFormFields {
   name: string

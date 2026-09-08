@@ -236,7 +236,7 @@ old code reconstructed the value as `a + (b - a) * 1`, the new one returns the s
 new result is the more accurate of the two. The differential harness was deleted after it passed —
 it required keeping a copy of the dead implementation, which is not worth maintaining.
 
-## 7. The persistence seam's cost is unenforced
+## 7. The persistence seam's cost is unenforced — RESOLVED 2026-09-08
 
 `ActivityRow` (`src/data/activities/mapping.ts:8`) and `TrailRow` (`src/data/trails/mapping.ts:3`)
 hand-mirror `src/data/db/schema.ts`, and the repositories cast blindly —
@@ -247,9 +247,26 @@ Keeping drizzle types out of the domain is the right call, but nothing links the
 column in `schema.ts` and TypeScript stays silent until runtime. Also `ActivityInsertValues`
 (`mapping.ts:24`) is exactly `Omit<ActivityRow, 'id'>` written out longhand.
 
-**Direction:** a compile-time assertion inside `src/data/db/` (the only place allowed to see drizzle
-types) that the inferred row type is assignable to the hand-written one — the seam stays intact and
-drift becomes a type error.
+**Resolved by deletion.** The six `as XRow` casts were removed and nothing else was added: drizzle's
+inferred select type was already structurally compatible with each hand-written `Row`, so the casts
+were not bridging a gap — they were *suppressing* the check TypeScript performs anyway when a
+drizzle row is passed to `rowToSummary(row: ActivityRow)`. With the casts gone, that call site is
+the assertion. The seam is untouched: `mapping.ts` still imports nothing from drizzle; the
+compatibility check happens inside `src/data/db/`, the one place allowed to see both types.
+
+Mutation-tested: renaming `comments` to `notes` in `schema.ts`, and separately dropping `.notNull()`
+from `name`, each fail `tsc` with an error pointing at the exact repository line. Before this change
+both compiled clean and failed at runtime.
+
+The insert direction needed nothing: `db.insert(t).values(x)` already type-checks `x` against
+drizzle's insert model. `ActivityInsertValues`, `TrailInsertValues` and `RecordingPointInsertValues`
+are now `Omit<XRow, 'id'>` rather than the same field lists restated — the derivations compile, which
+is itself proof the copies were exact.
+
+*Scope note:* this catches a column the domain reads being renamed, retyped or made nullable. It does
+not flag a column *added* to the schema that no `Row` mentions — a wider drizzle row is still
+assignable to a narrower `Row`. That is correct: `Row` is the domain's view of the table, not a
+mirror of it, and an unread column is not a runtime hazard.
 
 ## 9. Found by device verification of the §1 refactor (2026-09-07)
 
@@ -310,6 +327,6 @@ a theme change, not a bug fix.
    correct, so the work was to document, deduplicate and enforce it. See §5.
 4. **Move the four pure blocks out of `.tsx` and TDD them** (§2), and close the unjustified disable (§3).
 5. ~~**Hoist the `bandSamples` index and memoize the live metrics** (§6)~~ — **done 2026-09-08**;
-   add the schema/row assertion (§7).
+   ~~add the schema/row assertion (§7)~~ — **done 2026-09-08**, by removing the casts that hid it.
 6. **Delete the dead exports and the placeholder UI** (§8).
 7. **Add an `onControlAccent` theme token** and retire the `c.surface`-as-button-text convention (§9).

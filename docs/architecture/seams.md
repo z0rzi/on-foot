@@ -41,6 +41,15 @@ That is the whole process. One array entry; the test, the gate, and the docs fol
 | `persistence` | `expo-sqlite`, `drizzle-orm` | `src/data/db/` |
 | `net` | `@react-native-community/netinfo` | `src/net/` |
 
+## The persistence seam's row types are checked, not cast
+
+`src/data/*/mapping.ts` declares hand-written `Row` interfaces so the domain never imports drizzle
+types. The repositories in `src/data/db/` pass drizzle's inferred rows straight to those mapping
+functions with **no cast** — TypeScript checks the two shapes are compatible at that call. Renaming,
+retyping or changing the nullability of a column the domain reads is therefore a compile error at the
+repository line, not a runtime surprise. Never reintroduce `rows[0] as XRow`: it does not fix a type
+mismatch, it hides one.
+
 ## Candidates under review (not yet seams)
 
 These native modules are used in more than one place and would each become a seam once
