@@ -9,6 +9,14 @@ describe('buildElevationProfile', () => {
     expect(buildElevationProfile([seg([0, 0.001], [null, null])])).toBeNull()
   })
 
+  it('returns null for a lone sample: one point spans no run, so nothing can be plotted', () => {
+    expect(buildElevationProfile([seg([0], [100])])).toBeNull()
+  })
+
+  it('returns null when every sample sits at the same distance (recording while stationary)', () => {
+    expect(buildElevationProfile([seg([0, 0, 0], [100, 101, 100])])).toBeNull()
+  })
+
   it('accumulates cumulative distance and keeps elevation per sample', () => {
     const p = buildElevationProfile([seg([0, 0.001, 0.002], [100, 110, 105])])!
     expect(p.samples).toHaveLength(3)

@@ -22,8 +22,12 @@ export function buildElevationProfile(segments: ElePoint[][]): ElevationProfile 
       if (point.ele > maxEle) maxEle = point.ele
     }
   })
-  if (samples.length === 0) return null
-  return { samples, minEle, maxEle, totalDistance: samples[samples.length - 1].distance }
+  const totalDistance = samples.length ? samples[samples.length - 1].distance : 0
+  // A single sample — or several taken without moving — plots nothing: no run spans two points, so
+  // every band, area and line comes out empty. Returning a profile anyway makes callers reserve
+  // graph height for a blank graph (the recording controls jump up on the first fix).
+  if (samples.length < 2 || totalDistance <= 0) return null
+  return { samples, minEle, maxEle, totalDistance }
 }
 
 export type GradeBand = 'steep' | 'rough' | 'uphill' | 'flat' | 'downhill'
