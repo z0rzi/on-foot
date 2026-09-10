@@ -31,10 +31,11 @@ introducing a second one; a `Result`/tagged-return would have forked the file's 
 in two, and there is no such pattern anywhere in the data layer to follow.
 
 There is **no second instance to extract**. `parseGpx` has exactly one call site
-(`app/trail/new.tsx`): both entry points — the document picker in `app/(tabs)/trails.tsx:66-73`
-and the Android share intent via `src/trails/useIncomingShare.ts` — funnel through
-`router.push('/trail/new')`, so the guard exists once, at the source, and every future consumer
-inherits it.
+(`app/trail/new.tsx`): all three entry points converge on it — the document picker in
+`app/(tabs)/trails.tsx:66-73` and the Android share intent via `src/trails/useIncomingShare.ts`
+both `router.push('/trail/new')`, and a cold-start "Open with" is redirected there by
+`redirectSystemPath` in `app/+native-intent.ts:1-6` — so the guard exists once, at the source,
+and every future consumer inherits it.
 
 The alert shape follows the codebase's existing two-argument informational alerts
 (`OfflineLayerChooser.tsx:90`, `TrailForm.tsx:56`): title, one sentence, no buttons.
@@ -127,6 +128,15 @@ by the parser.
   and every existing test fixture carries a real `trkpt`, so nothing else changes behaviour.
 - **A malformed file still costs a full read and parse before the message.** Correct: there is
   no way to know a file is unusable without reading it.
+- **A `<rte>` element carrying no points no longer suppresses a file's `<trk>` geometry.**
+  Route-vs-track precedence is decided by routes that actually carry points, so route metadata
+  alongside a real track imports the track instead of being rejected as empty.
+- **On a cold-start "Open with" (`app/+native-intent.ts`), `/trail/new` is the only route on the
+  stack, so the `router.back()` after the alert is a no-op and the screen stays on its spinner.**
+  The dead end is pre-existing and affects the success path identically (`TrailForm` calls
+  `router.back()` after saving), so it is not a regression of this change and is left for a
+  backlog item of its own — but on that one path the user is now told what is wrong and still
+  stranded.
 
 ## Test plan (Jest, written first)
 
