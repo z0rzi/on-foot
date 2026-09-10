@@ -7,6 +7,10 @@ scope), root configs (`package.json`, `tsconfig.json`, `eslint.config.js`, `app.
 `expo-task-manager` patch). Excluded: `android/` (generated), `node_modules/`, the untracked
 workspace files (`.serena/`, `run-app.sh`, `.claude/agents/`) — tooling noise, not product code.
 
+**Progress.** Backlog item 1 (PERF-1, DUP-8) is done — `085d4da`, design in
+`docs/superpowers/specs/2026-09-10-onfoot-rn-selection-revalidation-design.md`. Everything below is
+the report as written against `9833610`; resolved findings are marked in place.
+
 **Method.** Every production `.ts`/`.tsx` file under `src/`, `app/` and `modules/share-intent` was
 read in full (~9.8k lines incl. tests; 173 files). Consumers of every suspected dead export were
 traced with `grep`; dependency usage was checked by import grep plus the installed packages'
@@ -151,7 +155,8 @@ third entity store appears. · **minor, accept**.
 clears the selection). Both paths are covered by the hook; the manual clear is the "freshness
 convention repeated at each call site" that `POST-WORK.md` warns will drift. · Fix: drop the manual
 clear, or — with PERF-1 — make the hook's revalidation key explicit so the guarantee is named in one
-place. · **minor, S**.
+place. · **minor, S**. · **Done** (`085d4da`): the manual clear is gone; both tabs clear through the
+hook.
 
 ### 3.3 Dead code
 
@@ -277,7 +282,11 @@ operations" cold path the previous report quantified, now triggered by switching
 owner of freshness — revalidate on a mutation version (a counter bumped in `addTrail` /
 `updateTrail` / `removeTrail`) instead of the list reference, and/or have `loadTrails` keep the
 previous array when the summaries are unchanged. Keeps the existing `clearSelection`-on-missing
-behaviour. · **should-fix, S**.
+behaviour. · **should-fix, S**. · **Done** (`085d4da`): both stores carry a `version` bumped only
+by a mutation, and the selection hooks subscribe to it. The "keep the previous array when the
+summaries are unchanged" half was rejected as unsound — `TrailUpdate` writes `description`, which is
+not a `TrailSummary` field, so a description-only edit would compare equal and leave the map sheet
+stale.
 
 **PERF-2 — Triple profile/banding derivation** · see DUP-2 (`MapScreen.tsx:53-56`,
 `useRouteColouring.ts:20-22`, `ElevationGraph.tsx:48`). Same cost class as PERF-1, on selection and
@@ -382,7 +391,7 @@ import rule in `POST-WORK.md` is followed (only the stores and the two selection
 
 | # | Item | Resolves | Benefit | Cost | Regression risk | Recommendation |
 |---|---|---|---|---|---|---|
-| 1 | Revalidate the selected entity on a mutation version, not the list reference | PERF-1, DUP-8 | High: stops a full DB read + map/graph rebuild on every tab switch; names the one owner of freshness | S | Low (hook has tests; behaviour on delete unchanged) | **now** |
+| 1 | ~~Revalidate the selected entity on a mutation version, not the list reference~~ | PERF-1, DUP-8 | High: stops a full DB read + map/graph rebuild on every tab switch; names the one owner of freshness | S | Low (store tests; behaviour on delete unchanged) | **done** — `085d4da` |
 | 2 | `parseGpx` rejects a file with no points; `new.tsx` shows one Alert for empty/invalid | ERR-2, TEST-2 | High: removes a silent path to a useless persisted trail | S | Low | **now** |
 | 3 | `resumeIfActive` stops an orphaned stream; save goes through a controller `finishRecording` | ERR-1 | Medium-high: battery + misleading notification; controller keeps its invariant | S | Low-medium (device-verify) | **now** |
 | 4 | Prune the six unused deps; pin `@types/jest`; ignore `.claude/`, `.serena/`, `run-app.sh` | DEP-1..4 | Medium: smaller install, honest `verify` scope, clean `git status` | S | Low (bundle check) | **now** |
