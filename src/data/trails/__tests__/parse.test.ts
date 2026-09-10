@@ -38,6 +38,10 @@ const MULTI_RTE = `<?xml version="1.0"?>
 <rte><rtept lat="3.0" lon="3.0"/></rte>
 <trk><trkseg><trkpt lat="9.0" lon="9.0"/></trkseg></trk></gpx>`
 
+const EMPTY_RTE_WITH_TRACK = `<?xml version="1.0"?>
+<gpx><rte><name>Route metadata only</name></rte>
+<trk><trkseg><trkpt lat="1.0" lon="2.0"/><trkpt lat="1.1" lon="2.1"/></trkseg></trk></gpx>`
+
 test('track: segments, elevation, waypoints, and track-name title', () => {
   const r = parseGpx(TRACK)
   expect(r.segments).toEqual([[
@@ -114,5 +118,11 @@ test('each route is its own segment, in document order, winning over tracks', ()
   expect(parseGpx(MULTI_RTE).segments).toEqual([
     [{ lat: 1.0, lng: 1.0, ele: null }, { lat: 2.0, lng: 2.0, ele: null }],
     [{ lat: 3.0, lng: 3.0, ele: null }],
+  ])
+})
+
+test('a route element with no points does not suppress the track', () => {
+  expect(parseGpx(EMPTY_RTE_WITH_TRACK).segments).toEqual([
+    [{ lat: 1.0, lng: 2.0, ele: null }, { lat: 1.1, lng: 2.1, ele: null }],
   ])
 })
