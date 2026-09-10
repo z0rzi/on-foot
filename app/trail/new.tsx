@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { readGpxFile } from '../../src/data/trails/gpx/readFile'
-import { parseGpx } from '../../src/data/trails/gpx/parse'
+import { GpxError, parseGpx } from '../../src/data/trails/gpx/parse'
 import { metricsForSegments } from '../../src/data/geo/metrics'
 import { useTrailsStore } from '../../src/store/trailsStore'
 import { TrailGeometry, TrailMetrics } from '../../src/data/trails/types'
@@ -35,11 +35,15 @@ export default function NewTrailScreen() {
         setMetrics(metricsForSegments(parsed.segments))
         setName(parsed.title ?? params.name ?? '')
         setLoading(false)
-      } catch {
-        if (!cancelled) {
-          setLoading(false)
-          router.back()
+      } catch (err) {
+        if (cancelled) return
+        setLoading(false)
+        if (err instanceof GpxError && err.reason === 'empty') {
+          Alert.alert('No route found', 'This GPX file has no route or track points to import.')
+        } else {
+          Alert.alert('Not a GPX file', 'This file could not be read as GPX.')
         }
+        router.back()
       }
     }
     void run()
