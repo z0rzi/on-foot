@@ -8,7 +8,7 @@ jest.mock('../../data/activities', () => ({
 }))
 
 import { useActivitiesStore } from '../activitiesStore'
-import { ActivitySummary } from '../../data/activities/types'
+import { ActivitySummary, NewActivityInput } from '../../data/activities/types'
 import { activitiesRepository } from '../../data/activities'
 
 const fakeRepo = activitiesRepository as jest.Mocked<typeof activitiesRepository>
@@ -18,10 +18,16 @@ const summary = (id: number): ActivitySummary => ({
   metrics: { distanceMeters: 0, durationSeconds: 0, elevationGainMeters: 0, elevationLossMeters: 0 },
   linkedTrailId: null, startedAt: id, createdAt: id,
 })
+const input: NewActivityInput = {
+  name: 'New', effort: 'moderate', comments: null, linkedTrailId: null,
+  geometry: { segments: [] },
+  metrics: { distanceMeters: 1, durationSeconds: 1, elevationGainMeters: 0, elevationLossMeters: 0 },
+  startedAt: 1, endedAt: 2,
+}
 
 beforeEach(() => {
   jest.clearAllMocks()
-  useActivitiesStore.setState({ activities: [] })
+  useActivitiesStore.setState({ activities: [], version: 0 })
 })
 
 test('loadActivities caches summaries from the repository', async () => {
@@ -37,4 +43,25 @@ test('removeActivity deletes via the repository and reloads the cache', async ()
   await useActivitiesStore.getState().removeActivity(1)
   expect(fakeRepo.deleteActivity).toHaveBeenCalledWith(1)
   expect(useActivitiesStore.getState().activities.map((a) => a.id)).toEqual([2])
+})
+
+test('loadActivities leaves the mutation version unchanged', async () => {
+  fakeRepo.listSummaries.mockResolvedValue([summary(1)])
+  await useActivitiesStore.getState().loadActivities()
+  await useActivitiesStore.getState().loadActivities()
+  expect(useActivitiesStore.getState().version).toBe(0)
+})
+
+test('saveActivity bumps the mutation version', async () => {
+  fakeRepo.saveActivity.mockResolvedValue(7)
+  fakeRepo.listSummaries.mockResolvedValue([summary(7)])
+  await useActivitiesStore.getState().saveActivity(3, input)
+  expect(useActivitiesStore.getState().version).toBe(1)
+})
+
+test('removeActivity bumps the mutation version', async () => {
+  fakeRepo.deleteActivity.mockResolvedValue(undefined)
+  fakeRepo.listSummaries.mockResolvedValue([])
+  await useActivitiesStore.getState().removeActivity(1)
+  expect(useActivitiesStore.getState().version).toBe(1)
 })

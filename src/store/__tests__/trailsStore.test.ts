@@ -3,6 +3,7 @@ jest.mock('../../data/trails', () => ({
     listSummaries: jest.fn(),
     getTrail: jest.fn(),
     createTrail: jest.fn(),
+    updateTrail: jest.fn(),
     deleteTrail: jest.fn(),
   },
 }))
@@ -26,7 +27,7 @@ const input: NewTrailInput = {
 
 beforeEach(() => {
   jest.clearAllMocks()
-  useTrailsStore.setState({ trails: [] })
+  useTrailsStore.setState({ trails: [], version: 0 })
 })
 
 test('loadTrails caches summaries from the repository', async () => {
@@ -51,4 +52,32 @@ test('removeTrail deletes via the repository and reloads the cache', async () =>
   await useTrailsStore.getState().removeTrail(1)
   expect(fakeRepo.deleteTrail).toHaveBeenCalledWith(1)
   expect(useTrailsStore.getState().trails.map((t) => t.id)).toEqual([2])
+})
+
+test('loadTrails leaves the mutation version unchanged', async () => {
+  fakeRepo.listSummaries.mockResolvedValue([summary(1)])
+  await useTrailsStore.getState().loadTrails()
+  await useTrailsStore.getState().loadTrails()
+  expect(useTrailsStore.getState().version).toBe(0)
+})
+
+test('addTrail bumps the mutation version', async () => {
+  fakeRepo.createTrail.mockResolvedValue(42)
+  fakeRepo.listSummaries.mockResolvedValue([summary(42)])
+  await useTrailsStore.getState().addTrail(input)
+  expect(useTrailsStore.getState().version).toBe(1)
+})
+
+test('updateTrail bumps the mutation version', async () => {
+  fakeRepo.updateTrail.mockResolvedValue(undefined)
+  fakeRepo.listSummaries.mockResolvedValue([summary(1)])
+  await useTrailsStore.getState().updateTrail(1, { name: 'Renamed', difficulty: 'hard', description: 'note' })
+  expect(useTrailsStore.getState().version).toBe(1)
+})
+
+test('removeTrail bumps the mutation version', async () => {
+  fakeRepo.deleteTrail.mockResolvedValue(undefined)
+  fakeRepo.listSummaries.mockResolvedValue([])
+  await useTrailsStore.getState().removeTrail(1)
+  expect(useTrailsStore.getState().version).toBe(1)
 })

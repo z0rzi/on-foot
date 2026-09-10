@@ -14,7 +14,6 @@ export default function ActivitiesScreen() {
   const loadActivities = useActivitiesStore((s) => s.loadActivities)
   const removeActivity = useActivitiesStore((s) => s.removeActivity)
   const select = useMapStore((s) => s.select)
-  const clearSelection = useMapStore((s) => s.clearSelection)
 
   useFocusEffect(useCallback(() => { void loadActivities() }, [loadActivities]))
 
@@ -38,15 +37,13 @@ export default function ActivitiesScreen() {
             text: 'Delete',
             style: 'destructive',
             onPress: () => {
-              const sel = useMapStore.getState().selection
-              if (sel?.kind === 'activity' && sel.id === activity.id) clearSelection()
               void removeActivity(activity.id)
             },
           },
         ],
       )
     },
-    [removeActivity, clearSelection],
+    [removeActivity],
   )
 
   return (

@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { useMapStore } from '../store/mapStore'
 
 // `load` sits in the effect's dep array, so callers pass a module-level function — an inline
-// arrow would reload on every render. `revalidateOn` is never read: it is the store list whose
-// change re-runs the load.
+// arrow would reload on every render. `mutationVersion` is the store's count of mutations to
+// the collection: it changes exactly when the entity may have changed, so a focus refresh of
+// the list does not re-read the entity.
 export function useSelectedEntity<T extends { id: number }>(
   kind: 'trail' | 'activity',
   load: (id: number) => Promise<T | null>,
-  revalidateOn: unknown,
+  mutationVersion: number,
 ): T | null {
   const selection = useMapStore((s) => s.selection)
   const clearSelection = useMapStore((s) => s.clearSelection)
@@ -27,7 +28,7 @@ export function useSelectedEntity<T extends { id: number }>(
     return () => {
       active = false
     }
-  }, [entityId, revalidateOn, clearSelection, load])
+  }, [entityId, mutationVersion, clearSelection, load])
 
   return entityId != null && loaded?.id === entityId ? loaded.entity : null
 }

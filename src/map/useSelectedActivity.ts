@@ -5,6 +5,6 @@ import { useSelectedEntity } from './useSelectedEntity'
 const loadActivity = (id: number) => activitiesRepository.getActivity(id)
 
 export function useSelectedActivity(): Activity | null {
-  const activities = useActivitiesStore((s) => s.activities)
-  return useSelectedEntity('activity', loadActivity, activities)
+  const version = useActivitiesStore((s) => s.version)
+  return useSelectedEntity('activity', loadActivity, version)
 }
