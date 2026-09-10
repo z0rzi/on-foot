@@ -1,4 +1,4 @@
-import { parseGpx } from '../gpx/parse'
+import { GpxError, parseGpx } from '../gpx/parse'
 
 const TRACK = `<?xml version="1.0"?>
 <gpx><metadata><name>Meta Name</name></metadata>
@@ -67,8 +67,40 @@ test('title falls back to metadata name, then to the provided fallback', () => {
   expect(parseGpx(NO_NAMES).title).toBeNull()
 })
 
-test('a point missing lat or lon throws', () => {
-  expect(() => parseGpx(MISSING_LAT)).toThrow()
+const EMPTY_ROOT = `<?xml version="1.0"?><gpx></gpx>`
+
+const EMPTY_SEG = `<?xml version="1.0"?>
+<gpx><trk><name>No Points</name><trkseg></trkseg></trk></gpx>`
+
+const WAYPOINTS_ONLY = `<?xml version="1.0"?>
+<gpx><wpt lat="1.0" lon="2.0"><name>WP</name></wpt></gpx>`
+
+function reasonOf(xml: string): string {
+  try {
+    parseGpx(xml)
+  } catch (err) {
+    return err instanceof GpxError ? err.reason : `not a GpxError: ${String(err)}`
+  }
+  return 'did not throw'
+}
+
+test('a document with no gpx root is a format failure', () => {
+  expect(reasonOf('hello world, not xml at all')).toBe('format')
+  expect(reasonOf('{"json":true}')).toBe('format')
+  expect(reasonOf('')).toBe('format')
+})
+
+test('a gpx root with no route or track points is an empty failure', () => {
+  expect(reasonOf(EMPTY_ROOT)).toBe('empty')
+  expect(reasonOf(EMPTY_SEG)).toBe('empty')
+})
+
+test('a waypoints-only file has no route to import', () => {
+  expect(reasonOf(WAYPOINTS_ONLY)).toBe('empty')
+})
+
+test('a point missing lat or lon is a format failure', () => {
+  expect(reasonOf(MISSING_LAT)).toBe('format')
 })
 
 test('each track segment is its own segment, in document order', () => {

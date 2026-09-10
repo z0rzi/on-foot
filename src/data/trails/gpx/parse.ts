@@ -7,6 +7,14 @@ export interface GpxParseResult {
   title: string | null
 }
 
+export type GpxFailure = 'format' | 'empty'
+
+export class GpxError extends Error {
+  constructor(readonly reason: GpxFailure, message: string) {
+    super(message)
+  }
+}
+
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: '@_',
@@ -39,7 +47,7 @@ function str(value: unknown): string | null {
 function requireCoord(node: any, kind: string): { lat: number; lng: number } {
   const lat = num(node?.['@_lat'])
   const lng = num(node?.['@_lon'])
-  if (lat === null || lng === null) throw new Error(`GPX ${kind} missing lat/lon`)
+  if (lat === null || lng === null) throw new GpxError('format', `GPX ${kind} missing lat/lon`)
   return { lat, lng }
 }
 
@@ -54,7 +62,8 @@ function toWaypoint(node: any): GpxWaypoint {
 }
 
 export function parseGpx(xml: string, fallbackName: string | null = null): GpxParseResult {
-  const gpx = parser.parse(xml)?.gpx ?? {}
+  const gpx = parser.parse(xml)?.gpx
+  if (gpx === undefined || gpx === null) throw new GpxError('format', 'No <gpx> root element')
 
   const waypoints = asArray(gpx.wpt).map(toWaypoint)
 
@@ -67,6 +76,7 @@ export function parseGpx(xml: string, fallbackName: string | null = null): GpxPa
         )
   /* eslint-enable @typescript-eslint/no-explicit-any */
   const nonEmpty = segments.filter((s) => s.length > 0)
+  if (nonEmpty.length === 0) throw new GpxError('empty', 'GPX has no route or track points')
 
   const trackTitle = str(asArray(gpx.trk)[0]?.name)
   const metadataTitle = str(gpx.metadata?.name)
