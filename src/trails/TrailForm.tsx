@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Alert, Pressable } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { Stack, useRouter } from 'expo-router'
+import { Stack } from 'expo-router'
 import { Difficulty, TrailMetrics } from '../data/trails/types'
 import { formatDistance, formatElevation } from '../data/geo/metrics'
 import { EnumSelector } from '../components/EnumSelector'
@@ -9,6 +9,7 @@ import { MetricsGrid } from '../components/MetricsGrid'
 import { FormField, FormScreen, FormTextInput, SubmitButton } from '../components/form'
 import { difficultyField } from './difficulty'
 import { useTheme } from '../theme/useTheme'
+import { useGoBackOrHome } from '../components/useGoBackOrHome'
 
 export interface TrailFormValues {
   name: string
@@ -34,7 +35,7 @@ export function TrailForm({
   onSubmit: (values: TrailFormValues) => Promise<void>
 }) {
   const c = useTheme()
-  const router = useRouter()
+  const leave = useGoBackOrHome()
   const [name, setName] = useState(initialName)
   const [difficulty, setDifficulty] = useState<Difficulty | null>(initialDifficulty)
   const [description, setDescription] = useState(initialDescription)
@@ -51,13 +52,12 @@ export function TrailForm({
         difficulty,
         description: description.trim().length > 0 ? description.trim() : null,
       })
-      router.back()
+      leave()
     } catch {
       Alert.alert('Could not save trail', 'Something went wrong while saving. Please try again.')
-    } finally {
       setSaving(false)
     }
-  }, [description, difficulty, name, onSubmit, router])
+  }, [description, difficulty, name, onSubmit, leave])
 
   return (
     <>
@@ -66,7 +66,7 @@ export function TrailForm({
           headerShown: true,
           title,
           headerLeft: () => (
-            <Pressable accessibilityLabel="Back" onPress={() => router.back()} hitSlop={8}>
+            <Pressable accessibilityLabel="Back" onPress={leave} hitSlop={8}>
               <Ionicons name="arrow-back" size={24} color={c.onSurface} />
             </Pressable>
           ),

@@ -5,6 +5,7 @@ import { readGpxFile } from '../../src/data/trails/gpx/readFile'
 import { GpxError, GpxParseResult, parseGpx } from '../../src/data/trails/gpx/parse'
 import { metricsForSegments } from '../../src/data/geo/metrics'
 import { useTrailsStore } from '../../src/store/trailsStore'
+import { useMapStore } from '../../src/store/mapStore'
 import { TrailGeometry, TrailMetrics } from '../../src/data/trails/types'
 import { TrailForm } from '../../src/trails/TrailForm'
 import { useTheme } from '../../src/theme/useTheme'
@@ -14,6 +15,7 @@ export default function NewTrailScreen() {
   const c = useTheme()
   const params = useLocalSearchParams<{ uri?: string; name?: string }>()
   const addTrail = useTrailsStore((s) => s.addTrail)
+  const select = useMapStore((s) => s.select)
   const leave = useGoBackOrHome()
 
   const [loading, setLoading] = useState(true)
@@ -69,7 +71,8 @@ export default function NewTrailScreen() {
       title="New Trail"
       submitLabel="I'm done"
       onSubmit={async ({ name: submittedName, difficulty, description }) => {
-        await addTrail({ name: submittedName, difficulty, description, metrics, geometry })
+        const id = await addTrail({ name: submittedName, difficulty, description, metrics, geometry })
+        select('trail', id)
       }}
     />
   )
