@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
-import { Stack } from 'expo-router'
 import { RecordingSession, TrackPoint, activitiesRepository } from '../../src/data/activities'
 import { activityMetricsFromSegments, buildNewActivityInput, groupPointsBySegment, lastTrackPoint } from '../../src/data/activities/mapping'
 import { useActivitiesStore } from '../../src/store/activitiesStore'
@@ -9,6 +8,7 @@ import { useRecordingStore } from '../../src/recording/recordingStore'
 import { ActivityForm } from '../../src/activities/ActivityForm'
 import { useTheme } from '../../src/theme/useTheme'
 import { useGoBackOrHome } from '../../src/components/useGoBackOrHome'
+import { ScreenHeader } from '../../src/components/ScreenHeader'
 
 export default function SaveActivityScreen() {
   const c = useTheme()
@@ -53,7 +53,7 @@ export default function SaveActivityScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: 'Save activity' }} />
+      <ScreenHeader title="Save activity" />
       <ActivityForm
         metrics={metrics}
         initialName=""
