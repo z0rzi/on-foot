@@ -82,15 +82,19 @@ present* root, so it lands in `empty` rather than `format`.
 ```ts
 } catch (err) {
   if (cancelled) return
-  setLoading(false)
   if (err instanceof GpxError && err.reason === 'empty') {
     Alert.alert('No route found', 'This GPX file has no route or track points to import.')
   } else {
     Alert.alert('Not a GPX file', 'This file could not be read as GPX.')
   }
-  router.back()
+  leave()
+  return
 }
 ```
+
+The `try` wraps only the read and the parse, so a fault in `metricsForSegments` or in a state
+setter is not reported as a bad file. `leave()` is the screen's exit, described under
+"Consequences accepted".
 
 Two messages, split on the issue the user can act on: the file is the wrong kind of file, or it
 is the right kind and carries nothing to import.
@@ -100,8 +104,11 @@ branch, and "could not be read as GPX" is honest for that case as well as for no
 That is why it needs no third message. It is also close to unreachable: the file was just
 picked or shared.
 
-The alert renders over the trails list after `router.back()`, matching how
-`OfflineLayerChooser`'s "Cannot download" already behaves.
+The alert's two-argument title-and-sentence shape follows `OfflineLayerChooser.tsx:90` and
+`TrailForm.tsx:56`. Raising an alert and leaving the screen in the same breath has no prior art
+here — `OfflineLayerChooser` alerts and returns without navigating — so whether the native
+dialog survives the navigation is the one behaviour in this change that only device
+verification can settle.
 
 ## Rejected alternatives
 

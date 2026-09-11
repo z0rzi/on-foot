@@ -211,15 +211,19 @@ Replace the current block (`} catch { if (!cancelled) { setLoading(false); route
 ```ts
       } catch (err) {
         if (cancelled) return
-        setLoading(false)
         if (err instanceof GpxError && err.reason === 'empty') {
           Alert.alert('No route found', 'This GPX file has no route or track points to import.')
         } else {
           Alert.alert('Not a GPX file', 'This file could not be read as GPX.')
         }
-        router.back()
+        leave()
+        return
       }
 ```
+
+**As shipped, this step went further than written here:** the `try` was narrowed to the read and
+the parse alone, and the exit became `leave()` — `router.canGoBack() ? router.back() :
+router.replace('/')` — after review. See the spec's "Consequences accepted".
 
 The `else` branch is also where a `readGpxFile` failure lands — a missing file or a permission
 error — and "could not be read as GPX" is honest for that case too, which is why there is no
