@@ -1,15 +1,11 @@
 import { useCallback, useState } from 'react'
-import { Alert, Pressable } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import { Stack } from 'expo-router'
+import { Alert } from 'react-native'
 import { Difficulty, TrailMetrics } from '../data/trails/types'
 import { formatDistance, formatElevation } from '../data/geo/metrics'
 import { EnumSelector } from '../components/EnumSelector'
 import { MetricsGrid } from '../components/MetricsGrid'
 import { FormField, FormScreen, FormTextInput, SubmitButton } from '../components/form'
 import { difficultyField } from './difficulty'
-import { useTheme } from '../theme/useTheme'
-import { useGoBackOrHome } from '../components/useGoBackOrHome'
 
 export interface TrailFormValues {
   name: string
@@ -22,7 +18,6 @@ export function TrailForm({
   initialName,
   initialDifficulty,
   initialDescription,
-  title,
   submitLabel,
   onSubmit,
 }: {
@@ -30,12 +25,9 @@ export function TrailForm({
   initialName: string
   initialDifficulty: Difficulty | null
   initialDescription: string
-  title: string
   submitLabel: string
   onSubmit: (values: TrailFormValues) => Promise<void>
 }) {
-  const c = useTheme()
-  const leave = useGoBackOrHome()
   const [name, setName] = useState(initialName)
   const [difficulty, setDifficulty] = useState<Difficulty | null>(initialDifficulty)
   const [description, setDescription] = useState(initialDescription)
@@ -52,55 +44,41 @@ export function TrailForm({
         difficulty,
         description: description.trim().length > 0 ? description.trim() : null,
       })
-      leave()
     } catch {
       Alert.alert('Could not save trail', 'Something went wrong while saving. Please try again.')
       setSaving(false)
     }
-  }, [description, difficulty, name, onSubmit, leave])
+  }, [description, difficulty, name, onSubmit])
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title,
-          headerLeft: () => (
-            <Pressable accessibilityLabel="Back" onPress={leave} hitSlop={8}>
-              <Ionicons name="arrow-back" size={24} color={c.onSurface} />
-            </Pressable>
-          ),
-        }}
+    <FormScreen>
+      <MetricsGrid
+        items={[
+          { label: 'Distance', value: formatDistance(metrics.distanceMeters) },
+          { label: 'Elevation Gain', value: formatElevation(metrics.elevationGainMeters) },
+          { label: 'Elevation Loss', value: formatElevation(metrics.elevationLossMeters) },
+        ]}
       />
-      <FormScreen>
-        <MetricsGrid
-          items={[
-            { label: 'Distance', value: formatDistance(metrics.distanceMeters) },
-            { label: 'Elevation Gain', value: formatElevation(metrics.elevationGainMeters) },
-            { label: 'Elevation Loss', value: formatElevation(metrics.elevationLossMeters) },
-          ]}
-        />
 
-        <FormField label="Name *">
-          <FormTextInput value={name} onChangeText={setName} placeholder="Trail name" />
-        </FormField>
+      <FormField label="Name *">
+        <FormTextInput value={name} onChangeText={setName} placeholder="Trail name" />
+      </FormField>
 
-        <FormField label="Difficulty *">
-          <EnumSelector field={difficultyField} value={difficulty} onChange={setDifficulty} />
-        </FormField>
+      <FormField label="Difficulty *">
+        <EnumSelector field={difficultyField} value={difficulty} onChange={setDifficulty} />
+      </FormField>
 
-        <FormField label="Description">
-          <FormTextInput value={description} onChangeText={setDescription} placeholder="Optional" multiline />
-        </FormField>
+      <FormField label="Description">
+        <FormTextInput value={description} onChangeText={setDescription} placeholder="Optional" multiline />
+      </FormField>
 
-        <SubmitButton
-          accessibilityLabel="Save trail"
-          label={submitLabel}
-          busy={saving}
-          disabled={!canSave}
-          onPress={onSave}
-        />
-      </FormScreen>
-    </>
+      <SubmitButton
+        accessibilityLabel="Save trail"
+        label={submitLabel}
+        busy={saving}
+        disabled={!canSave}
+        onPress={onSave}
+      />
+    </FormScreen>
   )
 }

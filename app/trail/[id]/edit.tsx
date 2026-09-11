@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, StyleSheet, View } from 'react-native'
-import { useLocalSearchParams } from 'expo-router'
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native'
+import { Stack, useLocalSearchParams } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 import { Trail, trailsRepository } from '../../../src/data/trails'
 import { useTrailsStore } from '../../../src/store/trailsStore'
 import { TrailForm } from '../../../src/trails/TrailForm'
@@ -40,17 +41,30 @@ export default function EditTrailScreen() {
   }
 
   return (
-    <TrailForm
-      metrics={trail.metrics}
-      initialName={trail.name}
-      initialDifficulty={trail.difficulty}
-      initialDescription={trail.description ?? ''}
-      title="Edit Trail"
-      submitLabel="Save changes"
-      onSubmit={async ({ name, difficulty, description }) => {
-        await updateTrail(id, { name, difficulty, description })
-      }}
-    />
+    <>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: 'Edit Trail',
+          headerLeft: () => (
+            <Pressable accessibilityLabel="Back" onPress={leave} hitSlop={8}>
+              <Ionicons name="arrow-back" size={24} color={c.onSurface} />
+            </Pressable>
+          ),
+        }}
+      />
+      <TrailForm
+        metrics={trail.metrics}
+        initialName={trail.name}
+        initialDifficulty={trail.difficulty}
+        initialDescription={trail.description ?? ''}
+        submitLabel="Save changes"
+        onSubmit={async ({ name, difficulty, description }) => {
+          await updateTrail(id, { name, difficulty, description })
+          leave()
+        }}
+      />
+    </>
   )
 }
 

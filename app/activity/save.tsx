@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import { Stack } from 'expo-router'
 import { RecordingSession, TrackPoint, activitiesRepository } from '../../src/data/activities'
 import { activityMetricsFromSegments, buildNewActivityInput, groupPointsBySegment, lastTrackPoint } from '../../src/data/activities/mapping'
 import { useActivitiesStore } from '../../src/store/activitiesStore'
@@ -51,21 +52,24 @@ export default function SaveActivityScreen() {
   const metrics = activityMetricsFromSegments(segments, session.startedAt, endedAt, session.pausedMs)
 
   return (
-    <ActivityForm
-      metrics={metrics}
-      initialName=""
-      initialEffort={null}
-      initialComments=""
-      onSave={async ({ name, effort, comments }) => {
-        await saveActivity(session.id, buildNewActivityInput(session, segments, { name, effort, comments }))
-        resetRecording()
-        goToMap()
-      }}
-      onDiscard={async () => {
-        await discardRecording(session.id)
-        goToMap()
-      }}
-    />
+    <>
+      <Stack.Screen options={{ headerShown: true, title: 'Save activity' }} />
+      <ActivityForm
+        metrics={metrics}
+        initialName=""
+        initialEffort={null}
+        initialComments=""
+        onSave={async ({ name, effort, comments }) => {
+          await saveActivity(session.id, buildNewActivityInput(session, segments, { name, effort, comments }))
+          resetRecording()
+          goToMap()
+        }}
+        onDiscard={async () => {
+          await discardRecording(session.id)
+          goToMap()
+        }}
+      />
+    </>
   )
 }
 

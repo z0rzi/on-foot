@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react'
 import { Alert, Pressable, StyleSheet, Text } from 'react-native'
-import { Stack } from 'expo-router'
 import { ActivityMetrics, Effort } from '../data/activities/types'
 import { formatDistance, formatElevation } from '../data/geo/metrics'
 import { formatDuration } from './format'
@@ -72,42 +71,39 @@ export function ActivityForm({
   }, [onDiscard])
 
   return (
-    <>
-      <Stack.Screen options={{ headerShown: true, title: 'Save activity' }} />
-      <FormScreen>
-        <MetricsGrid
-          items={[
-            { label: 'Distance', value: formatDistance(metrics.distanceMeters) },
-            { label: 'Duration', value: formatDuration(metrics.durationSeconds) },
-            { label: 'Elevation Gain', value: formatElevation(metrics.elevationGainMeters) },
-          ]}
-        />
+    <FormScreen>
+      <MetricsGrid
+        items={[
+          { label: 'Distance', value: formatDistance(metrics.distanceMeters) },
+          { label: 'Duration', value: formatDuration(metrics.durationSeconds) },
+          { label: 'Elevation Gain', value: formatElevation(metrics.elevationGainMeters) },
+        ]}
+      />
 
-        <FormField label="Name *">
-          <FormTextInput value={name} onChangeText={setName} placeholder="Activity name" />
-        </FormField>
+      <FormField label="Name *">
+        <FormTextInput value={name} onChangeText={setName} placeholder="Activity name" />
+      </FormField>
 
-        <FormField label="Effort *">
-          <EnumSelector field={effortField} value={effort} onChange={setEffort} />
-        </FormField>
+      <FormField label="Effort *">
+        <EnumSelector field={effortField} value={effort} onChange={setEffort} />
+      </FormField>
 
-        <FormField label="Comments">
-          <FormTextInput value={comments} onChangeText={setComments} placeholder="Optional" multiline />
-        </FormField>
+      <FormField label="Comments">
+        <FormTextInput value={comments} onChangeText={setComments} placeholder="Optional" multiline />
+      </FormField>
 
-        <SubmitButton
-          accessibilityLabel="Save activity"
-          label="Save activity"
-          busy={busy}
-          disabled={!canSave}
-          onPress={handleSave}
-        />
+      <SubmitButton
+        accessibilityLabel="Save activity"
+        label="Save activity"
+        busy={busy}
+        disabled={!canSave}
+        onPress={handleSave}
+      />
 
-        <Pressable accessibilityLabel="Discard activity" disabled={busy} onPress={handleDiscard} style={styles.discard}>
-          <Text style={[styles.discardLabel, { color: c.danger }]}>Discard</Text>
-        </Pressable>
-      </FormScreen>
-    </>
+      <Pressable accessibilityLabel="Discard activity" disabled={busy} onPress={handleDiscard} style={styles.discard}>
+        <Text style={[styles.discardLabel, { color: c.danger }]}>Discard</Text>
+      </Pressable>
+    </FormScreen>
   )
 }
 
