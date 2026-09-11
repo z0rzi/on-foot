@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { readGpxFile } from '../../src/data/trails/gpx/readFile'
 import { GpxError, GpxParseResult, parseGpx } from '../../src/data/trails/gpx/parse'
 import { metricsForSegments } from '../../src/data/geo/metrics'
@@ -8,19 +8,13 @@ import { useTrailsStore } from '../../src/store/trailsStore'
 import { TrailGeometry, TrailMetrics } from '../../src/data/trails/types'
 import { TrailForm } from '../../src/trails/TrailForm'
 import { useTheme } from '../../src/theme/useTheme'
+import { useGoBackOrHome } from '../../src/components/useGoBackOrHome'
 
 export default function NewTrailScreen() {
   const c = useTheme()
-  const router = useRouter()
   const params = useLocalSearchParams<{ uri?: string; name?: string }>()
   const addTrail = useTrailsStore((s) => s.addTrail)
-
-  // A system "Open with" cold-starts the app on this route, so there is no history to pop and a
-  // bare back() would strand the user here.
-  const leave = useCallback(
-    () => (router.canGoBack() ? router.back() : router.replace('/')),
-    [router],
-  )
+  const leave = useGoBackOrHome()
 
   const [loading, setLoading] = useState(true)
   const [metrics, setMetrics] = useState<TrailMetrics | null>(null)
