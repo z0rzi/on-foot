@@ -65,6 +65,9 @@ function toWaypoint(node: any): GpxWaypoint {
 export function parseGpx(xml: string, fallbackName: string | null = null): GpxParseResult {
   const gpx = parser.parse(xml)?.gpx
   if (gpx === undefined || gpx === null) throw new GpxError('format', 'No <gpx> root element')
+  if (typeof gpx === 'string' && gpx.trim().length > 0) {
+    throw new GpxError('format', 'The <gpx> root has no elements')
+  }
 
   const waypoints = asArray(gpx.wpt).map(toWaypoint)
 
@@ -76,7 +79,7 @@ export function parseGpx(xml: string, fallbackName: string | null = null): GpxPa
           asArray(trk.trkseg).map((seg: any) => asArray(seg.trkpt).map(toPoint)),
         )
   /* eslint-enable @typescript-eslint/no-explicit-any */
-  const nonEmpty = segments.filter((s) => s.length > 0)
+  const nonEmpty = segments.filter((s) => s.length >= 2)
   if (nonEmpty.length === 0) throw new GpxError('empty', 'GPX has no route or track points')
 
   const trackTitle = str(asArray(gpx.trk)[0]?.name)
