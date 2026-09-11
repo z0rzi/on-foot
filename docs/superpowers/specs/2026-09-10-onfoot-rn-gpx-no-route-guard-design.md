@@ -71,11 +71,32 @@ bare `Error` today, so this establishes the pattern rather than forking one.
 explicit check. `requireCoord`'s existing missing-lat/lon throw becomes a `format` failure too:
 a GPX whose points have no coordinates is malformed, not empty.
 
-**`empty`** — there is a `<gpx>` root, but zero non-empty segments. Thrown where `nonEmpty` is
+**`empty`** — there is a `<gpx>` root, but zero drawable segments. Thrown where `nonEmpty` is
 computed, so it covers `<gpx></gpx>`, an empty `<trkseg>`, and a waypoints-only file.
 
 The boundary between the two was checked: `<gpx></gpx>` parses to `gpx: ""`, an empty *but
 present* root, so it lands in `empty` rather than `format`.
+
+### A segment needs two points to be a route
+
+A segment of one point draws nothing and contributes no distance, so the floor is two points,
+applied per segment in both places a segment is judged:
+
+- **The route filter** (`asArray(gpx.rte).filter((rte) => asArray(rte.rtept).length >= 2)`) —
+  a `<rte>` with fewer than two `<rtept>`s does not count as a real route, so it no longer wins
+  precedence over a `<trk>` in the same file and no longer suppresses it.
+- **The segment filter** (`segments.filter((s) => s.length >= 2)`) — the same floor applied
+  after routes/tracks are turned into segments, so a one-point `<trkseg>` (or a route that
+  slipped past the first filter as part of a `<gpx>` with no track fallback) is dropped there
+  too.
+
+Both guards use the same floor deliberately: a route or track that cannot be drawn should not
+be treated as present at either stage.
+
+This is **stricter** than `src/map/MapCanvas.tsx:54`'s `hasTrail = pointCount(segments) >= 2`,
+which aggregates the point count across *all* segments — two separate one-point segments would
+satisfy `hasTrail` there. The parser's floor is per segment: two one-point segments are each
+rejected here, deliberately, because neither could be drawn as a line on its own.
 
 ### The screen names the actual issue
 
@@ -138,6 +159,14 @@ by the parser.
 - **A `<rte>` element carrying no points no longer suppresses a file's `<trk>` geometry.**
   Route-vs-track precedence is decided by routes that actually carry points, so route metadata
   alongside a real track imports the track instead of being rejected as empty.
+- **A single-point route or track is now rejected outright.** A file whose only geometry is one
+  `<rtept>` or one `<trkpt>` used to slip through as a one-point segment; it now fails as
+  `empty`, a user-visible rejection ("No route found") that did not previously happen.
+- **A one-point segment inside an otherwise valid multi-segment file is dropped silently.** If
+  one segment of a multi-segment track (or one route among several) has only one point, it is
+  filtered out while its siblings import normally — no error, no partial-import notice. This
+  costs nothing numerically (a lone point contributes no distance and no elevation delta), but
+  it is real, undocumented-elsewhere behaviour: the user is not told a segment was dropped.
 - **On a cold-start "Open with" (`app/+native-intent.ts`), `/trail/new` is the only route on the
   stack, so a bare `router.back()` is a no-op and would leave the user on the spinner.** Every
   exit from the trail form now goes through the shared `useGoBackOrHome(fallback)` hook, which
@@ -145,12 +174,25 @@ by the parser.
   no history to pop. `TrailForm` renders neither navigation nor navigation chrome — no
   `Stack.Screen`, no header back button — and takes no `onBack`/`title` prop; each host screen
   (`app/trail/new.tsx`, `app/trail/[id]/edit.tsx`) owns its own `Stack.Screen`, header, and back
-  button, wired to that screen's own `leave`. A successful import lands on `/trails`, a
-  successful edit returns wherever the user came from. The remaining unguarded exit is
-  `app/settings/offline.tsx:17`, not reached by this change. `ActivityForm` and its host
-  `app/activity/save.tsx` follow the same split, so the pair stays aligned. Carrying neither
-  navigation nor its chrome is what lets `TrailForm` later be hosted on the map screen for a live
-  preview, where there is no stack header at all.
+  button, wired to that screen's own `leave`. A successful import lands on `/trails` when the
+  screen was entered cold (picker or "Open with"); a *warm* share intent
+  (`src/trails/useIncomingShare.ts` pushes `/trail/new` while the user is elsewhere in the app)
+  has history behind it, so `leave()` pops back to wherever the user was instead. A successful
+  edit likewise returns wherever the user came from. `app/settings/offline.tsx` was pulled into
+  this feature's scope: it now uses both `useGoBackOrHome` and `ScreenHeader`, so there is no
+  remaining unguarded exit. `ActivityForm` and its host `app/activity/save.tsx` follow the same
+  split, so the pair stays aligned. Carrying neither navigation nor its chrome is what lets
+  `TrailForm` later be hosted on the map screen for a live preview, where there is no stack
+  header at all.
+- **Navigation chrome was extracted into `src/components/ScreenHeader.tsx`.** The same
+  `Stack.Screen` header-with-back-button block appeared in three screens once navigation chrome
+  moved out of the form components; the duplication gate caught the repetition, and rather than
+  add a `DUPLICATION_EXEMPT` entry the shared shape became `ScreenHeader`. `onBack` is optional
+  on it — rendering `headerLeft` only when provided — so `app/activity/save.tsx`, whose screen
+  deliberately has no back button (the user must Save or Discard), can use it too without a
+  different call shape. All four header sites (`app/trail/new.tsx`, `app/trail/[id]/edit.tsx`,
+  `app/settings/offline.tsx`, `app/activity/save.tsx`) now use `ScreenHeader`, and
+  `DUPLICATION_EXEMPT` is back to the empty array it was before this branch.
 - **A successful import no longer selects the imported trail on the map.** The trails list is the
   confirmation instead: the new row is visible there, and tapping it reaches the map with the
   trail framed.
@@ -167,8 +209,11 @@ by the parser.
 - a document with only `<wpt>` waypoints → `empty`
 - the existing missing-lat/lon case, tightened from `.toThrow()` to `format`
 
-The seven existing tests stay green unchanged: every fixture, `METADATA_ONLY` and `NO_NAMES`
-included, carries a real `trkpt`.
+The seven existing tests stay green, but not unchanged: raising the floor to two points meant
+five fixtures (`NAMESPACED`, `METADATA_ONLY`, `NO_NAMES`, `MULTI_SEG`, `MULTI_RTE`) each gained
+a second point, since a single-`trkpt`/`rtept` fixture would now fail with `empty` instead of
+exercising what its test names. Each test still proves what its name claims once its fixture
+carries two points.
 
 `app/trail/new.tsx` gains no test. The React Native testing library was removed in `a8e4793`,
 and this repo's rule is that pure logic is TDD'd while rendering is device-verified. The

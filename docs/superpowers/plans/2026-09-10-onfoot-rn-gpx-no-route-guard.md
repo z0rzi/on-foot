@@ -304,3 +304,32 @@ Task 1 Steps 1, 3, 4 and Task 2 Steps 1, 2. `reasonOf` is defined once, in the t
 `'hello world'`, `''` and `'{"json":true}'` → `{}` (no root → `format`); `<gpx></gpx>` → `gpx: ""`
 (present root → falls through to `empty`); `<gpx><trk><trkseg></trkseg></trk></gpx>` → no points
 (→ `empty`).
+
+## Record: what was actually built, beyond this plan
+
+**The two-point floor.** Task 1 as written stopped at "zero non-empty segments" (`s.length > 0`).
+A follow-up commit on this branch raised both guards' floor to two points: the route filter
+(`asArray(rte.rtept).length >= 2`, was `> 0`) and the segment filter (`s.length >= 2`, was
+`> 0`). A segment of one point draws nothing and contributes no distance, so a `<rte>` or
+`<trkseg>` carrying exactly one point is now rejected the same way an empty one is — including
+a one-point `<rte>` that would otherwise have won precedence over a real `<trk>` and suppressed
+it. Five existing fixtures (`NAMESPACED`, `METADATA_ONLY`, `NO_NAMES`, `MULTI_SEG`, `MULTI_RTE`)
+needed a second point added to keep exercising what their test names claim, and one new test,
+`a route with too few points to draw does not suppress the track`, pins the precedence case.
+See the design doc's "A segment needs two points to be a route" section and its comparison
+against `src/map/MapCanvas.tsx:54`'s aggregate `hasTrail` check.
+
+**The `ScreenHeader` extraction.** The `Stack.Screen` header-with-back-button block this plan
+has each of `app/trail/new.tsx` and `app/trail/[id]/edit.tsx` own inline (Task 1's spec
+reference, "Consequences accepted") also appeared in `app/settings/offline.tsx`, which this
+plan does not mention; three instances tripped the duplication gate, and the shared shape was
+extracted to `src/components/ScreenHeader.tsx` rather than exempted. `app/activity/save.tsx`
+hand-rolled its own header with no back button (Save/Discard replace it); `ScreenHeader` gained
+an optional `onBack`, rendering `headerLeft` only when provided, so that screen could adopt it
+too without a different call shape. All four screens now use `ScreenHeader`, and
+`useGoBackOrHome`'s `fallback` parameter was narrowed from `Href` to `Extract<Href, string>`
+since it is a `useCallback` dependency and an object-typed `Href` would change identity every
+render.
+
+**Task 3 (this plan) is still outstanding** — the review doc has not been annotated, and that
+remains legitimately unticked above.
