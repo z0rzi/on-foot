@@ -255,7 +255,8 @@ Ask the user to confirm on-device:
 2. Import a GPX whose `<trkseg>` is empty → alert **"No route found"**, returned to the trails list.
 3. Import a normal GPX via the picker → unchanged: the form opens with the right name and metrics.
 4. Import a normal GPX via the Android share sheet → same as 3, since all entry paths route through this screen.
-5. Cold-start "Open with": kill the app, long-press a corrupt `.gpx` in a file manager and open it with On Foot → alert **"Not a GPX file"**, then the map screen. This path starts with no history to pop, so it exercises the `canGoBack` fallback; confirm you are not left on the spinner.
+5. Cold-start "Open with": kill the app, long-press a corrupt `.gpx` in a file manager and open it with On Foot → alert **"Not a GPX file"**, then the trails list. This path starts with no history to pop, so it exercises the `canGoBack` fallback; confirm you are not left on the spinner.
+6. Cold-start "Open with" a *valid* GPX (e.g. opening a file from Telegram) → the form appears; submitting once lands on the trails list with exactly one new trail, and pressing submit repeatedly is impossible because the button disables on success.
 
 ---
 

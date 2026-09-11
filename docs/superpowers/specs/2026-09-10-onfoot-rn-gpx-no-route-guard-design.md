@@ -105,7 +105,7 @@ That is why it needs no third message. It is also close to unreachable: the file
 picked or shared.
 
 The alert's two-argument title-and-sentence shape follows `OfflineLayerChooser.tsx:90` and
-`TrailForm.tsx:56`. Raising an alert and leaving the screen in the same breath has no prior art
+`TrailForm.tsx:48`. Raising an alert and leaving the screen in the same breath has no prior art
 here — `OfflineLayerChooser` alerts and returns without navigating — so whether the native
 dialog survives the navigation is the one behaviour in this change that only device
 verification can settle.
@@ -139,12 +139,21 @@ by the parser.
   Route-vs-track precedence is decided by routes that actually carry points, so route metadata
   alongside a real track imports the track instead of being rejected as empty.
 - **On a cold-start "Open with" (`app/+native-intent.ts`), `/trail/new` is the only route on the
-  stack, so a bare `router.back()` is a no-op and would leave the user on the spinner.** The
-  screen therefore leaves through `router.canGoBack() ? router.back() : router.replace('/')`,
-  the guard `app/activity/save.tsx:21-23` already established for a route that can be entered
-  without history. The same unguarded `back()` remains on the *success* path
-  (`src/trails/TrailForm.tsx:54`) and in `app/trail/[id]/edit.tsx:24`; both are pre-existing, are
-  not reached by this change, and belong to a consistency sweep of their own.
+  stack, so a bare `router.back()` is a no-op and would leave the user on the spinner.** Every
+  exit from the trail form now goes through the shared `useGoBackOrHome(fallback)` hook, which
+  falls back to a caller-chosen route instead of stranding the user on the spinner when there is
+  no history to pop. `TrailForm` renders neither navigation nor navigation chrome — no
+  `Stack.Screen`, no header back button — and takes no `onBack`/`title` prop; each host screen
+  (`app/trail/new.tsx`, `app/trail/[id]/edit.tsx`) owns its own `Stack.Screen`, header, and back
+  button, wired to that screen's own `leave`. A successful import lands on `/trails`, a
+  successful edit returns wherever the user came from. The remaining unguarded exit is
+  `app/settings/offline.tsx:17`, not reached by this change. `ActivityForm` and its host
+  `app/activity/save.tsx` follow the same split, so the pair stays aligned. Carrying neither
+  navigation nor its chrome is what lets `TrailForm` later be hosted on the map screen for a live
+  preview, where there is no stack header at all.
+- **A successful import no longer selects the imported trail on the map.** The trails list is the
+  confirmation instead: the new row is visible there, and tapping it reaches the map with the
+  trail framed.
 
 ## Test plan (Jest, written first)
 
