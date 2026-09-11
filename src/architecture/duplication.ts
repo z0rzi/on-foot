@@ -13,22 +13,7 @@ export interface DuplicateExemption {
   rationale: string
 }
 
-export const DUPLICATION_EXEMPT: DuplicateExemption[] = [
-  {
-    path: 'app/trail/new.tsx',
-    rationale:
-      'Shares its Stack.Screen header (title, back button) verbatim with app/trail/[id]/edit.tsx. ' +
-      'That chrome belongs to each route, not to the shared TrailForm it hosts, and a third host ' +
-      '(the map screen) will have none of it, so it is not extracted into a shared component.',
-  },
-  {
-    path: 'app/trail/[id]/edit.tsx',
-    rationale:
-      'Shares its Stack.Screen header (title, back button) verbatim with app/trail/new.tsx. ' +
-      'That chrome belongs to each route, not to the shared TrailForm it hosts, and a third host ' +
-      '(the map screen) will have none of it, so it is not extracted into a shared component.',
-  },
-]
+export const DUPLICATION_EXEMPT: DuplicateExemption[] = []
 
 export interface CodeLocation {
   file: string

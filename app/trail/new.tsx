@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native'
-import { Stack, useLocalSearchParams } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native'
+import { useLocalSearchParams } from 'expo-router'
 import { readGpxFile } from '../../src/data/trails/gpx/readFile'
 import { GpxError, GpxParseResult, parseGpx } from '../../src/data/trails/gpx/parse'
 import { metricsForSegments } from '../../src/data/geo/metrics'
@@ -10,6 +9,7 @@ import { TrailGeometry, TrailMetrics } from '../../src/data/trails/types'
 import { TrailForm } from '../../src/trails/TrailForm'
 import { useTheme } from '../../src/theme/useTheme'
 import { useGoBackOrHome } from '../../src/components/useGoBackOrHome'
+import { ScreenHeader } from '../../src/components/ScreenHeader'
 
 export default function NewTrailScreen() {
   const c = useTheme()
@@ -63,17 +63,7 @@ export default function NewTrailScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: 'New Trail',
-          headerLeft: () => (
-            <Pressable accessibilityLabel="Back" onPress={leave} hitSlop={8}>
-              <Ionicons name="arrow-back" size={24} color={c.onSurface} />
-            </Pressable>
-          ),
-        }}
-      />
+      <ScreenHeader title="New Trail" onBack={leave} />
       <TrailForm
         metrics={metrics}
         initialName={name}
