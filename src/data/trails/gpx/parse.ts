@@ -71,7 +71,7 @@ export function parseGpx(xml: string, fallbackName: string | null = null): GpxPa
 
   const waypoints = asArray(gpx.wpt).map(toWaypoint)
 
-  const routes = asArray(gpx.rte).filter((rte: any) => asArray(rte.rtept).length > 0)
+  const routes = asArray(gpx.rte).filter((rte: any) => asArray(rte.rtept).length >= 2)
   const segments: GpxPoint[][] =
     routes.length > 0
       ? routes.map((rte: any) => asArray(rte.rtept).map(toPoint))

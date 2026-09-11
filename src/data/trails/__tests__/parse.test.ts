@@ -144,6 +144,16 @@ test('a segment of one point cannot be drawn and is an empty failure', () => {
   expect(reasonOf(ONE_POINT_TRK)).toBe('empty')
 })
 
+const ONE_POINT_RTE_WITH_TRACK = `<?xml version="1.0"?>
+<gpx><rte><name>Stub</name><rtept lat="1.0" lon="2.0"/></rte>
+<trk><trkseg><trkpt lat="3.0" lon="4.0"/><trkpt lat="3.1" lon="4.1"/></trkseg></trk></gpx>`
+
+test('a route with too few points to draw does not suppress the track', () => {
+  expect(parseGpx(ONE_POINT_RTE_WITH_TRACK).segments).toEqual([
+    [{ lat: 3.0, lng: 4.0, ele: null }, { lat: 3.1, lng: 4.1, ele: null }],
+  ])
+})
+
 test('a gpx root holding only text is a format failure, but an empty root is not', () => {
   expect(reasonOf(TEXT_ROOT)).toBe('format')
   expect(reasonOf(EMPTY_ROOT)).toBe('empty')
