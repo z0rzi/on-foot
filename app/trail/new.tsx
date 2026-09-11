@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { readGpxFile } from '../../src/data/trails/gpx/readFile'
@@ -15,6 +15,13 @@ export default function NewTrailScreen() {
   const params = useLocalSearchParams<{ uri?: string; name?: string }>()
   const addTrail = useTrailsStore((s) => s.addTrail)
 
+  // A system "Open with" cold-starts the app on this route, so there is no history to pop and a
+  // bare back() would strand the user here.
+  const leave = useCallback(
+    () => (router.canGoBack() ? router.back() : router.replace('/')),
+    [router],
+  )
+
   const [loading, setLoading] = useState(true)
   const [metrics, setMetrics] = useState<TrailMetrics | null>(null)
   const [geometry, setGeometry] = useState<TrailGeometry | null>(null)
@@ -24,7 +31,7 @@ export default function NewTrailScreen() {
     let cancelled = false
     async function run() {
       if (!params.uri) {
-        router.back()
+        leave()
         return
       }
       let parsed: GpxParseResult
@@ -38,7 +45,7 @@ export default function NewTrailScreen() {
         } else {
           Alert.alert('Not a GPX file', 'This file could not be read as GPX.')
         }
-        router.back()
+        leave()
         return
       }
       if (cancelled) return
@@ -49,7 +56,7 @@ export default function NewTrailScreen() {
     }
     void run()
     return () => { cancelled = true }
-  }, [params.uri, params.name, router])
+  }, [params.uri, params.name, leave])
 
   if (loading || !metrics || !geometry) {
     return (

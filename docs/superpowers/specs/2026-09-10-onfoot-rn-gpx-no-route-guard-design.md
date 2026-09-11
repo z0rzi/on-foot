@@ -132,11 +132,12 @@ by the parser.
   Route-vs-track precedence is decided by routes that actually carry points, so route metadata
   alongside a real track imports the track instead of being rejected as empty.
 - **On a cold-start "Open with" (`app/+native-intent.ts`), `/trail/new` is the only route on the
-  stack, so the `router.back()` after the alert is a no-op and the screen stays on its spinner.**
-  The dead end is pre-existing and affects the success path identically (`TrailForm` calls
-  `router.back()` after saving), so it is not a regression of this change and is left for a
-  backlog item of its own — but on that one path the user is now told what is wrong and still
-  stranded.
+  stack, so a bare `router.back()` is a no-op and would leave the user on the spinner.** The
+  screen therefore leaves through `router.canGoBack() ? router.back() : router.replace('/')`,
+  the guard `app/activity/save.tsx:21-23` already established for a route that can be entered
+  without history. The same unguarded `back()` remains on the *success* path
+  (`src/trails/TrailForm.tsx:54`) and in `app/trail/[id]/edit.tsx:24`; both are pre-existing, are
+  not reached by this change, and belong to a consistency sweep of their own.
 
 ## Test plan (Jest, written first)
 
