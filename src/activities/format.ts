@@ -49,3 +49,8 @@ export function formatSpeed(distanceMeters: number, durationSeconds: number): st
   const kmh = distanceMeters / 1000 / (durationSeconds / 3600)
   return kmh.toFixed(1)
 }
+
+export function formatClockTime(timestamp: number): string {
+  const d = new Date(timestamp)
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+}

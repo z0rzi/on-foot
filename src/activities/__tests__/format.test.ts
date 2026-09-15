@@ -1,4 +1,4 @@
-import { formatDuration, formatActivityDate, formatActivitySummary, formatPace, formatSpeed, formatStopwatch } from '../format'
+import { formatClockTime, formatDuration, formatActivityDate, formatActivitySummary, formatPace, formatSpeed, formatStopwatch } from '../format'
 import { ActivityMetrics } from '../../data/activities/types'
 
 describe('formatDuration', () => {
@@ -84,5 +84,12 @@ describe('formatStopwatch', () => {
   it('floors fractional seconds and clamps negatives to zero', () => {
     expect(formatStopwatch(59.9)).toBe('0:59')
     expect(formatStopwatch(-5)).toBe('0:00')
+  })
+})
+
+describe('formatClockTime', () => {
+  it('formats local time as zero-padded hours and minutes', () => {
+    expect(formatClockTime(new Date(2026, 8, 14, 13, 56).getTime())).toBe('13:56')
+    expect(formatClockTime(new Date(2026, 8, 14, 9, 5).getTime())).toBe('09:05')
   })
 })

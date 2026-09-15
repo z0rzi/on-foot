@@ -1,4 +1,4 @@
-import { activitiesRepository } from '../data/activities'
+import { activitiesRepository, NewActivityInput, RecordingSession } from '../data/activities'
 import {
   hasForegroundAccess,
   isLocationAvailable,
@@ -8,12 +8,15 @@ import {
   startBackgroundTracking,
   stopBackgroundTracking,
 } from '../location'
+import { formatClockTime } from '../activities/format'
+import { showToast } from '../components/toast'
+import { useActivitiesStore } from '../store/activitiesStore'
 import { isAppActive, whenAppActive } from './appActivity'
 import { ensureTrackingNotificationAccess } from './notificationAccess'
 import { RECORDING_OPTIONS } from './options'
 import { useRecordingStore } from './recordingStore'
 import { resumeActionFor, ResumeAction } from './resume'
-import { applyPause, applyResume } from './session'
+import { applyPause, applyRelaunch, applyResume } from './session'
 
 export type StartResult = 'started' | 'permission-denied' | 'already-active' | 'location-off'
 
@@ -144,17 +147,57 @@ export function ensureStreaming(): Promise<void> {
   })
 }
 
+// A recording row with an empty store means the JavaScript runtime died while recording: swiping the
+// app away only remounts the React root, and the store — module state — survives that. The gap gets
+// its own segment and the user is told; capture restarts, which also restores the foreground service
+// a restored task never gets.
+async function resumeAfterProcessDeath(session: RecordingSession): Promise<void> {
+  const points = await activitiesRepository.getSessionPoints(session.id)
+  const relaunched = applyRelaunch(session)
+  await activitiesRepository.markResumed(relaunched.id, relaunched.pausedMs, relaunched.currentSegment)
+  useRecordingStore.getState().hydrate(relaunched, points)
+  const since = points.length > 0 ? points[points.length - 1].t : session.startedAt
+  showToast(`Recording interrupted ${formatClockTime(since)}–${formatClockTime(Date.now())}`)
+  const available = await isLocationAvailable()
+  useRecordingStore.getState().setStreamState({ locationAvailable: available })
+  if (available) await issueStream()
+}
+
 export function resumeIfActive(): Promise<{ action: ResumeAction; sessionId: number | null }> {
   return exclusive(async () => {
-    const session = await activitiesRepository.getActiveSession()
-    const action = resumeActionFor(session)
-    if (session && action !== 'none') {
-      const points = await activitiesRepository.getSessionPoints(session.id)
-      useRecordingStore.getState().hydrate(session, points)
+    try {
+      const session = await activitiesRepository.getActiveSession()
+      const action = resumeActionFor(session)
+      const store = useRecordingStore.getState()
+      if (!session) {
+        if (store.session) store.reset()
+        try {
+          await stopBackgroundTracking()
+        } catch {
+          // A stream that cannot be stopped now is stopped by the next launch.
+        }
+      } else if (!store.session) {
+        if (action === 'resume') await resumeAfterProcessDeath(session)
+        else store.hydrate(session, await activitiesRepository.getSessionPoints(session.id))
+      }
+      return { action, sessionId: session?.id ?? null }
+    } finally {
+      useRecordingStore.getState().markResumeSettled()
     }
-    if (action === 'resume' && (await isLocationAvailable())) {
-      await issueStream()
+  })
+}
+
+// The saved activity matters more than a lingering service, so a stop failure does not block the
+// save; the next launch stops an orphaned stream.
+export function finishRecording(sessionId: number, input: NewActivityInput): Promise<number> {
+  return exclusive(async () => {
+    try {
+      await stopBackgroundTracking()
+    } catch {
+      // Stopped by the next launch.
     }
-    return { action, sessionId: session?.id ?? null }
+    const activityId = await useActivitiesStore.getState().saveActivity(sessionId, input)
+    useRecordingStore.getState().reset()
+    return activityId
   })
 }

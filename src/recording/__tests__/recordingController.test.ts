@@ -37,11 +37,15 @@ import { RECORDING_OPTIONS } from '../options'
 import {
   discardRecording,
   ensureStreaming,
+  finishRecording,
   pauseRecording,
+  resumeIfActive,
   resumeRecording,
   startRecording,
 } from '../recordingController'
 import { useRecordingStore } from '../recordingStore'
+import { showToast } from '../../components/toast'
+import { NewActivityInput } from '../../data/activities/types'
 
 const repo = jest.mocked(activitiesRepository)
 const port = jest.mocked(locationPort)
@@ -349,5 +353,104 @@ describe('discardRecording', () => {
     row = paused
     port.stopBackgroundTracking.mockRejectedValue(new Error('service already gone'))
     await expect(discardRecording(7)).rejects.toThrow('service already gone')
+  })
+})
+
+describe('resumeIfActive', () => {
+  it('stops an orphaned stream when there is no session', async () => {
+    registered = true
+    await resumeIfActive()
+    expect(registered).toBe(false)
+    expect(useRecordingStore.getState().resumeSettled).toBe(true)
+  })
+
+  it('leaves a session the running process already holds untouched', async () => {
+    row = recording
+    useRecordingStore.setState({ session: recording, streamLive: true })
+    await resumeIfActive()
+    expect(repo.getSessionPoints).not.toHaveBeenCalled()
+    expect(repo.markResumed).not.toHaveBeenCalled()
+    expect(jest.mocked(showToast)).not.toHaveBeenCalled()
+    expect(port.startBackgroundTracking).not.toHaveBeenCalled()
+    expect(useRecordingStore.getState().resumeSettled).toBe(true)
+  })
+
+  it('opens a new segment, announces the gap and restarts capture after the process died', async () => {
+    row = recording
+    const lastPointAt = new Date(2026, 8, 14, 13, 56).getTime()
+    const reopenedAt = new Date(2026, 8, 14, 14, 40).getTime()
+    repo.getSessionPoints.mockResolvedValue([{ lat: 0, lng: 0, ele: null, t: lastPointAt, segment: 1 }])
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(reopenedAt)
+    try {
+      await resumeIfActive()
+    } finally {
+      clock.mockRestore()
+    }
+    expect(repo.markResumed).toHaveBeenCalledWith(7, 500, 2)
+    expect(useRecordingStore.getState().session?.currentSegment).toBe(2)
+    expect(jest.mocked(showToast)).toHaveBeenCalledWith('Recording interrupted 13:56–14:40')
+    expect(port.startBackgroundTracking).toHaveBeenCalledTimes(1)
+    expect(repo.appendPoints).not.toHaveBeenCalled()
+  })
+
+  it('announces the gap from the session start when nothing was captured', async () => {
+    row = { ...recording, startedAt: new Date(2026, 8, 14, 10, 0).getTime() }
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(new Date(2026, 8, 14, 10, 30).getTime())
+    try {
+      await resumeIfActive()
+    } finally {
+      clock.mockRestore()
+    }
+    expect(jest.mocked(showToast)).toHaveBeenCalledWith('Recording interrupted 10:00–10:30')
+  })
+
+  it('hydrates a paused session without announcing or starting anything', async () => {
+    row = paused
+    await resumeIfActive()
+    expect(useRecordingStore.getState().session).toEqual(paused)
+    expect(jest.mocked(showToast)).not.toHaveBeenCalled()
+    expect(port.startBackgroundTracking).not.toHaveBeenCalled()
+  })
+
+  it('settles launch handling even when it fails', async () => {
+    repo.getActiveSession.mockRejectedValueOnce(new Error('db gone'))
+    await expect(resumeIfActive()).rejects.toThrow('db gone')
+    expect(useRecordingStore.getState().resumeSettled).toBe(true)
+  })
+})
+
+describe('finishRecording', () => {
+  const input: NewActivityInput = {
+    name: 'Walk',
+    effort: 'moderate',
+    comments: null,
+    linkedTrailId: null,
+    geometry: { segments: [] },
+    metrics: { distanceMeters: 0, durationSeconds: 0, elevationGainMeters: 0, elevationLossMeters: 0 },
+    startedAt: 1000,
+    endedAt: 2000,
+  }
+
+  beforeEach(() => {
+    row = paused
+    useRecordingStore.setState({ session: paused })
+    mockSaveActivity.mockImplementation(async () => {
+      calls.push('save')
+      return 99
+    })
+  })
+
+  it('stops the stream before saving, then clears the recording', async () => {
+    registered = true
+    await expect(finishRecording(7, input)).resolves.toBe(99)
+    expect(calls).toEqual(['stop', 'save'])
+    expect(registered).toBe(false)
+    expect(useRecordingStore.getState().session).toBeNull()
+  })
+
+  it('still saves when the stream cannot be stopped', async () => {
+    port.stopBackgroundTracking.mockRejectedValue(new Error('service already gone'))
+    await expect(finishRecording(7, input)).resolves.toBe(99)
+    expect(mockSaveActivity).toHaveBeenCalledWith(7, input)
   })
 })

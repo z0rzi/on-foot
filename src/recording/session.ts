@@ -17,3 +17,9 @@ export function applyResume(session: RecordingSession, now: number): RecordingSe
     currentSegment: session.currentSegment + 1,
   }
 }
+
+// After the process died while recording, capture resumes in its own segment so the saved track is
+// not joined across the gap. The gap still counts as elapsed time.
+export function applyRelaunch(session: RecordingSession): RecordingSession {
+  return { ...session, currentSegment: session.currentSegment + 1 }
+}
