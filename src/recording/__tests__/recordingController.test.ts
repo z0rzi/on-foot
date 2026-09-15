@@ -185,6 +185,32 @@ describe('startRecording', () => {
     prompt.resolve(false)
     await expect(started).resolves.toBe('location-off')
   })
+
+  it('does not hold other operations behind the notification request', async () => {
+    const asking = deferred()
+    notifications.ensureTrackingNotificationAccess.mockReturnValue(asking.promise)
+    const started = startRecording()
+    await settle()
+    await expect(ensureStreaming()).resolves.toBeUndefined()
+    asking.resolve()
+    await expect(started).resolves.toBe('started')
+  })
+
+  it('does not hold other operations while waiting for the app to become active', async () => {
+    const active = deferred()
+    app.whenAppActive.mockReturnValue(active.promise)
+    const started = startRecording()
+    await settle()
+    await expect(ensureStreaming()).resolves.toBeUndefined()
+    active.resolve()
+    await expect(started).resolves.toBe('started')
+  })
+
+  it('starts one session when Record is pressed twice before either start queues', async () => {
+    const results = await Promise.all([startRecording(), startRecording()])
+    expect(results).toEqual(['started', 'already-active'])
+    expect(repo.startSession).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('ensureStreaming', () => {
