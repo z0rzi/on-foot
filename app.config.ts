@@ -14,9 +14,10 @@ const config: ExpoConfig = {
   },
   android: {
     package: "com.zorzi.onfootrn",
-    // expo-task-manager delivers background location batches via a persisted JobScheduler job
-    // (survives reboot), which the OS only allows with RECEIVE_BOOT_COMPLETED.
-    permissions: ["android.permission.RECEIVE_BOOT_COMPLETED"],
+    // expo-task-manager restores registered background tasks after a reboot or an app update through
+    // a BOOT_COMPLETED receiver. POST_NOTIFICATIONS lets Android 13+ show the recording's
+    // foreground-service notification.
+    permissions: ["android.permission.RECEIVE_BOOT_COMPLETED", "android.permission.POST_NOTIFICATIONS"],
     adaptiveIcon: {
       backgroundColor: "#E6F4FE",
       foregroundImage: "./assets/images/android-icon-foreground.png",

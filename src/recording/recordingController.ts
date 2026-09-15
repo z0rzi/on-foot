@@ -1,11 +1,15 @@
-import * as Location from 'expo-location'
 import { activitiesRepository } from '../data/activities'
-import { RECORDING_TASK } from './locationTask'
+import {
+  isLocationAvailable,
+  requestBackgroundAccess,
+  requestForegroundAccess,
+  startBackgroundTracking,
+  stopBackgroundTracking,
+} from '../location'
 import { RECORDING_OPTIONS } from './options'
 import { useRecordingStore } from './recordingStore'
 import { resumeActionFor, ResumeAction } from './resume'
 import { applyPause, applyResume } from './session'
-import { toTrackPoint } from './track'
 
 export type StartResult = 'started' | 'permission-denied' | 'already-active'
 
@@ -19,16 +23,14 @@ export type StartResult = 'started' | 'permission-denied' | 'already-active'
 export async function startRecording(): Promise<StartResult> {
   const existing = await activitiesRepository.getActiveSession()
   if (existing) return 'already-active'
-  const foreground = await Location.requestForegroundPermissionsAsync()
-  if (!foreground.granted) return 'permission-denied'
-  const background = await Location.requestBackgroundPermissionsAsync()
-  if (!background.granted) return 'permission-denied'
+  if (!(await requestForegroundAccess())) return 'permission-denied'
+  if (!(await requestBackgroundAccess())) return 'permission-denied'
 
   const startedAt = Date.now()
   const sessionId = await activitiesRepository.startSession(startedAt)
   useRecordingStore.getState().beginSession({ id: sessionId, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0 })
   try {
-    await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
+    await startBackgroundTracking(RECORDING_OPTIONS)
   } catch (error) {
     // With nothing streaming, the session is a phantom: the UI would show a recording that captures
     // no points, and the singleton row would answer every retry with 'already-active'. The store is
@@ -50,9 +52,7 @@ export async function pauseRecording(): Promise<void> {
   // The pause is already durable and the background task drops fixes whenever pausedAt is set, so
   // failing to stop the stream costs battery, not correctness — it must not fail the pause.
   try {
-    if (await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK)) {
-      await Location.stopLocationUpdatesAsync(RECORDING_TASK)
-    }
+    await stopBackgroundTracking()
   } catch {
     // Left running; the next pause, discard or launch stops it.
   }
@@ -61,9 +61,7 @@ export async function pauseRecording(): Promise<void> {
 export async function resumeRecording(): Promise<void> {
   const session = await activitiesRepository.getActiveSession()
   if (!session || session.pausedAt == null) return
-  if (!(await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK))) {
-    await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
-  }
+  await startBackgroundTracking(RECORDING_OPTIONS)
   const next = applyResume(session, Date.now())
   await activitiesRepository.markResumed(session.id, next.pausedMs, next.currentSegment)
   useRecordingStore.getState().setSession(next)
@@ -77,9 +75,7 @@ export async function linkTrailForSave(linkedTrailId: number | null): Promise<vo
 }
 
 export async function discardRecording(sessionId: number): Promise<void> {
-  if (await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK)) {
-    await Location.stopLocationUpdatesAsync(RECORDING_TASK)
-  }
+  await stopBackgroundTracking()
   await activitiesRepository.discardSession(sessionId)
   useRecordingStore.getState().reset()
 }
@@ -87,25 +83,12 @@ export async function discardRecording(sessionId: number): Promise<void> {
 export async function resumeIfActive(): Promise<{ action: ResumeAction; sessionId: number | null }> {
   const session = await activitiesRepository.getActiveSession()
   const action = resumeActionFor(session)
-  if (action === 'resume' && session) {
+  if (session && action !== 'none') {
     const points = await activitiesRepository.getSessionPoints(session.id)
     useRecordingStore.getState().hydrate(session, points)
-    if (!(await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK))) {
-      await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
-    }
-    // Append an immediate fix at the current position into the current segment, so the live
-    // overlay reflects where recording resumes without waiting for the first background batch.
-    try {
-      const now = await Location.getCurrentPositionAsync({ accuracy: RECORDING_OPTIONS.accuracy })
-      const point = toTrackPoint(now)
-      await activitiesRepository.appendPoints(session.id, session.currentSegment, [point])
-      useRecordingStore.getState().appendLivePoints(session.currentSegment, [point])
-    } catch {
-      // No immediate fix available; the next background batch will connect the gap.
-    }
-  } else if (action === 'paused' && session) {
-    const points = await activitiesRepository.getSessionPoints(session.id)
-    useRecordingStore.getState().hydrate(session, points)
+  }
+  if (action === 'resume' && (await isLocationAvailable())) {
+    await startBackgroundTracking(RECORDING_OPTIONS)
   }
   return { action, sessionId: session?.id ?? null }
 }
