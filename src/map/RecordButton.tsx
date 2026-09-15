@@ -31,6 +31,7 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const phase = useRecordingStore((s) => recordingPhase(s.session))
+  const resumeSettled = useRecordingStore((s) => s.resumeSettled)
   const progress = useSharedValue(0)
   const pressScale = useSharedValue(0)
   const pausedRef = useRef(false)
@@ -45,6 +46,8 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
         )
       } else if (result === 'already-active') {
         router.push('/activity/save')
+      } else if (result === 'location-off') {
+        Alert.alert('Location is off', 'Turn on location to start recording.')
       }
     } catch {
       Alert.alert('Could not start recording', 'Something went wrong. Please try again.')
@@ -102,6 +105,10 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
   const holdScaleStyle = useAnimatedStyle(() => ({
     transform: [{ scale: 1 + pressScale.value * HOLD_SCALE }],
   }))
+
+  // Until launch handling settles, a recording may exist that the store has not loaded; Record would
+  // open the save screen over it.
+  if (!resumeSettled) return null
 
   return (
     <Animated.View style={[styles.anchor, { left: MapTokens.overlayPadding }, anchorStyle]}>
