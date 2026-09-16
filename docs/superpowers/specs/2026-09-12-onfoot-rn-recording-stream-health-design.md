@@ -93,8 +93,8 @@ events.
 - `src/recording/options.ts` — keeps the tuning values and notification copy.
 - `src/recording/recordingController.ts` — the start flow, `ensureStreaming`, `finishRecording`, the chain,
   launch handling, start guards removed, all native calls through the port, header rewritten.
-- `src/recording/recordingStore.ts` — `locationAvailable`, `captureFault`, `streamLive`, `resumeSettled`,
-  all in memory.
+- `src/recording/recordingStore.ts` — `locationAvailable`, the stream's status (`stopped | live | faulted`),
+  `resumeSettled`, all in memory.
 - `src/recording/session.ts` — `applyRelaunch`.
 - `src/recording/streamHealth.ts` (new) — `recordingHealthFor` and `recordingStatusText`.
 - `src/recording/appActivity.ts` and `src/recording/notificationAccess.ts` (new) — waiting for the app to be
@@ -197,10 +197,8 @@ Every stream start inside a turn goes through one private step:
 ```text
 issueStream:
   startBackgroundTracking(options)
-    resolved → streamLive := await isLocationAvailable()   (a start that raced location off made no request)
-               captureFault := null
-    rejected → streamLive := false
-               captureFault := 'start-failed' if AppState is 'active', else null
+    resolved → stream := live if await isLocationAvailable(), else stopped   (a start that raced location off made no request)
+    rejected → stream := faulted('start-failed') if AppState is 'active', else stopped
 ```
 
 A rejection while the app is not active is not reported: the sheet cannot be seen, and the next `active`
@@ -225,7 +223,8 @@ off it commits and starts nothing, and the sheet shows "Location is off". A reje
 not a failed resume — the session is visibly recording, so the safe-state ordering it replaces has no purpose.
 
 **`pauseRecording`** and **`discardRecording`** keep their policies (a pause tolerates a stop failure, a discard
-propagates it) and clear `streamLive`.
+propagates it) and record the stream as `stopped`. A pause thereby also drops a recorded fault: a paused session has
+no stream, health ignores faults while paused, and resume derives a fresh status from a fresh start.
 
 **`finishRecording(sessionId, input)`** (one turn): stop the stream, tolerating a stop failure as a pause does —
 the saved activity matters more than a lingering service, which the next launch stops — then `saveActivity`,
@@ -255,17 +254,22 @@ The immediate one-shot position `resumeIfActive` appended on every launch is rem
 ```text
 ensureStreaming (one turn):
   session not recording                → nothing
-  hasForegroundAccess is false         → captureFault := 'permission-missing'; nothing started
+  hasForegroundAccess is false         → stream := faulted('permission-missing'); nothing started
+  a permission-missing fault           → stream := stopped  (the permission is back)
   locationAvailable := isLocationAvailable()
   location unavailable                 → nothing  (a start would destroy a live request)
-  streamLive                           → nothing  (a live request survives location toggles)
+  stream is live                       → nothing  (a live request survives location toggles)
   otherwise                            → issueStream
 ```
 
-`streamLive` is true only after a start that resolved with a provider available before and after it. It is
-cleared by `beginSession`, `hydrate`, `reset`, a pause, a discard, a finish and a rejected start — and **not** by
-observing location off, because the request survives that. The only request that can be dead while the app runs
-is one started with no provider, and that is exactly a `streamLive` of false.
+The stream is `live` only after a start that resolved with a provider available before and after it. It becomes
+`stopped` on `beginSession`, `hydrate`, `reset`, a pause, a discard, a finish, and a start that raced location off;
+it becomes `faulted` on a start rejected while the app is active, or on a missing foreground permission. It does
+**not** change on observing location off, because the request survives that. The only request that can be dead
+while the app runs is one started with no provider, and that is exactly a stream that is not `live`.
+
+The stream's status is one value, not a flag beside a fault, so a faulted stream cannot also be live. Provider
+availability stays a separate value because it varies independently: a request stays live while location is off.
 
 `useRecordingStream`, mounted once as `RecordingStreamHandler`, forwards to `ensureStreaming` while the phase is
 `recording`: `AppState` becoming `active`; `AppState` `focus` (the quick-settings shade pauses nothing, so it
@@ -276,7 +280,8 @@ produces no `change` event — `react-native/ReactAndroid/…/AppStateModule.kt:
 
 ```ts
 export type RecordingHealth =
-  | { kind: 'inactive' }        // idle or paused: nothing is claimed
+  | { kind: 'idle' }            // no session: nothing is claimed
+  | { kind: 'paused' }          // paused: nothing is claimed
   | { kind: 'location-off' }    // recording, no location provider available
   | { kind: 'not-capturing'; fault: 'start-failed' | 'permission-missing' }   // recording, provider available, and a start failed or foreground permission is missing
   | { kind: 'recording' }       // recording, nothing known to be wrong
@@ -284,7 +289,7 @@ export type RecordingHealth =
 export function recordingHealthFor(input: {
   phase: RecordingPhase
   locationAvailable: boolean | null
-  captureFault: 'start-failed' | 'permission-missing' | null
+  stream: StreamStatus   // { kind: 'stopped' } | { kind: 'live' } | { kind: 'faulted'; fault }
 }): RecordingHealth
 ```
 
@@ -328,6 +333,12 @@ post-prompt re-check still reads off** (by decision). **Leaving the service noti
 **`AppState` `change` alone** misses the quick-settings shade; **polling** is superseded by events; **recovery owned
 by `RecordingInfoSheet`** would not run on other tabs.
 
+**A live flag beside a fault** (this spec's approved version, replaced after review). `streamLive` and
+`captureFault` could contradict — live with the permission missing — so every fault and teardown site had to
+remember to clear the flag. Three sites forgot; the last re-opened the phantom recording. **One union that also
+folds in location off**: it would erase that a request stays live while location is off, and recovery would
+re-issue a request that never died.
+
 ## Consequences accepted
 
 - **A request that dies while the app runs, for a reason other than a start issued without a provider, is not
@@ -343,15 +354,15 @@ by `RecordingInfoSheet`** would not run on other tabs.
 
 ## Test plan (Jest, written first)
 
-`src/recording/__tests__/streamHealth.test.ts` — `recordingHealthFor`: idle and paused → `inactive`; recording +
-provider unavailable → `location-off`, even with a fault; recording + provider available + either fault →
-`not-capturing`; recording + available or `null` + no fault → `recording`.
+`src/recording/__tests__/streamHealth.test.ts` — `recordingHealthFor`: idle → `idle`, paused → `paused`; recording +
+provider unavailable → `location-off`, even with a faulted stream; recording + provider available + a faulted
+stream → `not-capturing`; recording + available or `null` + no fault → `recording`.
 
 `src/recording/__tests__/session.test.ts` — `applyRelaunch` advances `currentSegment` and leaves `startedAt`,
 `pausedMs` and `pausedAt` unchanged.
 
-`src/recording/__tests__/recordingStore.test.ts` — `beginSession`, `hydrate` and `reset` clear `locationAvailable`,
-`captureFault` and `streamLive`.
+`src/recording/__tests__/recordingStore.test.ts` — `beginSession`, `hydrate` and `reset` clear `locationAvailable`
+and reset the stream to `stopped`.
 
 `src/recording/__tests__/recordingController.test.ts` — rewritten against a **fake port**, not bare `jest.fn()`
 mocks: registration state flips when a start or stop is *called*, and each read can be held open with a deferred
@@ -362,7 +373,7 @@ promise so the check-then-act window is real. It keeps the intent of the six exi
 - start: a pause issued while the location prompt is pending completes without waiting for it;
 - start: a notification denial does not block the start and shows the hint once;
 - start: a rejected start keeps the session, with `start-failed` when active and no fault when not;
-- `ensureStreaming`: `streamLive` → no start; not live + provider + foreground access → one start, and `streamLive`
+- `ensureStreaming`: a live stream → no start; not live + provider + foreground access → one start, `live`
   only when availability still holds after it; provider unavailable → no start; foreground access missing →
   `permission-missing`, no start; background access missing alone → starts;
 - `ensureStreaming`: several triggers while one is queued → one start;
