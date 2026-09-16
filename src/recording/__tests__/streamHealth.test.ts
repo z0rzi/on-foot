@@ -1,9 +1,9 @@
 import { recordingHealthFor, recordingStatusText } from '../streamHealth'
 
 describe('recordingHealthFor', () => {
-  it('claims nothing while idle or paused, whatever was observed', () => {
-    expect(recordingHealthFor({ phase: 'idle', locationAvailable: false, captureFault: 'start-failed' })).toEqual({ kind: 'inactive' })
-    expect(recordingHealthFor({ phase: 'paused', locationAvailable: false, captureFault: 'permission-missing' })).toEqual({ kind: 'inactive' })
+  it('claims idle or paused, whatever was observed', () => {
+    expect(recordingHealthFor({ phase: 'idle', locationAvailable: false, captureFault: 'start-failed' })).toEqual({ kind: 'idle' })
+    expect(recordingHealthFor({ phase: 'paused', locationAvailable: false, captureFault: 'permission-missing' })).toEqual({ kind: 'paused' })
   })
   it('names location off as the cause, even when a capture fault is also recorded', () => {
     expect(recordingHealthFor({ phase: 'recording', locationAvailable: false, captureFault: null })).toEqual({ kind: 'location-off' })
@@ -20,22 +20,23 @@ describe('recordingHealthFor', () => {
 })
 
 describe('recordingStatusText', () => {
-  it('keeps the paused and recording labels', () => {
-    expect(recordingStatusText('paused', { kind: 'inactive' })).toEqual({ title: '⏸ Paused', detail: null })
-    expect(recordingStatusText('recording', { kind: 'recording' })).toEqual({ title: '● Recording', detail: null })
+  it('keeps the idle, paused and recording labels', () => {
+    expect(recordingStatusText({ kind: 'idle' })).toEqual({ title: '● Recording', detail: null })
+    expect(recordingStatusText({ kind: 'paused' })).toEqual({ title: '⏸ Paused', detail: null })
+    expect(recordingStatusText({ kind: 'recording' })).toEqual({ title: '● Recording', detail: null })
   })
   it('explains location off', () => {
-    expect(recordingStatusText('recording', { kind: 'location-off' })).toEqual({
+    expect(recordingStatusText({ kind: 'location-off' })).toEqual({
       title: 'Location is off',
       detail: "Recording continues when it's back on.",
     })
   })
   it('explains a missing permission, and gives no detail for a failed start', () => {
-    expect(recordingStatusText('recording', { kind: 'not-capturing', fault: 'permission-missing' })).toEqual({
+    expect(recordingStatusText({ kind: 'not-capturing', fault: 'permission-missing' })).toEqual({
       title: 'Not recording location',
       detail: 'Allow location access for On Foot in Settings.',
     })
-    expect(recordingStatusText('recording', { kind: 'not-capturing', fault: 'start-failed' })).toEqual({
+    expect(recordingStatusText({ kind: 'not-capturing', fault: 'start-failed' })).toEqual({
       title: 'Not recording location',
       detail: null,
     })

@@ -1,7 +1,8 @@
 import type { CaptureFault, RecordingPhase } from './recordingStore'
 
 export type RecordingHealth =
-  | { kind: 'inactive' }
+  | { kind: 'idle' }
+  | { kind: 'paused' }
   | { kind: 'location-off' }
   | { kind: 'not-capturing'; fault: CaptureFault }
   | { kind: 'recording' }
@@ -13,19 +14,20 @@ export function recordingHealthFor(input: {
   locationAvailable: boolean | null
   captureFault: CaptureFault | null
 }): RecordingHealth {
-  if (input.phase !== 'recording') return { kind: 'inactive' }
+  if (input.phase === 'idle') return { kind: 'idle' }
+  if (input.phase === 'paused') return { kind: 'paused' }
   if (input.locationAvailable === false) return { kind: 'location-off' }
   if (input.captureFault) return { kind: 'not-capturing', fault: input.captureFault }
   return { kind: 'recording' }
 }
 
-export function recordingStatusText(
-  phase: RecordingPhase,
-  health: RecordingHealth,
-): { title: string; detail: string | null } {
+export function recordingStatusText(health: RecordingHealth): { title: string; detail: string | null } {
   switch (health.kind) {
-    case 'inactive':
-      return { title: phase === 'paused' ? '⏸ Paused' : '● Recording', detail: null }
+    case 'idle':
+    case 'recording':
+      return { title: '● Recording', detail: null }
+    case 'paused':
+      return { title: '⏸ Paused', detail: null }
     case 'location-off':
       return { title: 'Location is off', detail: "Recording continues when it's back on." }
     case 'not-capturing':
@@ -33,7 +35,5 @@ export function recordingStatusText(
         title: 'Not recording location',
         detail: health.fault === 'permission-missing' ? 'Allow location access for On Foot in Settings.' : null,
       }
-    case 'recording':
-      return { title: '● Recording', detail: null }
   }
 }

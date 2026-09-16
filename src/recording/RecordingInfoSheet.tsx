@@ -37,7 +37,7 @@ export function RecordingInfoSheet({
 
   const phase = recordingPhase(session)
   const health = recordingHealthFor({ phase, locationAvailable, captureFault })
-  const status = recordingStatusText(phase, health)
+  const status = recordingStatusText(health)
   const durationSeconds = useMovingStopwatch(session) / 1000
   // useMovingStopwatch re-renders this sheet every second, so without the memo a long recording
   // re-measures its whole track — haversine plus elevation smoothing — once per tick.
