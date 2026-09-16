@@ -31,8 +31,7 @@ jest.mock('../../data/activities', () => ({
 import * as locationPort from '../../location'
 import * as appActivity from '../appActivity'
 import * as notificationAccess from '../notificationAccess'
-import { activitiesRepository } from '../../data/activities'
-import { RecordingSession } from '../../data/activities/types'
+import { activitiesRepository, NewActivityInput, RecordingSession } from '../../data/activities'
 import { RECORDING_OPTIONS } from '../options'
 import {
   discardRecording,
@@ -45,7 +44,6 @@ import {
 } from '../recordingController'
 import { useRecordingStore } from '../recordingStore'
 import { showToast } from '../../components/toast'
-import { NewActivityInput } from '../../data/activities/types'
 
 const repo = jest.mocked(activitiesRepository)
 const port = jest.mocked(locationPort)
