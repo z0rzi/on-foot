@@ -68,6 +68,9 @@ async function issueStreamIfAvailable(): Promise<void> {
 export async function startRecording(): Promise<StartResult> {
   if (await activitiesRepository.getActiveSession()) return 'already-active'
   if (!(await requestForegroundAccess())) return 'permission-denied'
+  // A launched recording must go on capturing once the app leaves the foreground, so starting asks
+  // for "All the time" access; recovery only ever restarts a stream while the app is active, so it
+  // needs no more than the foreground grant checked in ensureStreaming.
   if (!(await requestBackgroundAccess())) return 'permission-denied'
   if (!(await isLocationAvailable()) && !(await promptToEnableLocation())) return 'location-off'
   await ensureTrackingNotificationAccess()
