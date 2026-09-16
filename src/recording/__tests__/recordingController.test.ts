@@ -275,6 +275,22 @@ describe('ensureStreaming', () => {
     expect(port.startBackgroundTracking).not.toHaveBeenCalled()
   })
 
+  it('clears streamLive when the foreground permission is missing', async () => {
+    useRecordingStore.setState({ streamLive: true })
+    port.hasForegroundAccess.mockResolvedValue(false)
+    await ensureStreaming()
+    expect(useRecordingStore.getState().streamLive).toBe(false)
+  })
+
+  it('issues a start once permission returns, after a revoke while recording live', async () => {
+    useRecordingStore.setState({ streamLive: true })
+    port.hasForegroundAccess.mockResolvedValue(false)
+    await ensureStreaming()
+    port.hasForegroundAccess.mockResolvedValue(true)
+    await ensureStreaming()
+    expect(port.startBackgroundTracking).toHaveBeenCalledTimes(1)
+  })
+
   it('collapses triggers that arrive while one recovery is already queued', async () => {
     port.startBackgroundTracking.mockRejectedValue(new Error('refused'))
     await Promise.all([ensureStreaming(), ensureStreaming(), ensureStreaming()])
@@ -360,6 +376,14 @@ describe('discardRecording', () => {
     useRecordingStore.setState({ streamLive: true })
     repo.discardSession.mockRejectedValue(new Error('db gone'))
     await expect(discardRecording(7)).rejects.toThrow('db gone')
+    expect(useRecordingStore.getState().streamLive).toBe(false)
+  })
+
+  it('clears the stream before stopping, even when the stop rejects', async () => {
+    row = paused
+    useRecordingStore.setState({ streamLive: true })
+    port.stopBackgroundTracking.mockRejectedValue(new Error('service already gone'))
+    await expect(discardRecording(7)).rejects.toThrow('service already gone')
     expect(useRecordingStore.getState().streamLive).toBe(false)
   })
 })

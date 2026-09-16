@@ -117,8 +117,8 @@ export function linkTrailForSave(linkedTrailId: number | null): Promise<void> {
 
 export function discardRecording(sessionId: number): Promise<void> {
   return exclusive(async () => {
-    await stopBackgroundTracking()
     useRecordingStore.getState().setStreamState({ streamLive: false })
+    await stopBackgroundTracking()
     await activitiesRepository.discardSession(sessionId)
     useRecordingStore.getState().reset()
   })
@@ -137,7 +137,10 @@ export function ensureStreaming(): Promise<void> {
     const session = await activitiesRepository.getActiveSession()
     if (!session || session.pausedAt != null) return
     if (!(await hasForegroundAccess())) {
-      useRecordingStore.getState().setStreamState({ captureFault: 'permission-missing' })
+      // Android stops delivering the moment the permission is revoked, so streamLive is cleared
+      // alongside the fault: left true, it tells the next recovery a stream is already live and none
+      // is ever reissued.
+      useRecordingStore.getState().setStreamState({ captureFault: 'permission-missing', streamLive: false })
       return
     }
     if (useRecordingStore.getState().captureFault === 'permission-missing') {
