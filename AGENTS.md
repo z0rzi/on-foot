@@ -26,7 +26,9 @@ uphold the original design, do not let it erode one expedient change at a time.
   and swappable. Today: the **map SDK** (`@rnmapbox/maps` → `src/map/providers/<provider>/`;
   shared code talks to the semantic port `src/map/provider/`, and MapLibre is the intended
   escape hatch — keep it reachable), the **database engine** (`expo-sqlite`/`drizzle-orm` →
-  `src/data/db/`), and **connectivity** (`@react-native-community/netinfo` → `src/net/`).
+  `src/data/db/`), **connectivity** (`@react-native-community/netinfo` → `src/net/`), and
+  **location** (`expo-location`/`expo-task-manager` → `src/location/`; recording and map code
+  use the location port, never the SDK).
   Provider-specific concepts are declared on the port (e.g. semantic flags on descriptors),
   never leaked as literals into shared code. When a change introduces a new boundary (a
   native-SDK wrapper, a new port), register it in `seams.ts` in the same change — the `seams`
