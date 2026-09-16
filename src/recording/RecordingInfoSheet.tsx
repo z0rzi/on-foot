@@ -10,6 +10,7 @@ import { groupPointsBySegment } from '../data/activities/mapping'
 import { formatPace, formatSpeed, formatStopwatch } from '../activities/format'
 import { MapInfoSheet } from '../map/MapInfoSheet'
 import { MetricsGrid } from '../components/MetricsGrid'
+import { AccentButton } from '../components/AccentButton'
 import { ElevationGraph } from '../elevation/ElevationGraph'
 import type { ElevationProfile } from '../elevation/profile'
 import { useMovingStopwatch } from './useMovingStopwatch'
@@ -73,18 +74,15 @@ export function RecordingInfoSheet({
             <Text style={[styles.faultText, { color: c.onSurfaceVariant }]}>{status.detail}</Text>
           )}
           {health.kind === 'not-capturing' && (
-            <Pressable
-              accessibilityRole="button"
+            <AccentButton
+              label="Retry"
               accessibilityLabel="Retry location capture"
               onPress={() => {
                 ensureStreaming().catch(() => {
                   // The fault stays shown; the next tap or return to the app retries.
                 })
               }}
-              style={[styles.retry, { backgroundColor: c.controlAccent }]}
-            >
-              <Text style={[styles.retryLabel, { color: c.onControlAccent }]}>Retry</Text>
-            </Pressable>
+            />
           )}
         </View>
       )}
@@ -110,6 +108,4 @@ const styles = StyleSheet.create({
   followingText: { fontSize: 13, flexShrink: 1 },
   fault: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   faultText: { fontSize: 13, flexShrink: 1 },
-  retry: { borderRadius: 12, paddingVertical: 6, paddingHorizontal: 14 },
-  retryLabel: { fontSize: 14, fontWeight: '700' },
 })
