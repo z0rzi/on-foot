@@ -202,7 +202,9 @@ controller, which already owns the "durable session vs stream" invariant: in `re
 there is no session and `hasStartedLocationUpdatesAsync`, stop the task; and route the save through
 a controller `finishRecording(sessionId, input)` that stops the stream before `saveActivity`, so the
 route file stops touching recording state directly. Add the two failure-path tests beside the
-existing ones. · **should-fix, S** (device-verify the notification disappears).
+existing ones. · **should-fix, S** (device-verify the notification disappears). · **Done** (`331e00b`):
+`resumeIfActive` stops an orphaned stream when no session is active, and the save goes through
+`finishRecording`, which stops the stream before `saveActivity`.
 
 **ERR-2 — An empty or non-GPX file becomes a saveable empty trail, silently** ·
 `app/trail/new.tsx:31-37` never checks `parsed.segments.length`; `src/data/trails/gpx/parse.ts:69-75`
@@ -393,7 +395,7 @@ import rule in `POST-WORK.md` is followed (only the stores and the two selection
 |---|---|---|---|---|---|---|
 | 1 | ~~Revalidate the selected entity on a mutation version, not the list reference~~ | PERF-1, DUP-8 | High: stops a full DB read + map/graph rebuild on every tab switch; names the one owner of freshness | S | Low (store tests; behaviour on delete unchanged) | **done** — `085d4da` |
 | 2 | `parseGpx` rejects a file with no points; `new.tsx` shows one Alert for empty/invalid | ERR-2, TEST-2 | High: removes a silent path to a useless persisted trail | S | Low | **now** |
-| 3 | `resumeIfActive` stops an orphaned stream; save goes through a controller `finishRecording` | ERR-1 | Medium-high: battery + misleading notification; controller keeps its invariant | S | Low-medium (device-verify) | **now** |
+| 3 | ~~`resumeIfActive` stops an orphaned stream; save goes through a controller `finishRecording`~~ | ERR-1 | Medium-high: battery + misleading notification; controller keeps its invariant | S | Low-medium (device-verify) | **done** — `331e00b` |
 | 4 | Prune the six unused deps; pin `@types/jest`; ignore `.claude/`, `.serena/`, `run-app.sh` | DEP-1..4 | Medium: smaller install, honest `verify` scope, clean `git status` | S | Low (bundle check) | **now** |
 | 5 | Doc refresh: README, `app.config.ts` permission comment, adapter comment, lint-debt table | DOC-1..4 | Medium: first-contact docs stop lying; no code risk | S | None | **now** |
 | 6 | `useLoadedEntity` + `LoadingScreen` with an error outcome; `BackButton`; `newTrailHref` | DUP-3, DUP-4, ERR-3 | High: five copies → one, and every load gets a visible failure path | M | Low-medium | next |
