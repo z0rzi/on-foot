@@ -1,4 +1,4 @@
-import type { CaptureFault, RecordingPhase } from './recordingStore'
+import type { CaptureFault, RecordingPhase, StreamStatus } from './recordingStore'
 
 export type RecordingHealth =
   | { kind: 'idle' }
@@ -12,12 +12,12 @@ export type RecordingHealth =
 export function recordingHealthFor(input: {
   phase: RecordingPhase
   locationAvailable: boolean | null
-  captureFault: CaptureFault | null
+  stream: StreamStatus
 }): RecordingHealth {
   if (input.phase === 'idle') return { kind: 'idle' }
   if (input.phase === 'paused') return { kind: 'paused' }
   if (input.locationAvailable === false) return { kind: 'location-off' }
-  if (input.captureFault) return { kind: 'not-capturing', fault: input.captureFault }
+  if (input.stream.kind === 'faulted') return { kind: 'not-capturing', fault: input.stream.fault }
   return { kind: 'recording' }
 }
 

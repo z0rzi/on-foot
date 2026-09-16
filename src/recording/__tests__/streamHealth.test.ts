@@ -2,20 +2,20 @@ import { recordingHealthFor, recordingStatusText } from '../streamHealth'
 
 describe('recordingHealthFor', () => {
   it('claims idle or paused, whatever was observed', () => {
-    expect(recordingHealthFor({ phase: 'idle', locationAvailable: false, captureFault: 'start-failed' })).toEqual({ kind: 'idle' })
-    expect(recordingHealthFor({ phase: 'paused', locationAvailable: false, captureFault: 'permission-missing' })).toEqual({ kind: 'paused' })
+    expect(recordingHealthFor({ phase: 'idle', locationAvailable: false, stream: { kind: 'faulted', fault: 'start-failed' } })).toEqual({ kind: 'idle' })
+    expect(recordingHealthFor({ phase: 'paused', locationAvailable: false, stream: { kind: 'faulted', fault: 'permission-missing' } })).toEqual({ kind: 'paused' })
   })
   it('names location off as the cause, even when a capture fault is also recorded', () => {
-    expect(recordingHealthFor({ phase: 'recording', locationAvailable: false, captureFault: null })).toEqual({ kind: 'location-off' })
-    expect(recordingHealthFor({ phase: 'recording', locationAvailable: false, captureFault: 'start-failed' })).toEqual({ kind: 'location-off' })
+    expect(recordingHealthFor({ phase: 'recording', locationAvailable: false, stream: { kind: 'stopped' } })).toEqual({ kind: 'location-off' })
+    expect(recordingHealthFor({ phase: 'recording', locationAvailable: false, stream: { kind: 'faulted', fault: 'start-failed' } })).toEqual({ kind: 'location-off' })
   })
   it('reports a capture fault while a provider is available', () => {
-    expect(recordingHealthFor({ phase: 'recording', locationAvailable: true, captureFault: 'start-failed' })).toEqual({ kind: 'not-capturing', fault: 'start-failed' })
-    expect(recordingHealthFor({ phase: 'recording', locationAvailable: null, captureFault: 'permission-missing' })).toEqual({ kind: 'not-capturing', fault: 'permission-missing' })
+    expect(recordingHealthFor({ phase: 'recording', locationAvailable: true, stream: { kind: 'faulted', fault: 'start-failed' } })).toEqual({ kind: 'not-capturing', fault: 'start-failed' })
+    expect(recordingHealthFor({ phase: 'recording', locationAvailable: null, stream: { kind: 'faulted', fault: 'permission-missing' } })).toEqual({ kind: 'not-capturing', fault: 'permission-missing' })
   })
   it('claims recording when nothing is known to be wrong', () => {
-    expect(recordingHealthFor({ phase: 'recording', locationAvailable: true, captureFault: null })).toEqual({ kind: 'recording' })
-    expect(recordingHealthFor({ phase: 'recording', locationAvailable: null, captureFault: null })).toEqual({ kind: 'recording' })
+    expect(recordingHealthFor({ phase: 'recording', locationAvailable: true, stream: { kind: 'live' } })).toEqual({ kind: 'recording' })
+    expect(recordingHealthFor({ phase: 'recording', locationAvailable: null, stream: { kind: 'stopped' } })).toEqual({ kind: 'recording' })
   })
 })
 

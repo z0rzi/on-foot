@@ -32,12 +32,12 @@ export function RecordingInfoSheet({
   const session = useRecordingStore((s) => s.session)
   const livePoints = useRecordingStore((s) => s.livePoints)
   const locationAvailable = useRecordingStore((s) => s.locationAvailable)
-  const captureFault = useRecordingStore((s) => s.captureFault)
+  const stream = useRecordingStore((s) => s.stream)
   const paceSpeedMode = usePreferencesStore((s) => s.paceSpeedMode)
   const togglePaceSpeed = usePreferencesStore((s) => s.togglePaceSpeed)
 
   const phase = recordingPhase(session)
-  const health = recordingHealthFor({ phase, locationAvailable, captureFault })
+  const health = recordingHealthFor({ phase, locationAvailable, stream })
   const status = recordingStatusText(health)
   const durationSeconds = useMovingStopwatch(session) / 1000
   // useMovingStopwatch re-renders this sheet every second, so without the memo a long recording

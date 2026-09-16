@@ -42,13 +42,15 @@ async function issueStream(): Promise<void> {
     await startBackgroundTracking(RECORDING_OPTIONS)
   } catch {
     useRecordingStore.getState().setStreamState({
-      streamLive: false,
-      captureFault: isAppActive() ? 'start-failed' : null,
+      stream: isAppActive() ? { kind: 'faulted', fault: 'start-failed' } : { kind: 'stopped' },
     })
     return
   }
   const available = await isLocationAvailable()
-  useRecordingStore.getState().setStreamState({ streamLive: available, locationAvailable: available, captureFault: null })
+  useRecordingStore.getState().setStreamState({
+    stream: available ? { kind: 'live' } : { kind: 'stopped' },
+    locationAvailable: available,
+  })
 }
 
 // Reads the current provider availability into the store and reports it, so every caller that must
@@ -95,7 +97,7 @@ export function pauseRecording(): Promise<void> {
     await activitiesRepository.markPaused(session.id, now)
     const store = useRecordingStore.getState()
     store.setSession(applyPause(session, now))
-    store.setStreamState({ streamLive: false })
+    store.setStreamState({ stream: { kind: 'stopped' } })
     // The pause is already durable and the background task drops fixes whenever pausedAt is set, so
     // failing to stop the stream costs battery, not correctness — it must not fail the pause.
     try {
@@ -130,7 +132,7 @@ export function linkTrailForSave(linkedTrailId: number | null): Promise<void> {
 
 export function discardRecording(sessionId: number): Promise<void> {
   return exclusive(async () => {
-    useRecordingStore.getState().setStreamState({ streamLive: false })
+    useRecordingStore.getState().setStreamState({ stream: { kind: 'stopped' } })
     await stopBackgroundTracking()
     await activitiesRepository.discardSession(sessionId)
     useRecordingStore.getState().reset()
@@ -150,16 +152,14 @@ export function ensureStreaming(): Promise<void> {
     const session = await activitiesRepository.getActiveSession()
     if (!session || session.pausedAt != null) return
     if (!(await hasForegroundAccess())) {
-      // Android stops delivering the moment the permission is revoked, so streamLive is cleared
-      // alongside the fault: left true, it tells the next recovery a stream is already live and none
-      // is ever reissued.
-      useRecordingStore.getState().setStreamState({ captureFault: 'permission-missing', streamLive: false })
+      useRecordingStore.getState().setStreamState({ stream: { kind: 'faulted', fault: 'permission-missing' } })
       return
     }
-    if (useRecordingStore.getState().captureFault === 'permission-missing') {
-      useRecordingStore.getState().setStreamState({ captureFault: null })
+    const stream = useRecordingStore.getState().stream
+    if (stream.kind === 'faulted' && stream.fault === 'permission-missing') {
+      useRecordingStore.getState().setStreamState({ stream: { kind: 'stopped' } })
     }
-    if (!(await refreshAvailability()) || useRecordingStore.getState().streamLive) return
+    if (!(await refreshAvailability()) || useRecordingStore.getState().stream.kind === 'live') return
     await issueStream()
   })
 }
@@ -211,7 +211,7 @@ export function finishRecording(sessionId: number, input: NewActivityInput): Pro
     } catch {
       // Stopped by the next launch.
     }
-    useRecordingStore.getState().setStreamState({ streamLive: false })
+    useRecordingStore.getState().setStreamState({ stream: { kind: 'stopped' } })
     const activityId = await useActivitiesStore.getState().saveActivity(sessionId, input)
     useRecordingStore.getState().reset()
     return activityId

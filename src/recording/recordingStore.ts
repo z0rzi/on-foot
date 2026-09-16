@@ -13,15 +13,22 @@ export function recordingPhase(session: RecordingSession | null): RecordingPhase
   return session.pausedAt != null ? 'paused' : 'recording'
 }
 
+export type StreamStatus =
+  // No start is known to be live.
+  | { kind: 'stopped' }
+  // A start resolved with a provider available before and after it, so its request is live.
+  | { kind: 'live' }
+  // Capture is known not to be running while the session records, and why.
+  | { kind: 'faulted'; fault: CaptureFault }
+
 // What this process has observed about capture. None of it survives a restart: a new process must
-// observe again before it can claim anything.
+// observe again before it can claim anything. A live request survives location being switched off
+// and back on — the same request is registered before and after — so locationAvailable is a fact
+// distinct from the stream, not folded into it.
 interface StreamState {
   // Whether a location provider was available when last checked; null until checked.
   locationAvailable: boolean | null
-  // Why capture is known not to be running while the session records, if it is.
-  captureFault: CaptureFault | null
-  // A start resolved with a provider available before and after it, so its request is live.
-  streamLive: boolean
+  stream: StreamStatus
 }
 
 interface RecordingStore extends StreamState {
@@ -41,7 +48,7 @@ interface RecordingStore extends StreamState {
   reset: () => void
 }
 
-const CLEARED_STREAM: StreamState = { locationAvailable: null, captureFault: null, streamLive: false }
+const CLEARED_STREAM: StreamState = { locationAvailable: null, stream: { kind: 'stopped' } }
 
 export const useRecordingStore = create<RecordingStore>((set) => ({
   session: null,

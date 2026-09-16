@@ -16,8 +16,7 @@ beforeEach(() => {
     session: null,
     livePoints: [],
     locationAvailable: null,
-    captureFault: null,
-    streamLive: false,
+    stream: { kind: 'stopped' },
     resumeSettled: false,
   })
 })
@@ -85,31 +84,31 @@ describe('recordingStore', () => {
 })
 
 describe('stream state', () => {
-  const observed = { locationAvailable: true, captureFault: 'start-failed' as const, streamLive: true }
+  const observed = { locationAvailable: true, stream: { kind: 'faulted', fault: 'start-failed' } as const }
   const streamState = () => {
     const s = useRecordingStore.getState()
-    return { locationAvailable: s.locationAvailable, captureFault: s.captureFault, streamLive: s.streamLive }
+    return { locationAvailable: s.locationAvailable, stream: s.stream }
   }
 
   it('setStreamState merges only the given fields', () => {
-    useRecordingStore.getState().setStreamState({ streamLive: true })
-    useRecordingStore.getState().setStreamState({ captureFault: 'permission-missing' })
-    expect(streamState()).toEqual({ locationAvailable: null, captureFault: 'permission-missing', streamLive: true })
+    useRecordingStore.getState().setStreamState({ locationAvailable: true })
+    useRecordingStore.getState().setStreamState({ stream: { kind: 'faulted', fault: 'permission-missing' } })
+    expect(streamState()).toEqual({ locationAvailable: true, stream: { kind: 'faulted', fault: 'permission-missing' } })
   })
   it('beginSession clears the stream state', () => {
     useRecordingStore.getState().setStreamState(observed)
     useRecordingStore.getState().beginSession(recordingSession)
-    expect(streamState()).toEqual({ locationAvailable: null, captureFault: null, streamLive: false })
+    expect(streamState()).toEqual({ locationAvailable: null, stream: { kind: 'stopped' } })
   })
   it('hydrate clears the stream state', () => {
     useRecordingStore.getState().setStreamState(observed)
     useRecordingStore.getState().hydrate(recordingSession, [])
-    expect(streamState()).toEqual({ locationAvailable: null, captureFault: null, streamLive: false })
+    expect(streamState()).toEqual({ locationAvailable: null, stream: { kind: 'stopped' } })
   })
   it('reset clears the stream state', () => {
     useRecordingStore.getState().setStreamState(observed)
     useRecordingStore.getState().reset()
-    expect(streamState()).toEqual({ locationAvailable: null, captureFault: null, streamLive: false })
+    expect(streamState()).toEqual({ locationAvailable: null, stream: { kind: 'stopped' } })
   })
   it('stays settled across a reset once launch handling has settled', () => {
     useRecordingStore.getState().markResumeSettled()
