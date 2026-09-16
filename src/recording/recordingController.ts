@@ -61,7 +61,9 @@ export async function startRecording(): Promise<StartResult> {
   await ensureTrackingNotificationAccess()
   await whenAppActive()
   return exclusive<StartResult>(async () => {
-    if (await activitiesRepository.getActiveSession()) return 'already-active'
+    // A session found here belongs to a concurrent tap that reached the turn first: the tap that
+    // lost reports the start it asked for, not a pre-existing recording.
+    if (await activitiesRepository.getActiveSession()) return 'started'
     const startedAt = Date.now()
     const sessionId = await activitiesRepository.startSession(startedAt)
     useRecordingStore.getState().beginSession({ id: sessionId, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0 })
@@ -84,7 +86,7 @@ export function pauseRecording(): Promise<void> {
     try {
       await stopBackgroundTracking()
     } catch {
-      // Left running; the next launch stops it.
+      // Left running; discard or finish stops it, and a later resume replaces it.
     }
   })
 }
@@ -116,6 +118,7 @@ export function linkTrailForSave(linkedTrailId: number | null): Promise<void> {
 export function discardRecording(sessionId: number): Promise<void> {
   return exclusive(async () => {
     await stopBackgroundTracking()
+    useRecordingStore.getState().setStreamState({ streamLive: false })
     await activitiesRepository.discardSession(sessionId)
     useRecordingStore.getState().reset()
   })
@@ -196,6 +199,7 @@ export function finishRecording(sessionId: number, input: NewActivityInput): Pro
     } catch {
       // Stopped by the next launch.
     }
+    useRecordingStore.getState().setStreamState({ streamLive: false })
     const activityId = await useActivitiesStore.getState().saveActivity(sessionId, input)
     useRecordingStore.getState().reset()
     return activityId

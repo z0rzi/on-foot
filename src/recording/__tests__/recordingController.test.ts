@@ -212,7 +212,7 @@ describe('startRecording', () => {
 
   it('starts one session when Record is pressed twice before either start queues', async () => {
     const results = await Promise.all([startRecording(), startRecording()])
-    expect(results).toEqual(['started', 'already-active'])
+    expect(results).toEqual(['started', 'started'])
     expect(repo.startSession).toHaveBeenCalledTimes(1)
   })
 })
@@ -354,6 +354,14 @@ describe('discardRecording', () => {
     port.stopBackgroundTracking.mockRejectedValue(new Error('service already gone'))
     await expect(discardRecording(7)).rejects.toThrow('service already gone')
   })
+
+  it('marks the stream dead before the database write, even when the write rejects', async () => {
+    row = paused
+    useRecordingStore.setState({ streamLive: true })
+    repo.discardSession.mockRejectedValue(new Error('db gone'))
+    await expect(discardRecording(7)).rejects.toThrow('db gone')
+    expect(useRecordingStore.getState().streamLive).toBe(false)
+  })
 })
 
 describe('resumeIfActive', () => {
@@ -452,5 +460,13 @@ describe('finishRecording', () => {
     port.stopBackgroundTracking.mockRejectedValue(new Error('service already gone'))
     await expect(finishRecording(7, input)).resolves.toBe(99)
     expect(mockSaveActivity).toHaveBeenCalledWith(7, input)
+  })
+
+  it('marks the stream dead before the database write, even when the write rejects', async () => {
+    registered = true
+    useRecordingStore.setState({ streamLive: true })
+    mockSaveActivity.mockRejectedValue(new Error('db gone'))
+    await expect(finishRecording(7, input)).rejects.toThrow('db gone')
+    expect(useRecordingStore.getState().streamLive).toBe(false)
   })
 })
