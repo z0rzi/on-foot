@@ -51,6 +51,18 @@ async function issueStream(): Promise<void> {
   useRecordingStore.getState().setStreamState({ streamLive: available, locationAvailable: available, captureFault: null })
 }
 
+// Reads the current provider availability into the store and reports it, so every caller that must
+// know whether a start may be issued sees and records the same fact.
+async function refreshAvailability(): Promise<boolean> {
+  const available = await isLocationAvailable()
+  useRecordingStore.getState().setStreamState({ locationAvailable: available })
+  return available
+}
+
+async function issueStreamIfAvailable(): Promise<void> {
+  if (await refreshAvailability()) await issueStream()
+}
+
 // Prompts run before the turn is queued: a dialog that never answers must not hold pause, resume or
 // discard behind it.
 export async function startRecording(): Promise<StartResult> {
@@ -100,9 +112,7 @@ export function resumeRecording(): Promise<void> {
     const next = applyResume(session, Date.now())
     await activitiesRepository.markResumed(session.id, next.pausedMs, next.currentSegment)
     useRecordingStore.getState().setSession(next)
-    const available = await isLocationAvailable()
-    useRecordingStore.getState().setStreamState({ locationAvailable: available })
-    if (available) await issueStream()
+    await issueStreamIfAvailable()
   })
 }
 
@@ -146,9 +156,7 @@ export function ensureStreaming(): Promise<void> {
     if (useRecordingStore.getState().captureFault === 'permission-missing') {
       useRecordingStore.getState().setStreamState({ captureFault: null })
     }
-    const available = await isLocationAvailable()
-    useRecordingStore.getState().setStreamState({ locationAvailable: available })
-    if (!available || useRecordingStore.getState().streamLive) return
+    if (!(await refreshAvailability()) || useRecordingStore.getState().streamLive) return
     await issueStream()
   })
 }
@@ -164,9 +172,7 @@ async function resumeAfterProcessDeath(session: RecordingSession): Promise<void>
   useRecordingStore.getState().hydrate(relaunched, points)
   const since = points.length > 0 ? points[points.length - 1].t : session.startedAt
   showToast(`Recording interrupted ${formatClockTime(since)}–${formatClockTime(Date.now())}`)
-  const available = await isLocationAvailable()
-  useRecordingStore.getState().setStreamState({ locationAvailable: available })
-  if (available) await issueStream()
+  await issueStreamIfAvailable()
 }
 
 export function resumeIfActive(): Promise<{ action: ResumeAction; sessionId: number | null }> {
