@@ -218,8 +218,9 @@ event retries.
    start keeps the session**; the sheet shows "Not recording location" with retry. No phantom row can exist
    without location having been available or the user accepting the prompt.
 
-**`resumeRecording`** (one turn): commit the resume, then `issueStream` when `isLocationAvailable`; with location
-off it commits and starts nothing, and the sheet shows "Location is off". A rejected start is a capture fault,
+**`resumeRecording`** is gated on location like `startRecording` — see
+`2026-09-17-onfoot-rn-resume-location-gate-design.md`. After the gate, one turn commits the resume, then
+`issueStream` when `isLocationAvailable`. A rejected start is a capture fault,
 not a failed resume — the session is visibly recording, so the safe-state ordering it replaces has no purpose.
 
 **`pauseRecording`** and **`discardRecording`** keep their policies (a pause tolerates a stop failure, a discard
