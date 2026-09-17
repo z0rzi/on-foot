@@ -1,4 +1,4 @@
-import { applyPause, applyRelaunch, applyResume, movingElapsedMs } from '../session'
+import { applyPause, applyRelaunch, applyResume, fixesInSegment, movingElapsedMs } from '../session'
 import { RecordingSession } from '../../data/activities/types'
 
 const base: RecordingSession = {
@@ -46,5 +46,16 @@ describe('applyRelaunch', () => {
   it('opens the next segment from now and leaves the timing untouched', () => {
     const running = { ...base, pausedMs: 1500, currentSegment: 2 }
     expect(applyRelaunch(running, 20000)).toEqual({ ...running, currentSegment: 3, segmentStartedAt: 20000 })
+  })
+})
+
+describe('fixesInSegment', () => {
+  const fix = (t: number) => ({ lat: 0, lng: 0, ele: null, t })
+
+  it('keeps a fix taken exactly when the segment began, and later ones', () => {
+    expect(fixesInSegment([fix(5000), fix(5001)], 5000)).toEqual([fix(5000), fix(5001)])
+  })
+  it('drops a fix taken before the segment began', () => {
+    expect(fixesInSegment([fix(4999), fix(6000)], 5000)).toEqual([fix(6000)])
   })
 })

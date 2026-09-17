@@ -24,3 +24,9 @@ export function applyResume(session: RecordingSession, now: number): RecordingSe
 export function applyRelaunch(session: RecordingSession, now: number): RecordingSession {
   return { ...session, currentSegment: session.currentSegment + 1, segmentStartedAt: now }
 }
+
+// A fix taken before its segment began is not part of it: the location service can hand back a cached
+// position — such as where the recording paused — as the first fix after capture restarts.
+export function fixesInSegment<T extends { t: number }>(fixes: T[], segmentStartedAt: number): T[] {
+  return fixes.filter((fix) => fix.t >= segmentStartedAt)
+}
