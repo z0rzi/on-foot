@@ -12,7 +12,13 @@ const pausedSession: RecordingSession = {
 }
 
 beforeEach(() => {
-  useRecordingStore.setState({ session: null, livePoints: [] })
+  useRecordingStore.setState({
+    session: null,
+    livePoints: [],
+    locationAvailable: null,
+    stream: { kind: 'stopped' },
+    resumeSettled: false,
+  })
 })
 
 describe('recordingPhase', () => {
@@ -74,5 +80,39 @@ describe('recordingStore', () => {
     expect(useRecordingStore.getState().session).toBeNull()
     expect(recordingPhase(useRecordingStore.getState().session)).toBe('idle')
     expect(useRecordingStore.getState().livePoints).toEqual([])
+  })
+})
+
+describe('stream state', () => {
+  const observed = { locationAvailable: true, stream: { kind: 'faulted', fault: 'start-failed' } as const }
+  const streamState = () => {
+    const s = useRecordingStore.getState()
+    return { locationAvailable: s.locationAvailable, stream: s.stream }
+  }
+
+  it('setStreamState merges only the given fields', () => {
+    useRecordingStore.getState().setStreamState({ locationAvailable: true })
+    useRecordingStore.getState().setStreamState({ stream: { kind: 'faulted', fault: 'permission-missing' } })
+    expect(streamState()).toEqual({ locationAvailable: true, stream: { kind: 'faulted', fault: 'permission-missing' } })
+  })
+  it('beginSession clears the stream state', () => {
+    useRecordingStore.getState().setStreamState(observed)
+    useRecordingStore.getState().beginSession(recordingSession)
+    expect(streamState()).toEqual({ locationAvailable: null, stream: { kind: 'stopped' } })
+  })
+  it('hydrate clears the stream state', () => {
+    useRecordingStore.getState().setStreamState(observed)
+    useRecordingStore.getState().hydrate(recordingSession, [])
+    expect(streamState()).toEqual({ locationAvailable: null, stream: { kind: 'stopped' } })
+  })
+  it('reset clears the stream state', () => {
+    useRecordingStore.getState().setStreamState(observed)
+    useRecordingStore.getState().reset()
+    expect(streamState()).toEqual({ locationAvailable: null, stream: { kind: 'stopped' } })
+  })
+  it('stays settled across a reset once launch handling has settled', () => {
+    useRecordingStore.getState().markResumeSettled()
+    useRecordingStore.getState().reset()
+    expect(useRecordingStore.getState().resumeSettled).toBe(true)
   })
 })

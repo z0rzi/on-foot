@@ -38,4 +38,9 @@ describe('architecture seams', () => {
     ]
     expect(findSeamViolations(files)).toHaveLength(0)
   })
+
+  test('flags the location SDK outside src/location', () => {
+    const files = [{ path: 'src/recording/recordingController.ts', content: "import * as Location from 'expo-location'" }]
+    expect(findSeamViolations(files).some((v) => v.seam === 'location')).toBe(true)
+  })
 })

@@ -1,111 +1,219 @@
-import * as Location from 'expo-location'
-import { activitiesRepository } from '../data/activities'
-import { RECORDING_TASK } from './locationTask'
+import { activitiesRepository, NewActivityInput, RecordingSession } from '../data/activities'
+import {
+  hasForegroundAccess,
+  isLocationAvailable,
+  promptToEnableLocation,
+  requestBackgroundAccess,
+  requestForegroundAccess,
+  startBackgroundTracking,
+  stopBackgroundTracking,
+} from '../location'
+import { formatClockTime } from '../activities/format'
+import { showToast } from '../components/toast'
+import { useActivitiesStore } from '../store/activitiesStore'
+import { isAppActive, whenAppActive } from './appActivity'
+import { ensureTrackingNotificationAccess } from './notificationAccess'
 import { RECORDING_OPTIONS } from './options'
 import { useRecordingStore } from './recordingStore'
 import { resumeActionFor, ResumeAction } from './resume'
-import { applyPause, applyResume } from './session'
-import { toTrackPoint } from './track'
+import { applyPause, applyRelaunch, applyResume } from './session'
 
-export type StartResult = 'started' | 'permission-denied' | 'already-active'
+export type StartResult = 'started' | 'permission-denied' | 'already-active' | 'location-off'
 
-// A durable session must never claim to be recording while nothing is streaming: that state shows a
-// live recording capturing no points, and the singleton row blocks starting a real one. Paused is
-// the safe state, so pause commits before stopping the stream and resume starts the stream before
-// committing — a mismatch in the surviving direction only wastes battery, because the background
-// task ignores fixes while pausedAt is set. Start has no safe state to fall back on, so it undoes
-// the session instead.
+// The durable session is the recording; the location stream is how it captures. They can disagree
+// in ways the app observes — location off, a refused start, a missing permission — and the store
+// records each so the sheet shows it instead of a confident "Recording". Every operation that reads
+// or changes the session or the stream runs as one turn of a single chain, so none interleaves with
+// another. A start issued with no location provider available makes no request, and on a registered
+// task it destroys the live one, so starts are issued only while a provider is available. A live
+// request survives location being switched off and on, so it is re-issued only when no start is
+// known to be live.
 
-export async function startRecording(): Promise<StartResult> {
-  const existing = await activitiesRepository.getActiveSession()
-  if (existing) return 'already-active'
-  const foreground = await Location.requestForegroundPermissionsAsync()
-  if (!foreground.granted) return 'permission-denied'
-  const background = await Location.requestBackgroundPermissionsAsync()
-  if (!background.granted) return 'permission-denied'
+let tail: Promise<unknown> = Promise.resolve()
 
-  const startedAt = Date.now()
-  const sessionId = await activitiesRepository.startSession(startedAt)
-  useRecordingStore.getState().beginSession({ id: sessionId, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0 })
-  try {
-    await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
-  } catch (error) {
-    // With nothing streaming, the session is a phantom: the UI would show a recording that captures
-    // no points, and the singleton row would answer every retry with 'already-active'. The store is
-    // reset first because it cannot fail; if the delete does, the surviving row still reaches the
-    // save screen through that same 'already-active' path, where it can be discarded.
-    useRecordingStore.getState().reset()
-    await activitiesRepository.discardSession(sessionId).catch(() => {})
-    throw error
-  }
-  return 'started'
+function exclusive<T>(operation: () => Promise<T>): Promise<T> {
+  const turn = tail.then(operation, operation)
+  tail = turn.catch(() => {})
+  return turn
 }
 
-export async function pauseRecording(): Promise<void> {
-  const session = await activitiesRepository.getActiveSession()
-  if (!session || session.pausedAt != null) return
-  const now = Date.now()
-  await activitiesRepository.markPaused(session.id, now)
-  useRecordingStore.getState().setSession(applyPause(session, now))
-  // The pause is already durable and the background task drops fixes whenever pausedAt is set, so
-  // failing to stop the stream costs battery, not correctness — it must not fail the pause.
+async function issueStream(): Promise<void> {
   try {
-    if (await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK)) {
-      await Location.stopLocationUpdatesAsync(RECORDING_TASK)
-    }
+    await startBackgroundTracking(RECORDING_OPTIONS)
   } catch {
-    // Left running; the next pause, discard or launch stops it.
+    useRecordingStore.getState().setStreamState({
+      stream: isAppActive() ? { kind: 'faulted', fault: 'start-failed' } : { kind: 'stopped' },
+    })
+    return
   }
+  const available = await isLocationAvailable()
+  useRecordingStore.getState().setStreamState({
+    stream: available ? { kind: 'live' } : { kind: 'stopped' },
+    locationAvailable: available,
+  })
 }
 
-export async function resumeRecording(): Promise<void> {
-  const session = await activitiesRepository.getActiveSession()
-  if (!session || session.pausedAt == null) return
-  if (!(await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK))) {
-    await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
-  }
-  const next = applyResume(session, Date.now())
-  await activitiesRepository.markResumed(session.id, next.pausedMs, next.currentSegment)
-  useRecordingStore.getState().setSession(next)
+// Reads the current provider availability into the store and reports it, so every caller that must
+// know whether a start may be issued sees and records the same fact.
+async function refreshAvailability(): Promise<boolean> {
+  const available = await isLocationAvailable()
+  useRecordingStore.getState().setStreamState({ locationAvailable: available })
+  return available
 }
 
-export async function linkTrailForSave(linkedTrailId: number | null): Promise<void> {
-  const session = await activitiesRepository.getActiveSession()
-  if (!session) return
-  await activitiesRepository.markLinkedTrail(session.id, linkedTrailId)
-  useRecordingStore.getState().setSession({ ...session, linkedTrailId })
+async function issueStreamIfAvailable(): Promise<void> {
+  if (await refreshAvailability()) await issueStream()
 }
 
-export async function discardRecording(sessionId: number): Promise<void> {
-  if (await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK)) {
-    await Location.stopLocationUpdatesAsync(RECORDING_TASK)
-  }
-  await activitiesRepository.discardSession(sessionId)
-  useRecordingStore.getState().reset()
+// Prompts run before the turn is queued: a dialog that never answers must not hold pause, resume or
+// discard behind it.
+export async function startRecording(): Promise<StartResult> {
+  if (await activitiesRepository.getActiveSession()) return 'already-active'
+  if (!(await requestForegroundAccess())) return 'permission-denied'
+  // A launched recording must go on capturing once the app leaves the foreground, so starting asks
+  // for "All the time" access; recovery only ever restarts a stream while the app is active, so it
+  // needs no more than the foreground grant checked in ensureStreaming.
+  if (!(await requestBackgroundAccess())) return 'permission-denied'
+  if (!(await isLocationAvailable()) && !(await promptToEnableLocation())) return 'location-off'
+  await ensureTrackingNotificationAccess()
+  await whenAppActive()
+  return exclusive<StartResult>(async () => {
+    // A session found here belongs to a concurrent tap that reached the turn first: the tap that
+    // lost reports the start it asked for, not a pre-existing recording.
+    if (await activitiesRepository.getActiveSession()) return 'started'
+    const startedAt = Date.now()
+    const sessionId = await activitiesRepository.startSession(startedAt)
+    useRecordingStore.getState().beginSession({ id: sessionId, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0 })
+    await issueStream()
+    return 'started'
+  })
 }
 
-export async function resumeIfActive(): Promise<{ action: ResumeAction; sessionId: number | null }> {
-  const session = await activitiesRepository.getActiveSession()
-  const action = resumeActionFor(session)
-  if (action === 'resume' && session) {
-    const points = await activitiesRepository.getSessionPoints(session.id)
-    useRecordingStore.getState().hydrate(session, points)
-    if (!(await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK))) {
-      await Location.startLocationUpdatesAsync(RECORDING_TASK, RECORDING_OPTIONS)
-    }
-    // Append an immediate fix at the current position into the current segment, so the live
-    // overlay reflects where recording resumes without waiting for the first background batch.
+export function pauseRecording(): Promise<void> {
+  return exclusive(async () => {
+    const session = await activitiesRepository.getActiveSession()
+    if (!session || session.pausedAt != null) return
+    const now = Date.now()
+    await activitiesRepository.markPaused(session.id, now)
+    const store = useRecordingStore.getState()
+    store.setSession(applyPause(session, now))
+    store.setStreamState({ stream: { kind: 'stopped' } })
+    // The pause is already durable and the background task drops fixes whenever pausedAt is set, so
+    // failing to stop the stream costs battery, not correctness — it must not fail the pause.
     try {
-      const now = await Location.getCurrentPositionAsync({ accuracy: RECORDING_OPTIONS.accuracy })
-      const point = toTrackPoint(now)
-      await activitiesRepository.appendPoints(session.id, session.currentSegment, [point])
-      useRecordingStore.getState().appendLivePoints(session.currentSegment, [point])
+      await stopBackgroundTracking()
     } catch {
-      // No immediate fix available; the next background batch will connect the gap.
+      // Left running; discard or finish stops it, and a later resume replaces it.
     }
-  } else if (action === 'paused' && session) {
-    const points = await activitiesRepository.getSessionPoints(session.id)
-    useRecordingStore.getState().hydrate(session, points)
-  }
-  return { action, sessionId: session?.id ?? null }
+  })
+}
+
+// A resumed session is visibly recording whether or not its stream starts, so a refused start is a
+// capture fault the sheet shows, not a failed resume.
+export function resumeRecording(): Promise<void> {
+  return exclusive(async () => {
+    const session = await activitiesRepository.getActiveSession()
+    if (!session || session.pausedAt == null) return
+    const next = applyResume(session, Date.now())
+    await activitiesRepository.markResumed(session.id, next.pausedMs, next.currentSegment)
+    useRecordingStore.getState().setSession(next)
+    await issueStreamIfAvailable()
+  })
+}
+
+export function linkTrailForSave(linkedTrailId: number | null): Promise<void> {
+  return exclusive(async () => {
+    const session = await activitiesRepository.getActiveSession()
+    if (!session) return
+    await activitiesRepository.markLinkedTrail(session.id, linkedTrailId)
+    useRecordingStore.getState().setSession({ ...session, linkedTrailId })
+  })
+}
+
+export function discardRecording(sessionId: number): Promise<void> {
+  return exclusive(async () => {
+    useRecordingStore.getState().setStreamState({ stream: { kind: 'stopped' } })
+    await stopBackgroundTracking()
+    await activitiesRepository.discardSession(sessionId)
+    useRecordingStore.getState().reset()
+  })
+}
+
+let recoveryQueued = false
+
+// Safe to call from any event: it starts a stream only when the session records, foreground
+// permission is held, a provider is available and no start is known to be live. At most one
+// recovery waits in the chain; triggers that arrive meanwhile are covered by it.
+export function ensureStreaming(): Promise<void> {
+  if (recoveryQueued) return Promise.resolve()
+  recoveryQueued = true
+  return exclusive(async () => {
+    recoveryQueued = false
+    const session = await activitiesRepository.getActiveSession()
+    if (!session || session.pausedAt != null) return
+    if (!(await hasForegroundAccess())) {
+      useRecordingStore.getState().setStreamState({ stream: { kind: 'faulted', fault: 'permission-missing' } })
+      return
+    }
+    const stream = useRecordingStore.getState().stream
+    if (stream.kind === 'faulted' && stream.fault === 'permission-missing') {
+      useRecordingStore.getState().setStreamState({ stream: { kind: 'stopped' } })
+    }
+    if (!(await refreshAvailability()) || useRecordingStore.getState().stream.kind === 'live') return
+    await issueStream()
+  })
+}
+
+// A recording row with an empty store means the JavaScript runtime died while recording: swiping the
+// app away only remounts the React root, and the store — module state — survives that. The gap gets
+// its own segment and the user is told; capture restarts, which also restores the foreground service
+// a restored task never gets.
+async function resumeAfterProcessDeath(session: RecordingSession): Promise<void> {
+  const points = await activitiesRepository.getSessionPoints(session.id)
+  const relaunched = applyRelaunch(session)
+  await activitiesRepository.markResumed(relaunched.id, relaunched.pausedMs, relaunched.currentSegment)
+  useRecordingStore.getState().hydrate(relaunched, points)
+  const since = points.length > 0 ? points[points.length - 1].t : session.startedAt
+  showToast(`Recording interrupted ${formatClockTime(since)}–${formatClockTime(Date.now())}`)
+  await issueStreamIfAvailable()
+}
+
+export function resumeIfActive(): Promise<{ action: ResumeAction; sessionId: number | null }> {
+  return exclusive(async () => {
+    try {
+      const session = await activitiesRepository.getActiveSession()
+      const action = resumeActionFor(session)
+      const store = useRecordingStore.getState()
+      if (!session) {
+        if (store.session) store.reset()
+        try {
+          await stopBackgroundTracking()
+        } catch {
+          // A stream that cannot be stopped now is stopped by the next launch.
+        }
+      } else if (!store.session) {
+        if (action === 'resume') await resumeAfterProcessDeath(session)
+        else store.hydrate(session, await activitiesRepository.getSessionPoints(session.id))
+      }
+      return { action, sessionId: session?.id ?? null }
+    } finally {
+      useRecordingStore.getState().markResumeSettled()
+    }
+  })
+}
+
+// The saved activity matters more than a lingering service, so a stop failure does not block the
+// save; the next launch stops an orphaned stream.
+export function finishRecording(sessionId: number, input: NewActivityInput): Promise<number> {
+  return exclusive(async () => {
+    try {
+      await stopBackgroundTracking()
+    } catch {
+      // Stopped by the next launch.
+    }
+    useRecordingStore.getState().setStreamState({ stream: { kind: 'stopped' } })
+    const activityId = await useActivitiesStore.getState().saveActivity(sessionId, input)
+    useRecordingStore.getState().reset()
+    return activityId
+  })
 }

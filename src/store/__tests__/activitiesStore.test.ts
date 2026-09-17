@@ -8,8 +8,7 @@ jest.mock('../../data/activities', () => ({
 }))
 
 import { useActivitiesStore } from '../activitiesStore'
-import { ActivitySummary, NewActivityInput } from '../../data/activities/types'
-import { activitiesRepository } from '../../data/activities'
+import { activitiesRepository, ActivitySummary, NewActivityInput } from '../../data/activities'
 
 const fakeRepo = activitiesRepository as jest.Mocked<typeof activitiesRepository>
 

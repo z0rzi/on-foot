@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import * as Location from 'expo-location'
+import { requestForegroundAccess } from '../location'
 
 /**
  * Requests foreground location permission on mount, mirroring the Kotlin
@@ -9,6 +9,6 @@ import * as Location from 'expo-location'
  */
 export function useLocationPermission() {
   useEffect(() => {
-    void Location.requestForegroundPermissionsAsync()
+    void requestForegroundAccess()
   }, [])
 }

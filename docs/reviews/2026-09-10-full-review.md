@@ -202,7 +202,9 @@ controller, which already owns the "durable session vs stream" invariant: in `re
 there is no session and `hasStartedLocationUpdatesAsync`, stop the task; and route the save through
 a controller `finishRecording(sessionId, input)` that stops the stream before `saveActivity`, so the
 route file stops touching recording state directly. Add the two failure-path tests beside the
-existing ones. · **should-fix, S** (device-verify the notification disappears).
+existing ones. · **should-fix, S** (device-verify the notification disappears). · **Done** (`331e00b`):
+`resumeIfActive` stops an orphaned stream when no session is active, and the save goes through
+`finishRecording`, which stops the stream before `saveActivity`.
 
 **ERR-2 — An empty or non-GPX file becomes a saveable empty trail, silently** ·
 `app/trail/new.tsx:31-37` never checks `parsed.segments.length`; `src/data/trails/gpx/parse.ts:69-75`
@@ -393,7 +395,7 @@ import rule in `POST-WORK.md` is followed (only the stores and the two selection
 |---|---|---|---|---|---|---|
 | 1 | ~~Revalidate the selected entity on a mutation version, not the list reference~~ | PERF-1, DUP-8 | High: stops a full DB read + map/graph rebuild on every tab switch; names the one owner of freshness | S | Low (store tests; behaviour on delete unchanged) | **done** — `085d4da` |
 | 2 | `parseGpx` rejects a file with no points; `new.tsx` shows one Alert for empty/invalid | ERR-2, TEST-2 | High: removes a silent path to a useless persisted trail | S | Low | **now** |
-| 3 | `resumeIfActive` stops an orphaned stream; save goes through a controller `finishRecording` | ERR-1 | Medium-high: battery + misleading notification; controller keeps its invariant | S | Low-medium (device-verify) | **now** |
+| 3 | ~~`resumeIfActive` stops an orphaned stream; save goes through a controller `finishRecording`~~ | ERR-1 | Medium-high: battery + misleading notification; controller keeps its invariant | S | Low-medium (device-verify) | **done** — `331e00b` |
 | 4 | Prune the six unused deps; pin `@types/jest`; ignore `.claude/`, `.serena/`, `run-app.sh` | DEP-1..4 | Medium: smaller install, honest `verify` scope, clean `git status` | S | Low (bundle check) | **now** |
 | 5 | Doc refresh: README, `app.config.ts` permission comment, adapter comment, lint-debt table | DOC-1..4 | Medium: first-contact docs stop lying; no code risk | S | None | **now** |
 | 6 | `useLoadedEntity` + `LoadingScreen` with an error outcome; `BackButton`; `newTrailHref` | DUP-3, DUP-4, ERR-3 | High: five copies → one, and every load gets a visible failure path | M | Low-medium | next |
@@ -408,6 +410,45 @@ from every tab switch and make freshness ownership explicit. (2) The empty-GPX g
 finding that lets the user persist something broken with no message, and it is a five-line fix plus
 one test. (3) The orphaned-stream fix makes the controller's own comment true and closes the last
 gap in the "durable session vs stream" invariant the previous report established.
+
+### 5.1 Field findings — recording stream health device pass (2026-09-17)
+
+Recorded after the `fix/recording-stream-health` device checklist passed; none traces to that
+change. Evidence: `adb shell dumpsys activity exit-info com.zorzi.onfootrn`, dropbox crash
+entries, and device experiments (OnePlus DN2103, Android 13, release build).
+
+**FIELD-1 — The system kills the app in the background, sometimes for excessive CPU** · Since the
+2026-09-16 14:26 install, every system kill happened at importance 300 or 400 — never with the
+recording's foreground service up — and three were `EXCESSIVE CPU USAGE` while cached: 6–17 s of CPU
+per 5 min against a 2% limit, at up to 384 MB. The "Recording interrupted" toast reports these deaths
+truthfully. Open: what burns CPU while the app is cached with no recording, and whether any kill fell
+during a recording that had lost its foreground service. · **should-fix, investigate**.
+
+**FIELD-2 — The recording sheet is sometimes missing after reopening while following a trail** · The
+sheet stays at `@gorhom/bottom-sheet`'s initial position (the window height), so `MapScreen`'s
+`graphBottom` goes negative: the floating graph sits under the tab bar and the controls drop to the
+bottom. Only a restart recovers, because a recording keeps `mode === 'recording'` and nothing remounts
+the sheet. Not reproduced by swipe-away, nor by a relaunch after a kill. Candidates: the sheet's content
+height changing during its mount animation, with dynamic sizing on by default in 5.2.14; or the trail
+sheet being swapped for the recording sheet on a warm runtime after a process death, both writing
+`sheetTop`. · Next: diagnostics logging sheet mounts, map-mode swaps and the sheet position when the
+app becomes active. · **should-fix, S (diagnostics) then fix**.
+
+**FIELD-3 — The interruption toast is hidden, and its range overstates the gap** · It fires while the
+splash screen still covers the map, and its start is the last stored point, so a stationary user is
+shown minutes of interruption before the actual death (observed `14:45–14:49` for a kill at 14:49).
+· **minor, S**.
+
+**FIELD-4 — expo-location crashes on a location delivery after the permission is revoked** ·
+`SecurityException` wrapped in `RuntimeExecutionException` at `LocationTaskConsumer.kt:89`: for a
+broadcast carrying no location result, `task.result` is read inside the `lastLocation` completion
+listener, which runs outside the surrounding `try`. A delivery arriving just after the revoke kills the
+process. Fix in a `patch-package` patch beside the existing `expo-task-manager` one. · **minor, S**.
+
+**FIELD-5 — A crash in a relaunched recording process can hang instead of dying** · After
+`am crash`, crash handling started (`FATAL EXCEPTION: main`) but the main thread stayed blocked for
+minutes while the foreground service kept the process alive and its notification up. Seen once, on a
+process relaunched after an earlier crash; unconfirmed for real crashes. · **investigate**.
 
 ## 6. Continuity with the previous report
 

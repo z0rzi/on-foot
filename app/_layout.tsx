@@ -12,6 +12,7 @@ import { useOfflineStore } from '../src/map/offline/offlineStore'
 import { useDatabaseMigrations } from '../src/data/db/useDatabaseMigrations'
 import '../src/recording/locationTask'
 import { useResumeRecording } from '../src/recording/useResumeRecording'
+import { useRecordingStream } from '../src/recording/useRecordingStream'
 import { useIncomingShare } from '../src/trails/useIncomingShare'
 
 function ShareIntentHandler() {
@@ -21,6 +22,11 @@ function ShareIntentHandler() {
 
 function ResumeRecordingHandler() {
   useResumeRecording()
+  return null
+}
+
+function RecordingStreamHandler() {
+  useRecordingStream()
   return null
 }
 
@@ -51,6 +57,7 @@ export default function RootLayout() {
                 <Stack screenOptions={{ headerShown: false }} />
                 <ShareIntentHandler />
                 <ResumeRecordingHandler />
+                <RecordingStreamHandler />
                 <OfflineInitHandler />
               </BottomSheetModalProvider>
             </MapProviderProvider>

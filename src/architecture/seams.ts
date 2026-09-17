@@ -27,6 +27,13 @@ export const SEAMS: Seam[] = [
     rationale:
       'Only src/net wraps the connectivity SDK; consumers use ConnectivityStatus and the wrapper, never NetInfo directly.',
   },
+  {
+    name: 'location',
+    tokens: ['expo-location', 'expo-task-manager'],
+    allow: ['src/location/'],
+    rationale:
+      'Only src/location wraps the location SDK and its background task; recording and map code use the location port, never the SDK.',
+  },
 ]
 
 const importPattern = (token: string): RegExp => {

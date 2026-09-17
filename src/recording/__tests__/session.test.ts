@@ -1,4 +1,4 @@
-import { applyPause, applyResume, movingElapsedMs } from '../session'
+import { applyPause, applyRelaunch, applyResume, movingElapsedMs } from '../session'
 import { RecordingSession } from '../../data/activities/types'
 
 const base: RecordingSession = { id: 1, startedAt: 1000, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0 }
@@ -34,5 +34,12 @@ describe('applyResume', () => {
     const afterFirst = applyResume({ ...base, pausedAt: 3000 }, 4000) // seg 1
     const paused2 = applyPause(afterFirst, 9000)
     expect(applyResume(paused2, 11000)).toEqual({ ...base, pausedAt: null, pausedMs: 3000, currentSegment: 2 })
+  })
+})
+
+describe('applyRelaunch', () => {
+  it('opens the next segment and leaves the timing untouched', () => {
+    const running = { ...base, pausedMs: 1500, currentSegment: 2 }
+    expect(applyRelaunch(running)).toEqual({ ...running, currentSegment: 3 })
   })
 })

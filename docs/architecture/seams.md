@@ -45,6 +45,7 @@ That is the whole process. One array entry; the test, the gate, and the docs fol
 | `map-provider` | `@rnmapbox/maps` | `src/map/providers/` |
 | `persistence` | `expo-sqlite`, `drizzle-orm` | `src/data/db/` |
 | `net` | `@react-native-community/netinfo` | `src/net/` |
+| `location` | `expo-location`, `expo-task-manager` | `src/location/` |
 
 ## The persistence seam's row types are checked, not cast
 
@@ -61,9 +62,6 @@ These native modules are used in more than one place and would each become a sea
 consolidated behind a single wrapper directory. Registering them now would fail the test;
 consolidating them is a separate, device-verified refactor.
 
-- **`expo-location`** — `src/map/useLocationPermission.ts`, `src/recording/locationTask.ts`,
-  `src/recording/options.ts`, `src/recording/recordingController.ts`. Natural boundary: a
-  location wrapper (perhaps under `src/recording/`).
 - **`@react-native-async-storage/async-storage`** — `src/store/mapStore.ts`,
   `src/settings/preferencesStore.ts`. Natural boundary: a small persisted-preferences wrapper.
 - **`expo-file-system`** — `src/data/trails/gpx/readFile.ts`, `src/map/offline/diskSpace.ts`.
