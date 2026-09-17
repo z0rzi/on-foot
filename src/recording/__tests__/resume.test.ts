@@ -1,6 +1,6 @@
 import { resumeActionFor } from '../resume'
 
-const session = { id: 1, startedAt: 0, linkedTrailId: null as number | null, pausedAt: null as number | null, pausedMs: 0, currentSegment: 0 }
+const session = { id: 1, startedAt: 0, linkedTrailId: null as number | null, pausedAt: null as number | null, pausedMs: 0, currentSegment: 0, segmentStartedAt: 0 }
 
 describe('resumeActionFor', () => {
   it('no session → none', () => {

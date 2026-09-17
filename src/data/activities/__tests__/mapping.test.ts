@@ -64,13 +64,13 @@ describe('rowToLivePoint', () => {
 describe('rowToSession', () => {
   it('maps a recording session row including pause + segment fields', () => {
     expect(
-      rowToSession({ id: 3, startedAt: 10, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0 }),
-    ).toEqual({ id: 3, startedAt: 10, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0 })
+      rowToSession({ id: 3, startedAt: 10, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0, segmentStartedAt: 10 }),
+    ).toEqual({ id: 3, startedAt: 10, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0, segmentStartedAt: 10 })
   })
   it('maps a paused session on a later segment', () => {
     expect(
-      rowToSession({ id: 3, startedAt: 10, linkedTrailId: 2, pausedAt: 500, pausedMs: 120, currentSegment: 2 }),
-    ).toEqual({ id: 3, startedAt: 10, linkedTrailId: 2, pausedAt: 500, pausedMs: 120, currentSegment: 2 })
+      rowToSession({ id: 3, startedAt: 10, linkedTrailId: 2, pausedAt: 500, pausedMs: 120, currentSegment: 2, segmentStartedAt: 300 }),
+    ).toEqual({ id: 3, startedAt: 10, linkedTrailId: 2, pausedAt: 500, pausedMs: 120, currentSegment: 2, segmentStartedAt: 300 })
   })
 })
 
@@ -95,7 +95,7 @@ describe('activityMetricsFromSegments', () => {
 })
 
 describe('buildNewActivityInput', () => {
-  const session = { id: 9, startedAt: 1000, linkedTrailId: 42, pausedAt: 7000, pausedMs: 2000, currentSegment: 0 }
+  const session = { id: 9, startedAt: 1000, linkedTrailId: 42, pausedAt: 7000, pausedMs: 2000, currentSegment: 0, segmentStartedAt: 1000 }
   const form = { name: 'Morning walk', effort: 'moderate' as const, comments: 'nice' }
   it('assembles the input; endedAt is the pause moment, geometry is segments', () => {
     const input = buildNewActivityInput(session, [pts], form)

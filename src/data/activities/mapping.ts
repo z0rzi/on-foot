@@ -30,6 +30,7 @@ export interface RecordingSessionRow {
   pausedAt: number | null
   pausedMs: number
   currentSegment: number
+  segmentStartedAt: number
 }
 
 export interface RecordingPointRow {
@@ -91,6 +92,7 @@ export function rowToSession(row: RecordingSessionRow): RecordingSession {
     pausedAt: row.pausedAt,
     pausedMs: row.pausedMs,
     currentSegment: row.currentSegment,
+    segmentStartedAt: row.segmentStartedAt,
   }
 }
 

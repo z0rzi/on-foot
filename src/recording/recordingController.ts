@@ -83,7 +83,9 @@ export async function startRecording(): Promise<StartResult> {
     if (await activitiesRepository.getActiveSession()) return 'started'
     const startedAt = Date.now()
     const sessionId = await activitiesRepository.startSession(startedAt)
-    useRecordingStore.getState().beginSession({ id: sessionId, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0 })
+    useRecordingStore.getState().beginSession({
+      id: sessionId, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0, segmentStartedAt: startedAt,
+    })
     await issueStream()
     return 'started'
   })
@@ -115,7 +117,7 @@ export function resumeRecording(): Promise<void> {
     const session = await activitiesRepository.getActiveSession()
     if (!session || session.pausedAt == null) return
     const next = applyResume(session, Date.now())
-    await activitiesRepository.markResumed(session.id, next.pausedMs, next.currentSegment)
+    await activitiesRepository.markResumed(session.id, next.pausedMs, next.currentSegment, next.segmentStartedAt)
     useRecordingStore.getState().setSession(next)
     await issueStreamIfAvailable()
   })
@@ -170,8 +172,8 @@ export function ensureStreaming(): Promise<void> {
 // a restored task never gets.
 async function resumeAfterProcessDeath(session: RecordingSession): Promise<void> {
   const points = await activitiesRepository.getSessionPoints(session.id)
-  const relaunched = applyRelaunch(session)
-  await activitiesRepository.markResumed(relaunched.id, relaunched.pausedMs, relaunched.currentSegment)
+  const relaunched = applyRelaunch(session, Date.now())
+  await activitiesRepository.markResumed(relaunched.id, relaunched.pausedMs, relaunched.currentSegment, relaunched.segmentStartedAt)
   useRecordingStore.getState().hydrate(relaunched, points)
   const since = points.length > 0 ? points[points.length - 1].t : session.startedAt
   showToast(`Recording interrupted ${formatClockTime(since)}–${formatClockTime(Date.now())}`)

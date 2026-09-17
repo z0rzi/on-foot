@@ -42,6 +42,7 @@ export const recordingSessions = sqliteTable(
     pausedAt: integer('paused_at'),
     pausedMs: integer('paused_ms').notNull().default(0),
     currentSegment: integer('current_segment').notNull().default(0),
+    segmentStartedAt: integer('segment_started_at').notNull().default(0),
     singleton: integer('singleton').notNull().default(1),
   },
   (table) => ({

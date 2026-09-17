@@ -11,7 +11,7 @@ export const sqliteActivitiesRepository: ActivitiesRepository = {
   async startSession(startedAt) {
     const [inserted] = await db
       .insert(recordingSessions)
-      .values({ startedAt })
+      .values({ startedAt, segmentStartedAt: startedAt })
       .returning({ id: recordingSessions.id })
     return inserted.id
   },
@@ -35,9 +35,9 @@ export const sqliteActivitiesRepository: ActivitiesRepository = {
   async markPaused(sessionId, pausedAt) {
     await db.update(recordingSessions).set({ pausedAt }).where(eq(recordingSessions.id, sessionId))
   },
-  async markResumed(sessionId, pausedMs, currentSegment) {
+  async markResumed(sessionId, pausedMs, currentSegment, segmentStartedAt) {
     await db.update(recordingSessions)
-      .set({ pausedAt: null, pausedMs, currentSegment })
+      .set({ pausedAt: null, pausedMs, currentSegment, segmentStartedAt })
       .where(eq(recordingSessions.id, sessionId))
   },
   async markLinkedTrail(sessionId, linkedTrailId) {

@@ -51,7 +51,7 @@ const app = jest.mocked(appActivity)
 const notifications = jest.mocked(notificationAccess)
 
 const recording: RecordingSession = {
-  id: 7, startedAt: 1000, linkedTrailId: null, pausedAt: null, pausedMs: 500, currentSegment: 1,
+  id: 7, startedAt: 1000, linkedTrailId: null, pausedAt: null, pausedMs: 500, currentSegment: 1, segmentStartedAt: 1000,
 }
 const paused: RecordingSession = { ...recording, pausedAt: 4000 }
 
@@ -86,7 +86,7 @@ beforeEach(() => {
 
   repo.getActiveSession.mockImplementation(async () => row)
   repo.startSession.mockImplementation(async (startedAt) => {
-    row = { id: 42, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0 }
+    row = { id: 42, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0, segmentStartedAt: startedAt }
     calls.push('startSession')
     return 42
   })
@@ -94,8 +94,8 @@ beforeEach(() => {
     row = row && { ...row, pausedAt }
     calls.push('markPaused')
   })
-  repo.markResumed.mockImplementation(async (_id, pausedMs, currentSegment) => {
-    row = row && { ...row, pausedAt: null, pausedMs, currentSegment }
+  repo.markResumed.mockImplementation(async (_id, pausedMs, currentSegment, segmentStartedAt) => {
+    row = row && { ...row, pausedAt: null, pausedMs, currentSegment, segmentStartedAt }
     calls.push('markResumed')
   })
   repo.discardSession.mockImplementation(async () => {
@@ -210,6 +210,12 @@ describe('startRecording', () => {
     const results = await Promise.all([startRecording(), startRecording()])
     expect(results).toEqual(['started', 'started'])
     expect(repo.startSession).toHaveBeenCalledTimes(1)
+  })
+
+  it('begins the first segment when the session starts', async () => {
+    await startRecording()
+    const session = useRecordingStore.getState().session
+    expect(session?.segmentStartedAt).toBe(session?.startedAt)
   })
 })
 
@@ -338,9 +344,20 @@ describe('resumeRecording', () => {
   it('commits the resume and starts nothing while location is off', async () => {
     port.isLocationAvailable.mockResolvedValue(false)
     await resumeRecording()
-    expect(repo.markResumed).toHaveBeenCalledWith(7, expect.any(Number), 2)
+    expect(repo.markResumed).toHaveBeenCalledWith(7, expect.any(Number), 2, expect.any(Number))
     expect(port.startBackgroundTracking).not.toHaveBeenCalled()
     expect(useRecordingStore.getState().locationAvailable).toBe(false)
+  })
+
+  it('begins the next segment at the moment of the resume', async () => {
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(9000)
+    try {
+      await resumeRecording()
+    } finally {
+      clock.mockRestore()
+    }
+    expect(repo.markResumed).toHaveBeenCalledWith(7, 5500, 2, 9000)
+    expect(useRecordingStore.getState().session?.segmentStartedAt).toBe(9000)
   })
 
   it('keeps the resume when the start is rejected, recording the fault', async () => {
@@ -423,7 +440,8 @@ describe('resumeIfActive', () => {
     } finally {
       clock.mockRestore()
     }
-    expect(repo.markResumed).toHaveBeenCalledWith(7, 500, 2)
+    expect(repo.markResumed).toHaveBeenCalledWith(7, 500, 2, reopenedAt)
+    expect(useRecordingStore.getState().session?.segmentStartedAt).toBe(reopenedAt)
     expect(useRecordingStore.getState().session?.currentSegment).toBe(2)
     expect(jest.mocked(showToast)).toHaveBeenCalledWith('Recording interrupted 13:56–14:40')
     expect(port.startBackgroundTracking).toHaveBeenCalledTimes(1)

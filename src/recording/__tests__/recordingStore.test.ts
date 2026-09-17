@@ -5,10 +5,10 @@ import { groupPointsBySegment } from '../../data/activities/mapping'
 const p = (t: number): TrackPoint => ({ lat: 0, lng: t, ele: null, t })
 const lp = (t: number, segment: number): LiveTrackPoint => ({ ...p(t), segment })
 const recordingSession: RecordingSession = {
-  id: 7, startedAt: 1000, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0,
+  id: 7, startedAt: 1000, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0, segmentStartedAt: 1000,
 }
 const pausedSession: RecordingSession = {
-  id: 7, startedAt: 1000, linkedTrailId: 3, pausedAt: 4000, pausedMs: 0, currentSegment: 1,
+  id: 7, startedAt: 1000, linkedTrailId: 3, pausedAt: 4000, pausedMs: 0, currentSegment: 1, segmentStartedAt: 1000,
 }
 
 beforeEach(() => {

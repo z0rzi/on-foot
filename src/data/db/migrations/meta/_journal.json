@@ -43,6 +43,13 @@
       "when": 1788212007081,
       "tag": "0005_even_drax",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789653359522,
+      "tag": "0006_lethal_iron_monger",
+      "breakpoints": true
     }
   ]
 }
