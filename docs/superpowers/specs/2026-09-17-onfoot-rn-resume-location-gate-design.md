@@ -89,7 +89,10 @@ when location goes off mid-recording**: the app cannot observe location going of
 ## Consequences accepted
 
 - **Fixes taken while paused but delivered after the resume are dropped** — at most one batch window (15 s).
-- **A first fix whose time trails the system clock at the moment of resume can be dropped.**
+- **A fix whose time trails the system clock is dropped.** The rule guards every segment, the first one
+  included, and a fix's time comes from the location provider while the segment's start comes from the
+  system clock. On a device whose provider timestamps lag, a recording loses its opening fixes, not just
+  one at a resume. Android's location times are epoch-based and normally agree with the system clock.
 - **Location switched off during a recording, without a pause, still bridges the unrecorded stretch with a line**:
   the request survives and capture continues in the same segment (unchanged from the 2026-09-12 design).
 - **Resuming requires location**: the timer cannot be resumed while location is off.
@@ -113,7 +116,8 @@ now)` advances `currentSegment` and sets `segmentStartedAt`; `fixesInSegment` ke
 `src/recording/__tests__/locationTask.test.ts` — a fix taken before the segment began is neither stored nor added to
 the live track; fixes taken after it are both.
 
-Repository and migration changes follow the existing tests for `markResumed` and the migration set.
+`markResumed`'s new argument is covered by the controller tests above. The migration set has no tests in
+this repo and gains none here; migration `0006` is checked on the device instead.
 
 ## Device verification
 
