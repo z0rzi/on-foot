@@ -16,7 +16,7 @@ const repo = jest.mocked(activitiesRepository)
 const session: RecordingSession = {
   id: 7, startedAt: 1000, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 2, segmentStartedAt: 5000,
 }
-const fix = (t: number): LocationFix => ({ lat: 45, lng: 6, ele: 1200, t })
+const fix = (t: number): LocationFix => ({ lat: 45, lng: 6, ele: 1200, t, accuracy: null })
 
 beforeEach(() => {
   repo.getActiveSession.mockResolvedValue(session)

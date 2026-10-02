@@ -3,6 +3,7 @@ export interface LocationFix {
   lng: number
   ele: number | null
   t: number
+  accuracy: number | null
 }
 
 export interface BackgroundTrackingOptions {

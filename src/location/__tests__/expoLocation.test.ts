@@ -50,8 +50,14 @@ const options: BackgroundTrackingOptions = {
   notification: { title: 'On Foot', body: 'Recording your activity', color: '#123456' },
 }
 
-const location = (latitude: number, longitude: number, altitude: number | null, timestamp: number): LocationObject => ({
-  coords: { latitude, longitude, altitude, accuracy: 5, altitudeAccuracy: null, heading: null, speed: null },
+const location = (
+  latitude: number,
+  longitude: number,
+  altitude: number | null,
+  timestamp: number,
+  accuracy: number | null = 5,
+): LocationObject => ({
+  coords: { latitude, longitude, altitude, accuracy, altitudeAccuracy: null, heading: null, speed: null },
   timestamp,
 })
 
@@ -62,16 +68,26 @@ beforeEach(() => {
 
 describe('toLocationFix', () => {
   it('maps a device location to a fix, rounding the timestamp', () => {
-    expect(toLocationFix(location(1.5, -2.5, 120, 1234.7))).toEqual({ lat: 1.5, lng: -2.5, ele: 120, t: 1235 })
+    expect(toLocationFix(location(1.5, -2.5, 120, 1234.7))).toEqual({
+      lat: 1.5, lng: -2.5, ele: 120, t: 1235, accuracy: 5,
+    })
   })
   it('keeps a missing altitude as a null elevation', () => {
-    expect(toLocationFix(location(0, 0, null, 5))).toEqual({ lat: 0, lng: 0, ele: null, t: 5 })
+    expect(toLocationFix(location(0, 0, null, 5))).toEqual({ lat: 0, lng: 0, ele: null, t: 5, accuracy: 5 })
+  })
+  it('maps the accuracy radius across', () => {
+    expect(toLocationFix(location(0, 0, null, 5, 12)).accuracy).toBe(12)
+  })
+  it('keeps a missing accuracy as null', () => {
+    expect(toLocationFix(location(0, 0, null, 5, null)).accuracy).toBeNull()
   })
 })
 
 describe('fixesFromTaskData', () => {
   it('maps the delivered locations', () => {
-    expect(fixesFromTaskData({ locations: [location(1, 2, 3, 4)] })).toEqual([{ lat: 1, lng: 2, ele: 3, t: 4 }])
+    expect(fixesFromTaskData({ locations: [location(1, 2, 3, 4)] })).toEqual([
+      { lat: 1, lng: 2, ele: 3, t: 4, accuracy: 5 },
+    ])
   })
   it('yields nothing for an empty or malformed delivery', () => {
     expect(fixesFromTaskData(null)).toEqual([])

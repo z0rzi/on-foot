@@ -1,4 +1,4 @@
-import { formatClockTime, formatDuration, formatActivityDate, formatActivitySummary, formatPace, formatSpeed, formatStopwatch } from '../format'
+import { formatClockSeconds, formatClockTime, formatDuration, formatActivityDate, formatActivitySummary, formatPace, formatSpeed, formatStopwatch } from '../format'
 import { ActivityMetrics } from '../../data/activities/types'
 
 describe('formatDuration', () => {
@@ -91,5 +91,17 @@ describe('formatClockTime', () => {
   it('formats local time as zero-padded hours and minutes', () => {
     expect(formatClockTime(new Date(2026, 8, 14, 13, 56).getTime())).toBe('13:56')
     expect(formatClockTime(new Date(2026, 8, 14, 9, 5).getTime())).toBe('09:05')
+  })
+})
+
+describe('formatClockSeconds', () => {
+  it('pads hours, minutes and seconds to two digits each', () => {
+    const t = new Date(2026, 9, 2, 9, 5, 7).getTime()
+    expect(formatClockSeconds(t)).toBe('09:05:07')
+  })
+
+  it('renders an afternoon time on the 24-hour clock', () => {
+    const t = new Date(2026, 9, 2, 14, 49, 30).getTime()
+    expect(formatClockSeconds(t)).toBe('14:49:30')
   })
 })

@@ -54,3 +54,9 @@ export function formatClockTime(timestamp: number): string {
   const d = new Date(timestamp)
   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
 }
+
+export function formatClockSeconds(timestamp: number): string {
+  const d = new Date(timestamp)
+  const two = (n: number) => n.toString().padStart(2, '0')
+  return `${two(d.getHours())}:${two(d.getMinutes())}:${two(d.getSeconds())}`
+}
