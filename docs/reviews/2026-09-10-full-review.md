@@ -469,7 +469,14 @@ shown minutes of interruption before the actual death (observed `14:45–14:49` 
 `SecurityException` wrapped in `RuntimeExecutionException` at `LocationTaskConsumer.kt:89`: for a
 broadcast carrying no location result, `task.result` is read inside the `lastLocation` completion
 listener, which runs outside the surrounding `try`. A delivery arriving just after the revoke kills the
-process. Fix in a `patch-package` patch beside the existing `expo-task-manager` one. · **minor, S**.
+process. Fix in a `patch-package` patch beside the existing `expo-task-manager` one. · **minor, S**. ·
+**Done** (`patches/expo-location+57.0.11.patch`): the listener now checks `task.isSuccessful` and logs
+the failure instead of reading `task.result`, which rethrows the task's `SecurityException` wrapped in a
+`RuntimeExecutionException` on the callback thread. The outer `try` stays, for the throw the
+`lastLocation` getter can still raise synchronously. Verified the patch reverses exactly against
+upstream and re-applies through `postinstall` from clean; the crash path itself is **device-verified
+only** — Jest cannot reach native code. Both patches are now documented in
+`docs/architecture/native-patches.md`.
 
 **FIELD-5 — A crash in a relaunched recording process can hang instead of dying** · After
 `am crash`, crash handling started (`FATAL EXCEPTION: main`) but the main thread stayed blocked for

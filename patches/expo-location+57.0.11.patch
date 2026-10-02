@@ -1,0 +1,19 @@
+diff --git a/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt b/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt
+index b4f6c06..c8b4543 100644
+--- a/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt
++++ b/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt
+@@ -86,6 +86,14 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+     } else {
+       try {
+         mLocationClient.lastLocation.addOnCompleteListener { task ->
++          // The listener runs after this method returns, so the surrounding try cannot catch it:
++          // Task.getResult() rethrows the task's failure (a SecurityException once the location
++          // permission has been revoked) wrapped in a RuntimeExecutionException, which would reach
++          // the callback thread uncaught and kill the process.
++          if (!task.isSuccessful) {
++            Log.e(TAG, "Cannot get last location: " + task.exception?.message)
++            return@addOnCompleteListener
++          }
+           task.result?.let { handleLocationUpdate(listOf(it)) }
+         }
+       } catch (e: SecurityException) {
