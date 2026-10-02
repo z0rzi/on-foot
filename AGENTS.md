@@ -71,6 +71,14 @@ uphold the original design, do not let it erode one expedient change at a time.
 When a request tempts you toward a shortcut that violates the above, surface the tension
 instead of silently taking the shortcut.
 
+# The debug log
+
+The app keeps its own log in SQLite, readable and shareable from Settings → Debug log. It is the
+**first place to look** for a bug reported from the field. Write to it with
+`logEvent(level, area, message, detail?)` from `src/log` — fire-and-forget, never awaited. It
+**never records coordinates**: a position is logged as an accuracy and a distance, never a latitude
+or longitude. See `docs/architecture/debug-log.md`.
+
 # About comments
 
 Refrain from over-commenting. Don't describe changes in comments, just describe the current state of the code.

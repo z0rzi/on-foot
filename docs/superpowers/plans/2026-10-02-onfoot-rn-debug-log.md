@@ -461,8 +461,12 @@ describe('logEvent', () => {
     append.mockResolvedValue(undefined)
   })
 
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
   it('writes the level, area, message and the time it was logged', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000)
+    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000)
     logEvent('info', 'recording', 'start requested')
     await flushLog()
 
@@ -473,6 +477,8 @@ describe('logEvent', () => {
       message: 'start requested',
       detail: null,
     })
+
+    nowSpy.mockRestore()
   })
 
   it('encodes detail as compact JSON', async () => {
@@ -485,15 +491,28 @@ describe('logEvent', () => {
   })
 
   it('reaches the repository in the order the entries were logged', async () => {
-    const order: string[] = []
-    append.mockImplementation(async (entry) => { order.push(entry.message) })
+    let firstSettled = false
+    const callOrder: string[] = []
+
+    append.mockImplementation(async (entry) => {
+      if ((entry.message === 'second' || entry.message === 'third') && !firstSettled) {
+        throw new Error(`${entry.message} was invoked before first settled`)
+      }
+
+      callOrder.push(entry.message)
+
+      if (entry.message === 'first') {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        firstSettled = true
+      }
+    })
 
     logEvent('info', 'recording', 'first')
     logEvent('info', 'recording', 'second')
     logEvent('info', 'recording', 'third')
     await flushLog()
 
-    expect(order).toEqual(['first', 'second', 'third'])
+    expect(callOrder).toEqual(['first', 'second', 'third'])
   })
 
   it('swallows a repository failure and still writes the next entry', async () => {
@@ -1002,8 +1021,14 @@ export function logLine(entry: LogEntry): string {
   return entry.detail ? `${head} ${entry.detail}` : head
 }
 
+function omittedFooter(omitted: number): string {
+  return omitted > 0 ? `\n… ${omitted} older entries not included` : ''
+}
+
 // A share intent over the system's limit fails silently, so the text is capped and says what it left
-// out rather than arriving truncated mid-line.
+// out rather than arriving truncated mid-line. A candidate line is measured against the footer that
+// would follow it if it were the last one kept, not the footer for leaving it out — otherwise a line
+// landing exactly on the boundary gets rejected to make room for a footer it turns out not to need.
 export function logExportText(entries: LogEntry[], meta: LogExportMeta): string {
   const header = `On Foot ${meta.appVersion} · ${meta.model} · Android ${meta.androidVersion}`
   const newestFirst = [...entries].sort((a, b) => b.t - a.t || b.id - a.id)
@@ -1013,17 +1038,15 @@ export function logExportText(entries: LogEntry[], meta: LogExportMeta): string 
   let included = 0
   for (const entry of newestFirst) {
     const line = logLine(entry)
-    const omitted = newestFirst.length - included
-    const footer = `\n… ${omitted} older entries not included`
+    const footer = omittedFooter(newestFirst.length - included - 1)
     if (length + 1 + line.length + footer.length > LOG_EXPORT_MAX_CHARS) break
     lines.push(line)
     length += 1 + line.length
     included += 1
   }
 
-  const omitted = newestFirst.length - included
   const body = [header, ...lines].join('\n')
-  return omitted > 0 ? `${body}\n… ${omitted} older entries not included` : body
+  return `${body}${omittedFooter(newestFirst.length - included)}`
 }
 ```
 
