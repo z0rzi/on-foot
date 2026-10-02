@@ -16,13 +16,14 @@ import { offlineStateForTrail } from '../map/offline/badge'
 import { offlineMenuItems, type OfflineMenuAction } from '../map/offline/menu'
 import { retryTargetsForTrail } from '../map/offline/operations'
 import { boundsForTrail } from '../map/offline/bounds'
-import { flattenSegments } from '../map/geo'
+import { flattenSegments, startPointOf } from '../map/geo'
 import { packDescriptor } from '../map/offline/descriptor'
 import { OFFLINE_MARGIN_KM } from '../map/offline/constants'
 import { OfflineLayerChooser } from '../map/offline/OfflineLayerChooser'
-import { ActionsMenu } from '../components/ActionsMenu'
+import { ActionsMenu, type ActionItem } from '../components/ActionsMenu'
 import { showToast } from '../components/toast'
 import { guardDownload } from '../map/offline/downloadConsent'
+import { openMapApp } from '../external'
 
 export function TrailInfoSheet({
   trail,
@@ -94,7 +95,11 @@ export function TrailInfoSheet({
     retry,
     cancel: () => void cancel(),
   }
-  const menuItems = offlineMenuItems(state).map((item) => ({ ...item, onPress: handlers[item.action] }))
+  const start = startPointOf(trail.geometry.segments)
+  const menuItems: ActionItem[] = [
+    ...(start ? [{ label: 'Navigate to start', onPress: () => void openMapApp(start, trail.name) }] : []),
+    ...offlineMenuItems(state).map((item) => ({ ...item, onPress: handlers[item.action] })),
+  ]
 
   return (
     <>
@@ -110,7 +115,7 @@ export function TrailInfoSheet({
           <Text style={[styles.badge, { color: c.danger }]}>⚠ Failed</Text>
         )}
         <View ref={dotsRef} collapsable={false}>
-          <Pressable accessibilityLabel="Offline actions" onPress={openMenu} hitSlop={8}>
+          <Pressable accessibilityLabel="Trail actions" onPress={openMenu} hitSlop={8}>
             <Ionicons name="ellipsis-vertical" size={20} color={c.onSurfaceVariant} />
           </Pressable>
         </View>
