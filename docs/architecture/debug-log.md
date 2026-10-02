@@ -35,8 +35,8 @@ write is swallowed; the next entry still gets its turn.
   batch (`fixBatchSummary`), and interruption recovery decisions.
 - **`launch`** — cold start, the action `useResumeRecording` took, and any interruption it
   announces.
-- **`map`** — the recording sheet mounting, and the sheet/root/graph geometry sampled on
-  `AppState` becoming `'active'` (`useSheetGeometryLog`).
+- **`map`** — the recording sheet mounting, every map-mode transition, and the sheet/root/graph
+  geometry sampled on `AppState` becoming `'active'` (`useSheetGeometryLog`).
 - **`error`** — uncaught errors (the global `ErrorUtils` handler) and render errors caught by
   `ErrorBoundary`.
 
@@ -48,7 +48,8 @@ longitude (`fixBatchSummary`). The log must never become a record of where the u
 ## Retention
 
 Entries older than 7 days are deleted outright; of what's left, only the newest 5,000 are kept
-(`src/log/retention.ts`). The trim runs once per launch (`useLogRetention`, wired in
+(`sqliteLogRepository.trim` in `src/data/db/logRepository.ts`). The trim runs once per launch
+(`useLogRetention`, wired in
 `app/_layout.tsx`).
 
 ## Getting it off the phone
