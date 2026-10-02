@@ -61,3 +61,8 @@ export function formatClockSeconds(timestamp: number): string {
   const d = new Date(timestamp)
   return `${twoDigits(d.getHours())}:${twoDigits(d.getMinutes())}:${twoDigits(d.getSeconds())}`
 }
+
+export function formatCalendarClockSeconds(timestamp: number): string {
+  const d = new Date(timestamp)
+  return `${twoDigits(d.getMonth() + 1)}-${twoDigits(d.getDate())} ${formatClockSeconds(timestamp)}`
+}

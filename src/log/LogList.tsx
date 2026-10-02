@@ -3,10 +3,18 @@ import { ActivityIndicator, Alert, FlatList, Share, StyleSheet, Text, View } fro
 import { LogEntry, logRepository } from '../data/log'
 import { AccentButton } from '../components/AccentButton'
 import { useTheme } from '../theme/useTheme'
-import { formatClockSeconds } from '../activities/format'
+import { formatActivityDate, formatClockSeconds } from '../activities/format'
 import { deviceInfo } from './deviceInfo'
+import { logEvent } from './logEvent'
 import { logExportText } from './logExportText'
 import { LOG_MAX_ENTRIES } from './retention'
+
+// The list is newest-first, so an entry opens a day whenever the entry above it falls on another one:
+// the date is stated once per day instead of on all 5,000 rows.
+function startsADay(entries: LogEntry[], index: number): boolean {
+  if (index === 0) return true
+  return formatActivityDate(entries[index - 1].t) !== formatActivityDate(entries[index].t)
+}
 
 export function LogList() {
   const c = useTheme()
@@ -30,7 +38,7 @@ export function LogList() {
 
   const share = useCallback(() => {
     if (!entries) return
-    void Share.share({ message: logExportText(entries, deviceInfo()) })
+    void Share.share({ message: logExportText(entries, { ...deviceInfo(), exportedAt: Date.now() }) })
   }, [entries])
 
   const clear = useCallback(() => {
@@ -43,7 +51,10 @@ export function LogList() {
           logRepository
             .clear()
             .then(() => setEntries([]))
-            .catch(() => Alert.alert('Could not clear the log', 'Please try again.'))
+            .catch((error) => {
+              logEvent('error', 'error', 'clearing the log failed', { error: String(error) })
+              Alert.alert('Could not clear the log', 'Please try again.')
+            })
         },
       },
     ])
@@ -74,8 +85,11 @@ export function LogList() {
             {loadFailed ? 'Could not load the log.' : 'Nothing logged yet.'}
           </Text>
         }
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <View style={[styles.row, { borderColor: c.panelDivider }]}>
+            {startsADay(entries, index) ? (
+              <Text style={[styles.day, { color: c.onSurfaceVariant }]}>{formatActivityDate(item.t)}</Text>
+            ) : null}
             <Text style={[styles.head, { color: levelColour(item.level) }]}>
               {formatClockSeconds(item.t)}  {item.area}  {item.message}
             </Text>
@@ -94,6 +108,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, padding: 12 },
   row: { paddingVertical: 8, paddingHorizontal: 12, borderBottomWidth: 1 },
+  day: { fontSize: 11, fontWeight: '700', marginBottom: 4 },
   head: { fontSize: 13, fontWeight: '600' },
   detail: { fontSize: 12, marginTop: 2 },
   empty: { fontSize: 14, textAlign: 'center', padding: 24 },

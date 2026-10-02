@@ -1,7 +1,12 @@
 import { LogEntry } from '../../data/log'
 import { LOG_EXPORT_MAX_CHARS, logExportText, logLine } from '../logExportText'
 
-const META = { appVersion: '1.0.0', model: 'DN2103', androidVersion: '13' }
+const META = {
+  appVersion: '1.0.0',
+  model: 'DN2103',
+  androidVersion: '13',
+  exportedAt: new Date(2026, 9, 2, 14, 49, 30).getTime(),
+}
 
 const entry = (id: number, t: number, over: Partial<LogEntry> = {}): LogEntry => ({
   id,
@@ -14,8 +19,9 @@ const entry = (id: number, t: number, over: Partial<LogEntry> = {}): LogEntry =>
 })
 
 describe('logLine', () => {
-  it('carries the clock time, level, area and message', () => {
-    const line = logLine(entry(1, Date.parse('2026-10-02T09:15:00Z')))
+  it('carries the date, the clock time, level, area and message', () => {
+    const line = logLine(entry(1, new Date(2026, 9, 2, 9, 15, 0).getTime()))
+    expect(line).toContain('10-02 09:15:00')
     expect(line).toContain('info')
     expect(line).toContain('recording')
     expect(line).toContain('message 1')
@@ -27,13 +33,14 @@ describe('logLine', () => {
 })
 
 describe('logExportText', () => {
-  it('heads the text with the app version, the phone model and the android version', () => {
+  it('heads the text with the app version, the phone model, the android version and the export instant', () => {
     const text = logExportText([entry(1, 0)], META)
     const header = text.split('\n')[0]
 
     expect(header).toContain('1.0.0')
     expect(header).toContain('DN2103')
     expect(header).toContain('13')
+    expect(header).toContain('Oct 2, 2026 14:49:30')
   })
 
   it('lists entries newest first', () => {

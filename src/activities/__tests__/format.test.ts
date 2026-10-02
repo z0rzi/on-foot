@@ -1,4 +1,4 @@
-import { formatClockSeconds, formatClockTime, formatDuration, formatActivityDate, formatActivitySummary, formatPace, formatSpeed, formatStopwatch } from '../format'
+import { formatCalendarClockSeconds, formatClockSeconds, formatClockTime, formatDuration, formatActivityDate, formatActivitySummary, formatPace, formatSpeed, formatStopwatch } from '../format'
 import { ActivityMetrics } from '../../data/activities/types'
 
 describe('formatDuration', () => {
@@ -103,5 +103,17 @@ describe('formatClockSeconds', () => {
   it('renders an afternoon time on the 24-hour clock', () => {
     const t = new Date(2026, 9, 2, 14, 49, 30).getTime()
     expect(formatClockSeconds(t)).toBe('14:49:30')
+  })
+})
+
+describe('formatCalendarClockSeconds', () => {
+  it('prefixes the padded month and day to the clock time', () => {
+    const t = new Date(2026, 9, 2, 9, 5, 7).getTime()
+    expect(formatCalendarClockSeconds(t)).toBe('10-02 09:05:07')
+  })
+
+  it('pads a single-digit month', () => {
+    const t = new Date(2026, 0, 9, 23, 59, 59).getTime()
+    expect(formatCalendarClockSeconds(t)).toBe('01-09 23:59:59')
   })
 })
