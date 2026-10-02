@@ -7,8 +7,10 @@ scope), root configs (`package.json`, `tsconfig.json`, `eslint.config.js`, `app.
 `expo-task-manager` patch). Excluded: `android/` (generated), `node_modules/`, the untracked
 workspace files (`.serena/`, `run-app.sh`, `.claude/agents/`) — tooling noise, not product code.
 
-**Progress.** Backlog item 1 (PERF-1, DUP-8) is done — `085d4da`, design in
-`docs/superpowers/specs/2026-09-10-onfoot-rn-selection-revalidation-design.md`. Everything below is
+**Progress.** Backlog items 1 (PERF-1, DUP-8), 2 (ERR-2, TEST-2) and 3 (ERR-1) are done — `085d4da`,
+the `fix/gpx-no-route-guard` branch merged at `50785dc`, and `331e00b`; designs in
+`docs/superpowers/specs/2026-09-10-onfoot-rn-selection-revalidation-design.md` and
+`docs/superpowers/specs/2026-09-10-onfoot-rn-gpx-no-route-guard-design.md`. Everything below is
 the report as written against `9833610`; resolved findings are marked in place.
 
 **Method.** Every production `.ts`/`.tsx` file under `src/`, `app/` and `modules/share-intent` was
@@ -216,7 +218,10 @@ that does nothing. The `catch` at `new.tsx:38-43` also `router.back()`s on a rea
 message — a silent no-op for a malformed file. · Fix at the source: `parseGpx` throws (or returns a
 tagged failure) when no route or track points exist; `new.tsx` shows one Alert ("This file has no
 route") before going back, for both the empty and the throw case. Add the empty case to
-`parse.test.ts` (TEST-2). · **should-fix, S**.
+`parse.test.ts` (TEST-2). · **should-fix, S**. · **Done** (`f03deb3`, `fe40716`, `b8e51a0`; merged
+`50785dc`): `parseGpx` throws a `GpxError` carrying a `format` or `empty` reason, a segment needs two
+points to count, and `new.tsx` tells the user which of the two happened instead of going back in
+silence.
 
 **ERR-3 — `void load().then(...)` chains with no failure outcome** ·
 `src/map/useSelectedEntity.ts:22`, `src/map/ActivityInfoSheet.tsx:37`,
@@ -256,7 +261,8 @@ tested the way `evaluateDownloadGate` is. · **minor, S**.
 
 **TEST-2 — No test for a GPX with no points** · `src/data/trails/__tests__/parse.test.ts` covers
 routes, tracks, namespaces, titles and a missing coordinate, but not the empty document / no-points
-case that ERR-2 turns into a decision. · **minor, S** (write it first, then fix ERR-2).
+case that ERR-2 turns into a decision. · **minor, S** (write it first, then fix ERR-2). · **Done**
+(`f03deb3`; merged `50785dc`): seven cases now assert the `reason`, not merely that it throws.
 
 Clean: every decision helper the previous report moved out of `.tsx` (`menu.ts`, `plan.ts`,
 `profileSource.ts`, `bandStyle.ts`) has its test; the sampled tests (`recordingController.test.ts`,
@@ -394,7 +400,7 @@ import rule in `POST-WORK.md` is followed (only the stores and the two selection
 | # | Item | Resolves | Benefit | Cost | Regression risk | Recommendation |
 |---|---|---|---|---|---|---|
 | 1 | ~~Revalidate the selected entity on a mutation version, not the list reference~~ | PERF-1, DUP-8 | High: stops a full DB read + map/graph rebuild on every tab switch; names the one owner of freshness | S | Low (store tests; behaviour on delete unchanged) | **done** — `085d4da` |
-| 2 | `parseGpx` rejects a file with no points; `new.tsx` shows one Alert for empty/invalid | ERR-2, TEST-2 | High: removes a silent path to a useless persisted trail | S | Low | **now** |
+| 2 | ~~`parseGpx` rejects a file with no points; `new.tsx` shows one Alert for empty/invalid~~ | ERR-2, TEST-2 | High: removes a silent path to a useless persisted trail | S | Low | **done** — merged `50785dc` |
 | 3 | ~~`resumeIfActive` stops an orphaned stream; save goes through a controller `finishRecording`~~ | ERR-1 | Medium-high: battery + misleading notification; controller keeps its invariant | S | Low-medium (device-verify) | **done** — `331e00b` |
 | 4 | Prune the six unused deps; pin `@types/jest`; ignore `.claude/`, `.serena/`, `run-app.sh` | DEP-1..4 | Medium: smaller install, honest `verify` scope, clean `git status` | S | Low (bundle check) | **now** |
 | 5 | Doc refresh: README, `app.config.ts` permission comment, adapter comment, lint-debt table | DOC-1..4 | Medium: first-contact docs stop lying; no code risk | S | None | **now** |
