@@ -47,8 +47,9 @@ longitude (`fixBatchSummary`). The log must never become a record of where the u
 
 ## Retention
 
-7 days or 5,000 entries, whichever is smaller (`src/log/retention.ts`), trimmed once per launch
-(`useLogRetention`, wired in `app/_layout.tsx`).
+Entries older than 7 days are deleted outright; of what's left, only the newest 5,000 are kept
+(`src/log/retention.ts`). The trim runs once per launch (`useLogRetention`, wired in
+`app/_layout.tsx`).
 
 ## Getting it off the phone
 
