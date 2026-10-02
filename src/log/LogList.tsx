@@ -11,12 +11,19 @@ import { LOG_MAX_ENTRIES } from './retention'
 export function LogList() {
   const c = useTheme()
   const [entries, setEntries] = useState<LogEntry[] | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
 
   const load = useCallback(() => {
     logRepository
       .list(LOG_MAX_ENTRIES)
-      .then(setEntries)
-      .catch(() => setEntries([]))
+      .then((result) => {
+        setLoadFailed(false)
+        setEntries(result)
+      })
+      .catch(() => {
+        setLoadFailed(true)
+        setEntries([])
+      })
   }, [])
 
   useEffect(load, [load])
@@ -63,7 +70,9 @@ export function LogList() {
         data={entries}
         keyExtractor={(entry) => String(entry.id)}
         ListEmptyComponent={
-          <Text style={[styles.empty, { color: c.onSurfaceVariant }]}>Nothing logged yet.</Text>
+          <Text style={[styles.empty, { color: c.onSurfaceVariant }]}>
+            {loadFailed ? 'Could not load the log.' : 'Nothing logged yet.'}
+          </Text>
         }
         renderItem={({ item }) => (
           <View style={[styles.row, { borderColor: c.panelDivider }]}>
