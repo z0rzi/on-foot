@@ -317,21 +317,28 @@ memoized live metrics); gesture objects are memoized with honest deps; store sel
 (peers of `expo-router`), `expo-font` (peer of `@expo/vector-icons`), `react-native-worklets` (peer of
 `react-native-reanimated`), `expo-splash-screen` (config plugin, `app.config.ts:64`),
 `expo-system-ui` (backs `userInterfaceStyle` on Android). · Fix: `npm uninstall` the six; confirm
-with `npx expo export --platform android`. `/deps-check` should own this list. · **should-fix, S**.
+with `npx expo export --platform android`. `/deps-check` should own this list. · **should-fix, S**. ·
+**Done** (`4c41b17`): all six uninstalled; `npx expo export --platform android` exits 0 afterwards, so
+no config plugin or autolink needed them. The debug log's export header deliberately reads the phone
+model from React Native's `Platform.constants` rather than `expo-device`, to keep this prune available.
 
 **DEP-2 — `@types/jest ^30` ahead of `jest ^29.7`** · `package.json` devDependencies · Type
 surface newer than the runtime; harmless today, confusing when a v30-only matcher type-checks and
-fails. · Fix: pin `@types/jest` to `^29`, or move to jest 30 when `jest-expo` does. · **minor, S**.
+fails. · Fix: pin `@types/jest` to `^29`, or move to jest 30 when `jest-expo` does. · **minor, S**. ·
+**Done** (`4c41b17`): pinned to `^29.5.14`.
 
 **DEP-3 — Gate scope drift for worktrees** · `package.json` jest `testPathIgnorePatterns` excludes
 `/.claude/worktrees/`, but `tsconfig.json:14-16` (`**/*.ts`, `**/*.tsx`) and the `ignores` block of
 `eslint.config.js` do not; `.claude/worktrees/` exists (empty today). A checked-out worktree there
 would be type-checked and linted a second time by `npm run verify` from the root. · Fix: add
-`.claude/**` to `tsconfig` `exclude` and to the eslint `ignores`. · **minor, S**.
+`.claude/**` to `tsconfig` `exclude` and to the eslint `ignores`. · **minor, S**. · **Done**
+(`4c41b17`): `.claude/**` and `.superpowers/**` excluded in both, so all three gates now agree on scope.
 
 **DEP-4 — Workspace files not ignored** · `.serena/` and `run-app.sh` (a LAN IP in a dev-client
 launch script) are untracked and not in `.gitignore`, so they pollute `git status` in every session
-and risk an accidental `git add .`. · Fix: add both to `.gitignore`. · **minor, S**.
+and risk an accidental `git add .`. · Fix: add both to `.gitignore`. · **minor, S**. · **Done**
+(`4c41b17`). `.claude/agents/` is deliberately **not** ignored: the tracked `.claude/commands/retro-quality.md`
+dispatches the agent defined there, so that definition belongs in git rather than in `.gitignore`.
 
 Clean: `.env` is untracked and gitignored (enforced by `secrets.test.ts`); CI and the pre-push hook
 both run exactly `npm run verify`; CI writes a placeholder `.env` for the babel transform; the
@@ -346,7 +353,9 @@ both run exactly `npm run verify`; CI writes a placeholder `.env` for the babel 
 the project's real setup: the `.env` keys `MAPBOX_ACCESS_TOKEN` / `MAPBOX_DOWNLOAD_TOKEN`
 (`env.d.ts`, `app.config.ts:70`), `npx expo prebuild`, `npm run verify`, the seams. `tasks.md` lists
 "Add README.md", so the owner knows; it is still the first document a newcomer reads. ·
-**should-fix, S**.
+**should-fix, S**. · **Done** (`ec9f703`): rewritten around the real setup — the two Mapbox tokens and
+why a dev build is required, `prebuild`, the gate and what `jest` enforces beyond unit tests, the
+directory map, and migration generation.
 
 **DOC-2 — `app.config.ts` justifies a permission with behaviour the patch removed** ·
 `app.config.ts:15-17`: "expo-task-manager delivers background location batches via a persisted
@@ -356,17 +365,23 @@ persisted; the spec (`docs/superpowers/specs/2026-08-22-onfoot-rn-record-activit
 records the permission as "belt-and-suspenders". The comment states the opposite of what ships
 (`git log`: permission added in `43bd5c0`, patch in `70f6284`, comment never revisited). · Fix:
 rewrite the comment to match the spec, or drop the permission after a device check on the OEMs the
-spec names. · **minor, S**.
+spec names. · **minor, S**. · **Already fixed** (`dd7ffff`, the location-seam change): the comment now
+says the receiver restores registered tasks after a reboot or app update, with no claim about a
+persisted job. The permission itself still ships.
 
 **DOC-3 — Stale adapter comment** · `src/map/providers/mapbox/adapter.tsx:30-33` "The one
 imperative affordance is resetNorth" — `fitBounds` has been the second one since the recenter
-feature; the port (`types.ts:99-116`) already describes both. · **minor, S**.
+feature; the port (`types.ts:99-116`) already describes both. · **minor, S**. · **Done** (`ec9f703`): the comment now names both
+affordances and points at the port.
 
 **DOC-4 — Small drifts in the architecture docs** · `docs/architecture/lint-debt.md` lists
 `react-hooks/refs` **and** `react-hooks/immutability` for `MapControls.tsx`; the file disables only
 `react-hooks/refs` (`MapControls.tsx:70`) — `RecordButton.tsx:69` is the one with both.
 `docs/architecture/seams.md:23` says "Docs do not enumerate seams" and then enumerates them at :41;
-say the table mirrors `SEAMS`. · **minor, S**.
+say the table mirrors `SEAMS`. · **minor, S**. · **Done** (`ec9f703`): `lint-debt.md` now
+attributes `immutability` to `RecordButton` only and names each disable's subject; `seams.md` says
+`SEAMS` is the single source of truth and the table mirrors it. Also corrected `lint-debt.md`'s list of
+facts-without-escape, which omitted the duplication and import-rule gates.
 
 **DOC-5 — The `offline` capability comment** · see ARCH-4 (`types.ts:147-149` describes a gate
 that nothing implements). · **minor, S**.
@@ -402,8 +417,8 @@ import rule in `POST-WORK.md` is followed (only the stores and the two selection
 | 1 | ~~Revalidate the selected entity on a mutation version, not the list reference~~ | PERF-1, DUP-8 | High: stops a full DB read + map/graph rebuild on every tab switch; names the one owner of freshness | S | Low (store tests; behaviour on delete unchanged) | **done** — `085d4da` |
 | 2 | ~~`parseGpx` rejects a file with no points; `new.tsx` shows one Alert for empty/invalid~~ | ERR-2, TEST-2 | High: removes a silent path to a useless persisted trail | S | Low | **done** — merged `50785dc` |
 | 3 | ~~`resumeIfActive` stops an orphaned stream; save goes through a controller `finishRecording`~~ | ERR-1 | Medium-high: battery + misleading notification; controller keeps its invariant | S | Low-medium (device-verify) | **done** — `331e00b` |
-| 4 | Prune the six unused deps; pin `@types/jest`; ignore `.claude/`, `.serena/`, `run-app.sh` | DEP-1..4 | Medium: smaller install, honest `verify` scope, clean `git status` | S | Low (bundle check) | **now** |
-| 5 | Doc refresh: README, `app.config.ts` permission comment, adapter comment, lint-debt table | DOC-1..4 | Medium: first-contact docs stop lying; no code risk | S | None | **now** |
+| 4 | ~~Prune the six unused deps; pin `@types/jest`; ignore `.claude/`, `.serena/`, `run-app.sh`~~ | DEP-1..4 | Medium: smaller install, honest `verify` scope, clean `git status` | S | Low (bundle check) | **done** — `4c41b17` |
+| 5 | ~~Doc refresh: README, `app.config.ts` permission comment, adapter comment, lint-debt table~~ | DOC-1..4 | Medium: first-contact docs stop lying; no code risk | S | None | **done** — `ec9f703` (DOC-2 had already been fixed in `dd7ffff`) |
 | 6 | `useLoadedEntity` + `LoadingScreen` with an error outcome; `BackButton`; `newTrailHref` | DUP-3, DUP-4, ERR-3 | High: five copies → one, and every load gets a visible failure path | M | Low-medium | next |
 | 7 | One owner for profile + slope banding (derive once, pass bands down) | DUP-2, PERF-2 | Medium: three derivations → one; makes the smoothing contract structural | M | Medium (device-verify graph + route colours) | next |
 | 8 | Move `format*` out of `data/geo` into a presentation module (with `formatBytes`) | ARCH-1 | Medium: layering matches `POST-WORK.md`; one home for units | S | Low | next |
