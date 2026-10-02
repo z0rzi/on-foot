@@ -6,13 +6,19 @@ import { logEvent } from './logEvent'
 // and the native crash report are unchanged.
 const globalErrorUtils = (globalThis as unknown as { ErrorUtils?: ErrorUtils }).ErrorUtils
 
+let installed = false
+
 export function installGlobalErrorHandler(): void {
-  if (!globalErrorUtils) return
+  if (!globalErrorUtils || installed) return
+  installed = true
   const previous = globalErrorUtils.getGlobalHandler()
   globalErrorUtils.setGlobalHandler((error, isFatal) => {
-    const message = error instanceof Error ? error.message : String(error)
-    const stack = error instanceof Error ? error.stack : undefined
-    logEvent('error', 'error', isFatal ? 'uncaught fatal error' : 'uncaught error', { message, stack })
-    previous(error, isFatal)
+    try {
+      const message = error instanceof Error ? error.message : String(error)
+      const stack = error instanceof Error ? error.stack : undefined
+      logEvent('error', 'error', isFatal ? 'uncaught fatal error' : 'uncaught error', { message, stack })
+    } finally {
+      previous(error, isFatal)
+    }
   })
 }
