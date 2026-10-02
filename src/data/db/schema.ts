@@ -1,4 +1,4 @@
-import { integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 export const trails = sqliteTable('trails', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -59,3 +59,19 @@ export const recordingPoints = sqliteTable('recording_points', {
   t: integer('t').notNull(),
   segment: integer('segment').notNull().default(0),
 })
+
+// The index on t serves both the newest-first viewer and the retention trim.
+export const debugLog = sqliteTable(
+  'debug_log',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    t: integer('t').notNull(),
+    level: text('level').notNull(),
+    area: text('area').notNull(),
+    message: text('message').notNull(),
+    detail: text('detail'),
+  },
+  (table) => ({
+    tIndex: index('debug_log_t_idx').on(table.t),
+  }),
+)
