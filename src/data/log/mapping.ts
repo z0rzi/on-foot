@@ -4,7 +4,7 @@ import { LogArea, LogEntry, LogLevel } from './types'
 export function encodeDetail(detail: Record<string, unknown> | undefined): string | null {
   if (detail === undefined) return null
   try {
-    return JSON.stringify(detail) ?? null
+    return JSON.stringify(detail)
   } catch {
     return null
   }

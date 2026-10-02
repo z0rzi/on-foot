@@ -1537,7 +1537,7 @@ In `app/(tabs)/settings.tsx`, directly after the existing "Offline maps" `Pressa
 </Pressable>
 ```
 
-Two navigation rows with identical structure is the point at which a shared row component would be justified. It is **two** instances of a three-line shape in one file; note it in the commit message and leave it — if a third row appears, extract `SettingsRow` then. (This is the judgement `AGENTS.md` asks for, recorded rather than silently skipped.)
+Two navigation rows with identical structure is the point at which a shared row component is justified, and the owner ruled during execution that it is extracted **now**, not when a third row appears: `src/components/SettingsRow.tsx` holds the shape and both rows use it. The second instance is where duplication is born — waiting for a third is the rule `AGENTS.md` rejects.
 
 - [ ] **Step 4: Run the gate**
 

@@ -37,8 +37,11 @@ write is swallowed; the next entry still gets its turn.
   announces.
 - **`map`** — the recording sheet mounting, every map-mode transition, and the sheet/root/graph
   geometry sampled on `AppState` becoming `'active'` (`useSheetGeometryLog`).
-- **`error`** — uncaught errors (the global `ErrorUtils` handler) and render errors caught by
-  `ErrorBoundary`.
+- **`error`** — uncaught errors (the global `ErrorUtils` handler), render errors caught by
+  `ErrorBoundary`, and every failure or refusal the user is told about in an alert: start, pause,
+  resume and stop recording, saving or discarding an activity, saving a trail, importing a GPX file,
+  deleting a trail or an activity, clearing the log, and the offline-download refusals (offline, not
+  enough space, a trail with no route).
 
 ## No coordinates, ever
 
@@ -49,15 +52,18 @@ longitude (`fixBatchSummary`). The log must never become a record of where the u
 
 Entries older than 7 days are deleted outright; of what's left, only the newest 5,000 are kept
 (`sqliteLogRepository.trim` in `src/data/db/logRepository.ts`). The trim runs once per launch
-(`useLogRetention`, wired in
-`app/_layout.tsx`).
+(`useLogRetention`, wired in `app/_layout.tsx`), so the 5,000 cap is a launch-time bound, not a
+continuous one: within one long-running process the table grows unbounded until the next launch
+trims it.
 
 ## Getting it off the phone
 
-Settings → Debug log → Share opens the system share sheet with the full text
-(`logExportText`): a header (app version, phone model, Android version), then every entry
-newest-first, capped at 200,000 characters with a count of older entries left out if it doesn't
-all fit. Clear empties the table after confirmation.
+Settings → Debug log → Share opens the system share sheet with the full text (`logExportText`): a
+header (app version, phone model, Android version, the instant of the export), then every entry
+newest-first, capped at 200,000 characters with a count of older entries left out if it doesn't all
+fit. Because a log holds up to 7 days, every exported line is dated — `MM-DD HH:MM:SS`
+(`formatCalendarClockSeconds`) — and the viewer states the date once at the top of each day instead
+of on every row. Clear empties the table after confirmation.
 
 ## Known limits
 

@@ -15,7 +15,7 @@ describe('encodeDetail', () => {
     expect(encodeDetail(cyclic)).toBeNull()
   })
 
-  it('is null when the value serialises to nothing', () => {
+  it('drops members that do not serialise', () => {
     expect(encodeDetail({ fn: () => 1 })).toBe('{}')
   })
 })
