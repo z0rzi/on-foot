@@ -20,10 +20,11 @@ import { flattenSegments, startPointOf } from '../map/geo'
 import { packDescriptor } from '../map/offline/descriptor'
 import { OFFLINE_MARGIN_KM } from '../map/offline/constants'
 import { OfflineLayerChooser } from '../map/offline/OfflineLayerChooser'
-import { ActionsMenu, type ActionItem } from '../components/ActionsMenu'
+import { ActionsMenu } from '../components/ActionsMenu'
 import { showToast } from '../components/toast'
 import { guardDownload } from '../map/offline/downloadConsent'
 import { openMapApp } from '../external'
+import { trailActionItems } from './trailActions'
 
 export function TrailInfoSheet({
   trail,
@@ -96,10 +97,11 @@ export function TrailInfoSheet({
     cancel: () => void cancel(),
   }
   const start = startPointOf(trail.geometry.segments)
-  const menuItems: ActionItem[] = [
-    ...(start ? [{ label: 'Navigate to start', onPress: () => void openMapApp(start, trail.name) }] : []),
-    ...offlineMenuItems(state).map((item) => ({ ...item, onPress: handlers[item.action] })),
-  ]
+  const menuItems = trailActionItems(
+    start,
+    offlineMenuItems(state).map((item) => ({ ...item, onPress: handlers[item.action] })),
+    (point) => void openMapApp(point, trail.name),
+  )
 
   return (
     <>

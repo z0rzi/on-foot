@@ -192,6 +192,14 @@ hold empty segments, and an action that cannot work should not be offered.
   only the coordinates. Nothing in the intent can force it.
 - **`src/external/` starts life with one caller.** It is a seam, not a layer: its value is that the
   second outward launch has an obvious home and the test enforces it.
+- **The seam's token scan does not stop `Linking.openURL` from `react-native`.** `expo-linking`'s
+  `openURL` is a thin passthrough — `node_modules/expo-linking/build/RNLinking.js` re-exports React
+  Native's own `Linking` verbatim, so they are the same object. A file can still
+  `import { Linking } from 'react-native'` and call `openURL` with every gate green; the seam raises
+  the cost of bypassing it rather than making it impossible. Closing that gap needs a different
+  mechanism — an eslint `no-restricted-imports` rule keyed on the named binding, or extending
+  `src/architecture/importRules.ts`, which today keys on module path rather than named binding —
+  and is deliberately left as a follow-up.
 
 ## Test plan (Jest, written first)
 
@@ -220,7 +228,17 @@ hold empty segments, and an action that cannot work should not be offered.
 11. A leading empty segment is skipped and the first point of the first non-empty one is returned.
 12. The returned object is the trail's first point, with `lat` and `lng` unswapped.
 
-Not unit-tested, by policy: the menu's rendering and ordering, and the chooser itself.
+`src/trails/__tests__/trailActions.test.ts`
+
+13. With a start point, the first item is `{ label: 'Navigate to start' }` and it precedes the
+    offline items.
+14. With `start` as `null`, the result is the offline items only, in their original order, and
+    contains no item labelled 'Navigate to start'.
+15. Invoking the navigate item's `onPress` calls `navigateTo` exactly once with the start point
+    that was passed in.
+16. The offline items pass through unchanged — same order, and a `danger: true` flag is preserved.
+
+Not unit-tested, by policy: the menu's rendering, and the chooser itself.
 
 ## Device verification
 

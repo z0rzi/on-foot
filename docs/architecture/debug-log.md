@@ -36,8 +36,9 @@ write is swallowed; the next entry still gets its turn.
 - **`launch`** — cold start, the action `useResumeRecording` took, and any interruption it
   announces.
 - **`map`** — the recording sheet mounting, every map-mode transition, the sheet settling on a snap
-  point (`sheet settled`, with the mode and the index), and the sheet/root/graph geometry sampled on
-  `AppState` becoming `'active'` (`useSheetGeometryLog`).
+  point (`sheet settled`, with the mode and the index), the sheet/root/graph geometry sampled on
+  `AppState` becoming `'active'` (`useSheetGeometryLog`), and a successful or failed hand-off to an
+  external map app (`src/external/openMapApp.ts:11,13`).
 - **`error`** — uncaught errors (the global `ErrorUtils` handler), render errors caught by
   `ErrorBoundary`, and every failure or refusal the user is told about in an alert: start, pause,
   resume and stop recording, saving or discarding an activity, saving a trail, importing a GPX file,
