@@ -60,5 +60,8 @@ modules/**/build/
 # agent tooling scratch
 .serena/
 
+# agent worktrees: separate checkouts of this repo, never content of it
+.claude/worktrees/
+
 # local dev-client launch script (carries a LAN address)
 /run-app.sh
