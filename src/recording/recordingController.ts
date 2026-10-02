@@ -40,8 +40,8 @@ const exclusive = createSerialQueue()
 async function issueStream(): Promise<void> {
   try {
     await startBackgroundTracking(RECORDING_OPTIONS)
-  } catch {
-    logEvent('error', 'capture', 'stream start failed')
+  } catch (error) {
+    logEvent('error', 'capture', 'stream start failed', { error: String(error) })
     useRecordingStore.getState().setStreamState({
       stream: isAppActive() ? { kind: 'faulted', fault: 'start-failed' } : { kind: 'stopped' },
     })
@@ -72,14 +72,14 @@ async function issueStreamIfAvailable(): Promise<void> {
 // answers must not hold pause, resume or discard behind it.
 async function ensureCaptureReady(): Promise<CaptureReadiness> {
   if (!(await requestForegroundAccess())) {
-    logEvent('warn', 'capture', 'capture permission-denied')
+    logEvent('warn', 'capture', 'capture permission-denied', { scope: 'foreground' })
     return 'permission-denied'
   }
   // A recording must go on capturing once the app leaves the foreground, so capturing asks for "All
   // the time" access; recovery only ever restarts a stream while the app is active, so it needs no
   // more than the foreground grant checked in ensureStreaming.
   if (!(await requestBackgroundAccess())) {
-    logEvent('warn', 'capture', 'capture permission-denied')
+    logEvent('warn', 'capture', 'capture permission-denied', { scope: 'background' })
     return 'permission-denied'
   }
   if (!(await isLocationAvailable()) && !(await promptToEnableLocation())) {
@@ -106,7 +106,7 @@ export async function startRecording(): Promise<StartResult> {
     // A session found here belongs to a concurrent tap that reached the turn first: the tap that
     // lost reports the start it asked for, not a pre-existing recording.
     if (await activitiesRepository.getActiveSession()) {
-      logEvent('info', 'recording', 'start started')
+      logEvent('info', 'recording', 'start: a concurrent start won')
       return 'started'
     }
     const startedAt = Date.now()
@@ -123,7 +123,10 @@ export async function startRecording(): Promise<StartResult> {
 export function pauseRecording(): Promise<void> {
   return exclusive(async () => {
     const session = await activitiesRepository.getActiveSession()
-    if (!session || session.pausedAt != null) return
+    if (!session || session.pausedAt != null) {
+      logEvent('info', 'recording', session ? 'pause: already paused' : 'pause: no session')
+      return
+    }
     const now = Date.now()
     await activitiesRepository.markPaused(session.id, now)
     logEvent('info', 'recording', 'paused')
@@ -148,7 +151,7 @@ export function pauseRecording(): Promise<void> {
 export async function resumeRecording(): Promise<ResumeResult> {
   const current = await activitiesRepository.getActiveSession()
   if (!current || current.pausedAt == null) {
-    logEvent('info', 'recording', 'resume resumed')
+    logEvent('info', 'recording', current ? 'resume: session not paused' : 'resume: no session')
     return 'resumed'
   }
   const readiness = await ensureCaptureReady()
@@ -161,7 +164,7 @@ export async function resumeRecording(): Promise<ResumeResult> {
     const session = await activitiesRepository.getActiveSession()
     // Not paused here means a concurrent resume reached the turn first.
     if (!session || session.pausedAt == null) {
-      logEvent('info', 'recording', 'resume resumed')
+      logEvent('info', 'recording', session ? 'resume: a concurrent resume won' : 'resume: session gone')
       return 'resumed'
     }
     const next = applyResume(session, Date.now())
@@ -207,6 +210,7 @@ export function ensureStreaming(): Promise<void> {
     const session = await activitiesRepository.getActiveSession()
     if (!session || session.pausedAt != null) return
     if (!(await hasForegroundAccess())) {
+      logEvent('warn', 'capture', 'recovery found no location permission')
       useRecordingStore.getState().setStreamState({ stream: { kind: 'faulted', fault: 'permission-missing' } })
       return
     }

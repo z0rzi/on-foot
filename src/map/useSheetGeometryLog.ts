@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { AppState } from 'react-native'
+import { AppState, Dimensions } from 'react-native'
 import type { SharedValue } from 'react-native-reanimated'
 import { logEvent } from '../log'
 import type { MapMode } from '../store/mapStore'
@@ -20,8 +20,11 @@ export function useSheetGeometryLog({
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
       if (state !== 'active') return
+      // The sheet's initial position is the window height, so sheetTop === windowHeight says the
+      // sheet never left it rather than leaving the reader to infer it from the tab bar.
       logEvent('info', 'map', 'app active', {
         mode,
+        windowHeight: Math.round(Dimensions.get('window').height),
         sheetTop: Math.round(sheetTop.value),
         rootHeight: Math.round(rootHeight.value),
         graphBottom: Math.round(graphBottom.value),

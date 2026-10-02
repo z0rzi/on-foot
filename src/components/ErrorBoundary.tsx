@@ -1,4 +1,4 @@
-import { Component, ReactNode } from 'react'
+import { Component, ErrorInfo, ReactNode } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme } from '../theme/useTheme'
 import { logEvent } from '../log'
@@ -36,8 +36,14 @@ export class ErrorBoundary extends Component<Props, State> {
     return { error }
   }
 
-  componentDidCatch(error: Error) {
-    logEvent('error', 'error', 'error boundary caught a render error', { message: error.message, stack: error.stack })
+  // A render error's JS stack points into React's internals; componentStack is what names the
+  // component that failed.
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    logEvent('error', 'error', 'error boundary caught a render error', {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+    })
   }
 
   reset = () => this.setState({ error: null })

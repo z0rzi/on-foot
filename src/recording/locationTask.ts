@@ -7,8 +7,15 @@ import { fixesInSegment } from './session'
 
 defineBackgroundFixHandler(async (fixes) => {
   const session = await activitiesRepository.getActiveSession()
+  // A paused session still being delivered to is the interesting case: the stop that pause asked for
+  // did not take. No session at all means the stream outlived every recording.
   if (!session || session.pausedAt != null) {
-    logEvent('info', 'capture', 'fixes ignored, no running session', { arrived: fixes.length })
+    logEvent(
+      session ? 'info' : 'warn',
+      'capture',
+      session ? 'fixes ignored, session paused' : 'fixes ignored, no session',
+      { arrived: fixes.length },
+    )
     return
   }
   const segmentFixes = fixesInSegment(fixes, session.segmentStartedAt)
