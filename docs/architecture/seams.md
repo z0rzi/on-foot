@@ -20,7 +20,8 @@ All seams live in `src/architecture/seams.ts` as the `SEAMS` array. Each entry:
 The `seams` Jest test (`src/architecture/__tests__/seams.test.ts`) scans all production
 source (`src` + `app`, excluding `__tests__`) and fails if any file outside `allow` imports a
 forbidden token. It runs with every `npm test` / `npm run verify`, locally, in the pre-push
-hook, and in CI. Docs do **not** enumerate seams — they point here.
+hook, and in CI. `SEAMS` is the only source of truth: other docs point here rather than listing
+seams, and the table below mirrors the array — if they ever disagree, the array is right.
 
 Two sibling gates use the same scan: `importRules.ts` (one-way directory bans that are not
 native seams) and `duplication.ts` (verbatim copies of 8+ significant lines, across or within

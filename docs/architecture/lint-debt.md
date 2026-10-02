@@ -15,8 +15,8 @@ correct, clear code just to satisfy a rule.** If you can't write an honest justi
 real finding: fix it. `reportUnusedDisableDirectives: error` keeps the disables honest — one that
 stops suppressing anything (e.g. the compiler fixes its false positive) errors, so they can't rot.
 
-Facts (type errors, test failures, the seam/secret/cycle tests) are not heuristics and have no
-discretionary escape. See the "A check enforces a response, not an outcome" principle in `AGENTS.md`.
+Facts (type errors, test failures, the seam/secret/cycle/duplication/import-rule tests) are not
+heuristics and have no discretionary escape. See the "A check enforces a response, not an outcome" principle in `AGENTS.md`.
 
 ## What was fixed (real findings)
 
@@ -33,10 +33,11 @@ discretionary escape. See the "A check enforces a response, not an outcome" prin
 
 ## Standing inline exceptions (justified disables)
 
-- **`react-hooks/refs` + `react-hooks/immutability`** in `src/map/MapControls.tsx` (`pan`) and
-  `src/map/RecordButton.tsx` (`hold`) — **false positives**: every access is inside a deferred
-  gesture callback (runs at gesture time, never during render), which the compiler can't see through
-  the `useMemo(() => Gesture…)` builder the RNGH docs prescribe. Rewriting working, device-verified
+- **`react-hooks/refs`** in `src/map/MapControls.tsx` (`pan`, on `dragSeed`) and **`react-hooks/refs` +
+  `react-hooks/immutability`** in `src/map/RecordButton.tsx` (`hold`, on the `pressScale`/`progress`
+  shared values) — **false positives**: every access is inside a deferred gesture callback (runs at
+  gesture time, never during render), which the compiler can't see through the
+  `useMemo(() => Gesture…)` builder the RNGH docs prescribe. Rewriting working, device-verified
   animation code to dodge a false positive would add risk for no gain.
 - **`react-hooks/purity`** in `src/recording/useMovingStopwatch.ts` — **deliberate**: reads the
   wall-clock instant synchronously on resume so the first frame reflects the accumulated pause;

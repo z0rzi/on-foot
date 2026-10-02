@@ -27,9 +27,10 @@ const View = ({ styleURL, onCameraChanged, style, children }: MapViewProps) => (
   </Mapbox.MapView>
 )
 
-// The camera is driven declaratively (follow props / pitch) — see MapCanvas. The one imperative
-// affordance is resetNorth: a one-shot rotate to bearing 0, only ever called when follow is off
-// (so the rnmapbox "imperative move is a no-op while following" trap does not apply). Pull out
+// The camera is driven declaratively (follow props / pitch) — see MapCanvas. Two imperative
+// affordances remain, both only ever called when follow is off, so the rnmapbox "imperative move is
+// a no-op while following" trap does not apply: resetNorth, a one-shot rotate to bearing 0, and
+// fitBounds, which frames a trail. The port describes both (`src/map/provider/types.ts`). Pull out
 // fields whose neutral shape differs from rnmapbox's before spreading the rest.
 const Camera = forwardRef<CameraController, CameraProps>(
   ({ followUserMode, onUserTrackingModeChange, ...rest }, ref) => {
