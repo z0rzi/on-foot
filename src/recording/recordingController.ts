@@ -17,6 +17,7 @@ import { RECORDING_OPTIONS } from './options'
 import { useRecordingStore } from './recordingStore'
 import { resumeActionFor, ResumeAction } from './resume'
 import { applyPause, applyRelaunch, applyResume } from './session'
+import { createSerialQueue } from '../async/serialQueue'
 
 export type CaptureReadiness = 'ready' | 'permission-denied' | 'location-off'
 export type CaptureRefusal = Exclude<CaptureReadiness, 'ready'>
@@ -33,13 +34,7 @@ export type ResumeResult = 'resumed' | CaptureRefusal
 // request survives location being switched off and on, so it is re-issued only when no start is
 // known to be live.
 
-let tail: Promise<unknown> = Promise.resolve()
-
-function exclusive<T>(operation: () => Promise<T>): Promise<T> {
-  const turn = tail.then(operation, operation)
-  tail = turn.catch(() => {})
-  return turn
-}
+const exclusive = createSerialQueue()
 
 async function issueStream(): Promise<void> {
   try {
