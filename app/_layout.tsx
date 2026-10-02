@@ -15,6 +15,9 @@ import { useResumeRecording } from '../src/recording/useResumeRecording'
 import { useRecordingStream } from '../src/recording/useRecordingStream'
 import { useIncomingShare } from '../src/trails/useIncomingShare'
 import { useLogRetention } from '../src/log/useLogRetention'
+import { installGlobalErrorHandler } from '../src/log/installGlobalErrorHandler'
+
+installGlobalErrorHandler()
 
 function ShareIntentHandler() {
   useIncomingShare()

@@ -1,6 +1,7 @@
 import { Component, ReactNode } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme } from '../theme/useTheme'
+import { logEvent } from '../log'
 
 function ErrorFallback({ error, onRetry }: { error: Error; onRetry: () => void }) {
   const c = useTheme()
@@ -33,6 +34,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): State {
     return { error }
+  }
+
+  componentDidCatch(error: Error) {
+    logEvent('error', 'error', 'error boundary caught a render error', { message: error.message, stack: error.stack })
   }
 
   reset = () => this.setState({ error: null })

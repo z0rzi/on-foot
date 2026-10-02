@@ -1,5 +1,5 @@
-import { useMemo, useRef } from 'react'
-import { View } from 'react-native'
+import { useEffect, useMemo, useRef } from 'react'
+import { AppState, View } from 'react-native'
 import { useSharedValue, useDerivedValue } from 'react-native-reanimated'
 import { BottomSheetModal } from '@gorhom/bottom-sheet'
 import { MapCanvas } from './MapCanvas'
@@ -22,6 +22,7 @@ import { buildElevationProfile } from '../elevation/profile'
 import { ElevationGraph, GRAPH_HEIGHT } from '../elevation/ElevationGraph'
 import { usePreferencesStore } from '../settings/preferencesStore'
 import { profileSegmentsFor } from './profileSource'
+import { logEvent } from '../log'
 
 export function MapScreen() {
   const sheetRef = useRef<BottomSheetModal>(null)
@@ -64,8 +65,30 @@ export function MapScreen() {
     showFloatingGraph ? graphBottom.value + GRAPH_HEIGHT : baseControlsBottom.value,
   )
 
+  useEffect(() => {
+    logEvent('info', 'map', 'map mode', { mode })
+  }, [mode])
+
+  // FIELD-2: the sheet is sometimes left at the window height after the app is reopened, which drives
+  // graphBottom negative. sheetTop is a shared value, so it is read here on the JS thread.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return
+      logEvent('info', 'map', 'app active', {
+        mode,
+        sheetTop: Math.round(sheetTop.value),
+        rootHeight: Math.round(rootHeight.value),
+        graphBottom: Math.round(graphBottom.value),
+      })
+    })
+    return () => subscription.remove()
+  }, [mode, sheetTop, rootHeight, graphBottom])
+
   return (
     <>
+      {/* eslint-disable-next-line react-hooks/immutability -- rootHeight is a reanimated shared value,
+          mutated here on layout as reanimated intends; it is also read (never written) by the
+          app-active logging effect above, which the rule otherwise mistakes for a render-time read. */}
       <View style={{ flex: 1 }} onLayout={(e) => { rootHeight.value = e.nativeEvent.layout.height }}>
         <MapCanvas trail={trailToShow(mode, trail)} activity={mode === 'activity' ? activity : null} />
         {mode !== 'activity' && phase !== 'paused' && (

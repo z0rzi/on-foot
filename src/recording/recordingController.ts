@@ -235,6 +235,7 @@ async function resumeAfterProcessDeath(session: RecordingSession): Promise<void>
   logEvent('info', 'recording', 'segment began', { segment: relaunched.currentSegment, segmentStartedAt: relaunched.segmentStartedAt })
   const since = points.length > 0 ? points[points.length - 1].t : session.startedAt
   showToast(`Recording interrupted ${formatClockTime(since)}–${formatClockTime(Date.now())}`)
+  logEvent('warn', 'launch', 'announced an interruption', { from: formatClockTime(since), to: formatClockTime(Date.now()) })
   await issueStreamIfAvailable()
 }
 
