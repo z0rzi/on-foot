@@ -5,6 +5,7 @@ import {
   connectorLines,
   overallEndpoints,
   flattenSegments,
+  startPointOf,
 } from '../geo'
 import { GpxPoint } from '../../data/trails/types'
 
@@ -64,5 +65,21 @@ describe('segment helpers', () => {
   })
   test('flattenSegments concatenates in order', () => {
     expect(flattenSegments([segA, segB])).toHaveLength(5)
+  })
+})
+
+describe('startPointOf', () => {
+  test('no segments -> null', () => {
+    expect(startPointOf([])).toBeNull()
+  })
+  test('only empty segments -> null', () => {
+    expect(startPointOf([[], []])).toBeNull()
+  })
+  test('skips a leading empty segment', () => {
+    expect(startPointOf([[], [p(45, 6), p(46, 7)]])).toEqual(p(45, 6))
+  })
+  test('returns the first point of the first non-empty segment, lat and lng unswapped', () => {
+    const start = startPointOf([[p(45.5, 6.25), p(46, 7)], [p(47, 8)]])
+    expect(start).toEqual({ lat: 45.5, lng: 6.25, ele: null })
   })
 })

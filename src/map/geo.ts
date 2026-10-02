@@ -50,6 +50,11 @@ export function overallEndpoints(segments: GpxPoint[][]): [number, number][] {
   ]
 }
 
+export function startPointOf(segments: GpxPoint[][]): GpxPoint | null {
+  const nonEmpty = segments.filter((s) => s.length > 0)
+  return nonEmpty.length === 0 ? null : nonEmpty[0][0]
+}
+
 export function flattenSegments<T>(segments: T[][]): T[] {
   return segments.flat()
 }
