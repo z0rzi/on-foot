@@ -15,6 +15,7 @@ jest.mock('../../components/toast', () => ({ showToast: jest.fn() }))
 jest.mock('../../store/activitiesStore', () => ({
   useActivitiesStore: { getState: () => ({ saveActivity: mockSaveActivity }) },
 }))
+jest.mock('../../log', () => ({ logEvent: jest.fn() }))
 jest.mock('../../data/activities', () => ({
   activitiesRepository: {
     getActiveSession: jest.fn(),

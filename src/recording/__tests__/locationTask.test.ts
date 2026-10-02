@@ -1,4 +1,5 @@
 jest.mock('../../location', () => ({ defineBackgroundFixHandler: jest.fn() }))
+jest.mock('../../log', () => ({ logEvent: jest.fn() }))
 jest.mock('../../data/activities', () => ({
   activitiesRepository: { getActiveSession: jest.fn(), appendPoints: jest.fn() },
 }))
