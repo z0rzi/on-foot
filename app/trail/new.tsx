@@ -10,6 +10,7 @@ import { TrailForm } from '../../src/trails/TrailForm'
 import { useTheme } from '../../src/theme/useTheme'
 import { useGoBackOrHome } from '../../src/components/useGoBackOrHome'
 import { ScreenHeader } from '../../src/components/ScreenHeader'
+import { logEvent } from '../../src/log'
 
 export default function NewTrailScreen() {
   const c = useTheme()
@@ -36,8 +37,10 @@ export default function NewTrailScreen() {
       } catch (err) {
         if (cancelled) return
         if (err instanceof GpxError && err.reason === 'empty') {
+          logEvent('error', 'error', 'gpx import failed, no route in the file', { error: String(err) })
           Alert.alert('No route found', 'This GPX file has no route or track points to import.')
         } else {
+          logEvent('error', 'error', 'gpx import failed, unreadable file', { error: String(err) })
           Alert.alert('Not a GPX file', 'This file could not be read as GPX.')
         }
         leave()

@@ -3,6 +3,8 @@ import { formatDistance } from '../data/geo/metrics'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+const twoDigits = (n: number): string => n.toString().padStart(2, '0')
+
 export function formatDuration(totalSeconds: number): string {
   const s = Math.max(0, Math.round(totalSeconds))
   const hours = Math.floor(s / 3600)
@@ -18,8 +20,8 @@ export function formatStopwatch(totalSeconds: number): string {
   const hours = Math.floor(s / 3600)
   const minutes = Math.floor((s % 3600) / 60)
   const seconds = s % 60
-  const mm = hours > 0 ? minutes.toString().padStart(2, '0') : minutes.toString()
-  const ss = seconds.toString().padStart(2, '0')
+  const mm = hours > 0 ? twoDigits(minutes) : minutes.toString()
+  const ss = twoDigits(seconds)
   return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`
 }
 
@@ -41,7 +43,7 @@ export function formatPace(distanceMeters: number, durationSeconds: number): str
     minutes += 1
     seconds = 0
   }
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  return `${minutes}:${twoDigits(seconds)}`
 }
 
 export function formatSpeed(distanceMeters: number, durationSeconds: number): string {
@@ -52,5 +54,15 @@ export function formatSpeed(distanceMeters: number, durationSeconds: number): st
 
 export function formatClockTime(timestamp: number): string {
   const d = new Date(timestamp)
-  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+  return `${twoDigits(d.getHours())}:${twoDigits(d.getMinutes())}`
+}
+
+export function formatClockSeconds(timestamp: number): string {
+  const d = new Date(timestamp)
+  return `${twoDigits(d.getHours())}:${twoDigits(d.getMinutes())}:${twoDigits(d.getSeconds())}`
+}
+
+export function formatCalendarClockSeconds(timestamp: number): string {
+  const d = new Date(timestamp)
+  return `${twoDigits(d.getMonth() + 1)}-${twoDigits(d.getDate())} ${formatClockSeconds(timestamp)}`
 }

@@ -3,6 +3,7 @@ import { getConnectivity } from '../../net/netinfo'
 import { evaluateDownloadGate, type GateDecision } from '../../net/gate'
 import { hasEnoughDiskSpace, readFreeDiskBytes, requiredDiskSpace } from './diskSpace'
 import { formatBytes } from './format'
+import { logEvent } from '../../log'
 
 // Read connectivity once and route the download: abort when offline, block when the device
 // lacks room for the estimated pack, ask for consent on mobile data, proceed otherwise.
@@ -21,6 +22,7 @@ export async function guardDownload(
   }
 
   if (decision === 'offline') {
+    logEvent('warn', 'error', 'download refused, offline')
     Alert.alert('You\'re offline', 'Connect to the internet to download offline maps.')
     return
   }
@@ -33,6 +35,10 @@ export async function guardDownload(
       freeBytes = null
     }
     if (freeBytes !== null && !hasEnoughDiskSpace(freeBytes, estimatedBytes)) {
+      logEvent('warn', 'error', 'download refused, not enough space', {
+        neededBytes: requiredDiskSpace(estimatedBytes),
+        freeBytes,
+      })
       Alert.alert(
         'Not enough space',
         `This download needs about ${formatBytes(requiredDiskSpace(estimatedBytes))} of free space, but only ${formatBytes(freeBytes)} is available. Free up some space and try again.`,

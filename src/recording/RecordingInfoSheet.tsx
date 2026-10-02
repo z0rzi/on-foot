@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import type { SharedValue } from 'react-native-reanimated'
 import { Ionicons } from '@expo/vector-icons'
@@ -16,6 +16,7 @@ import type { ElevationProfile } from '../elevation/profile'
 import { useMovingStopwatch } from './useMovingStopwatch'
 import { ensureStreaming } from './recordingController'
 import { recordingHealthFor, recordingStatusText } from './streamHealth'
+import { logEvent } from '../log'
 
 export function RecordingInfoSheet({
   followedTrailName,
@@ -28,6 +29,10 @@ export function RecordingInfoSheet({
   onRemoveTrail: () => void
   animatedPosition?: SharedValue<number>
 }) {
+  useEffect(() => {
+    logEvent('info', 'map', 'recording sheet mounted')
+  }, [])
+
   const c = useTheme()
   const session = useRecordingStore((s) => s.session)
   const livePoints = useRecordingStore((s) => s.livePoints)

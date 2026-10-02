@@ -6,6 +6,7 @@ import { EnumSelector } from '../components/EnumSelector'
 import { MetricsGrid } from '../components/MetricsGrid'
 import { FormField, FormScreen, FormTextInput, SubmitButton } from '../components/form'
 import { difficultyField } from './difficulty'
+import { logEvent } from '../log'
 
 export interface TrailFormValues {
   name: string
@@ -44,7 +45,8 @@ export function TrailForm({
         difficulty,
         description: description.trim().length > 0 ? description.trim() : null,
       })
-    } catch {
+    } catch (error) {
+      logEvent('error', 'error', 'saving the trail failed', { error: String(error) })
       Alert.alert('Could not save trail', 'Something went wrong while saving. Please try again.')
       setSaving(false)
     }

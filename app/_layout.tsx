@@ -14,6 +14,10 @@ import '../src/recording/locationTask'
 import { useResumeRecording } from '../src/recording/useResumeRecording'
 import { useRecordingStream } from '../src/recording/useRecordingStream'
 import { useIncomingShare } from '../src/trails/useIncomingShare'
+import { useLogRetention } from '../src/log/useLogRetention'
+import { installGlobalErrorHandler } from '../src/log/installGlobalErrorHandler'
+
+installGlobalErrorHandler()
 
 function ShareIntentHandler() {
   useIncomingShare()
@@ -39,6 +43,11 @@ function OfflineInitHandler() {
   return null
 }
 
+function LogRetentionHandler() {
+  useLogRetention()
+  return null
+}
+
 export default function RootLayout() {
   const { success, error } = useDatabaseMigrations()
 
@@ -59,6 +68,7 @@ export default function RootLayout() {
                 <ResumeRecordingHandler />
                 <RecordingStreamHandler />
                 <OfflineInitHandler />
+                <LogRetentionHandler />
               </BottomSheetModalProvider>
             </MapProviderProvider>
           </KeyboardProvider>

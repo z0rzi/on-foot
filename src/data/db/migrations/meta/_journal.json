@@ -50,6 +50,13 @@
       "when": 1789653359522,
       "tag": "0006_lethal_iron_monger",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1790936409226,
+      "tag": "0007_wild_sersi",
+      "breakpoints": true
     }
   ]
 }

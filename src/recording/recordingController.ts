@@ -17,6 +17,8 @@ import { RECORDING_OPTIONS } from './options'
 import { useRecordingStore } from './recordingStore'
 import { resumeActionFor, ResumeAction } from './resume'
 import { applyPause, applyRelaunch, applyResume } from './session'
+import { createSerialQueue } from '../async/serialQueue'
+import { logEvent } from '../log'
 
 export type CaptureReadiness = 'ready' | 'permission-denied' | 'location-off'
 export type CaptureRefusal = Exclude<CaptureReadiness, 'ready'>
@@ -33,24 +35,20 @@ export type ResumeResult = 'resumed' | CaptureRefusal
 // request survives location being switched off and on, so it is re-issued only when no start is
 // known to be live.
 
-let tail: Promise<unknown> = Promise.resolve()
-
-function exclusive<T>(operation: () => Promise<T>): Promise<T> {
-  const turn = tail.then(operation, operation)
-  tail = turn.catch(() => {})
-  return turn
-}
+const exclusive = createSerialQueue()
 
 async function issueStream(): Promise<void> {
   try {
     await startBackgroundTracking(RECORDING_OPTIONS)
-  } catch {
+  } catch (error) {
+    logEvent('error', 'capture', 'stream start failed', { error: String(error) })
     useRecordingStore.getState().setStreamState({
       stream: isAppActive() ? { kind: 'faulted', fault: 'start-failed' } : { kind: 'stopped' },
     })
     return
   }
   const available = await isLocationAvailable()
+  logEvent(available ? 'info' : 'warn', 'capture', available ? 'stream live' : 'stream stopped, no provider')
   useRecordingStore.getState().setStreamState({
     stream: available ? { kind: 'live' } : { kind: 'stopped' },
     locationAvailable: available,
@@ -73,31 +71,51 @@ async function issueStreamIfAvailable(): Promise<void> {
 // user's acceptance of the prompt to turn one on. It runs before a turn is queued: a dialog that never
 // answers must not hold pause, resume or discard behind it.
 async function ensureCaptureReady(): Promise<CaptureReadiness> {
-  if (!(await requestForegroundAccess())) return 'permission-denied'
+  if (!(await requestForegroundAccess())) {
+    logEvent('warn', 'capture', 'capture permission-denied', { scope: 'foreground' })
+    return 'permission-denied'
+  }
   // A recording must go on capturing once the app leaves the foreground, so capturing asks for "All
   // the time" access; recovery only ever restarts a stream while the app is active, so it needs no
   // more than the foreground grant checked in ensureStreaming.
-  if (!(await requestBackgroundAccess())) return 'permission-denied'
-  if (!(await isLocationAvailable()) && !(await promptToEnableLocation())) return 'location-off'
+  if (!(await requestBackgroundAccess())) {
+    logEvent('warn', 'capture', 'capture permission-denied', { scope: 'background' })
+    return 'permission-denied'
+  }
+  if (!(await isLocationAvailable()) && !(await promptToEnableLocation())) {
+    logEvent('warn', 'capture', 'capture location-off')
+    return 'location-off'
+  }
+  logEvent('info', 'capture', 'capture ready')
   return 'ready'
 }
 
 export async function startRecording(): Promise<StartResult> {
-  if (await activitiesRepository.getActiveSession()) return 'already-active'
+  if (await activitiesRepository.getActiveSession()) {
+    logEvent('warn', 'recording', 'start already-active')
+    return 'already-active'
+  }
   const readiness = await ensureCaptureReady()
-  if (readiness !== 'ready') return readiness
+  if (readiness !== 'ready') {
+    logEvent('warn', 'recording', `start ${readiness}`)
+    return readiness
+  }
   await ensureTrackingNotificationAccess()
   await whenAppActive()
   return exclusive<StartResult>(async () => {
     // A session found here belongs to a concurrent tap that reached the turn first: the tap that
     // lost reports the start it asked for, not a pre-existing recording.
-    if (await activitiesRepository.getActiveSession()) return 'started'
+    if (await activitiesRepository.getActiveSession()) {
+      logEvent('info', 'recording', 'start: a concurrent start won')
+      return 'started'
+    }
     const startedAt = Date.now()
     const sessionId = await activitiesRepository.startSession(startedAt)
     useRecordingStore.getState().beginSession({
       id: sessionId, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0, segmentStartedAt: startedAt,
     })
     await issueStream()
+    logEvent('info', 'recording', 'start started')
     return 'started'
   })
 }
@@ -105,12 +123,17 @@ export async function startRecording(): Promise<StartResult> {
 export function pauseRecording(): Promise<void> {
   return exclusive(async () => {
     const session = await activitiesRepository.getActiveSession()
-    if (!session || session.pausedAt != null) return
+    if (!session || session.pausedAt != null) {
+      logEvent('info', 'recording', session ? 'pause: already paused' : 'pause: no session')
+      return
+    }
     const now = Date.now()
     await activitiesRepository.markPaused(session.id, now)
+    logEvent('info', 'recording', 'paused')
     const store = useRecordingStore.getState()
     store.setSession(applyPause(session, now))
     store.setStreamState({ stream: { kind: 'stopped' } })
+    logEvent('info', 'capture', 'stream stopped')
     // The pause is already durable and the background task drops fixes whenever pausedAt is set, so
     // failing to stop the stream costs battery, not correctness — it must not fail the pause.
     try {
@@ -127,18 +150,29 @@ export function pauseRecording(): Promise<void> {
 // shows, not a failed resume.
 export async function resumeRecording(): Promise<ResumeResult> {
   const current = await activitiesRepository.getActiveSession()
-  if (!current || current.pausedAt == null) return 'resumed'
+  if (!current || current.pausedAt == null) {
+    logEvent('info', 'recording', current ? 'resume: session not paused' : 'resume: no session')
+    return 'resumed'
+  }
   const readiness = await ensureCaptureReady()
-  if (readiness !== 'ready') return readiness
+  if (readiness !== 'ready') {
+    logEvent('warn', 'recording', `resume ${readiness}`)
+    return readiness
+  }
   await whenAppActive()
   return exclusive<ResumeResult>(async () => {
     const session = await activitiesRepository.getActiveSession()
     // Not paused here means a concurrent resume reached the turn first.
-    if (!session || session.pausedAt == null) return 'resumed'
+    if (!session || session.pausedAt == null) {
+      logEvent('info', 'recording', session ? 'resume: a concurrent resume won' : 'resume: session gone')
+      return 'resumed'
+    }
     const next = applyResume(session, Date.now())
     await activitiesRepository.markResumed(session.id, next.pausedMs, next.currentSegment, next.segmentStartedAt)
     useRecordingStore.getState().setSession(next)
+    logEvent('info', 'recording', 'segment began', { segment: next.currentSegment, segmentStartedAt: next.segmentStartedAt })
     await issueStreamIfAvailable()
+    logEvent('info', 'recording', 'resume resumed')
     return 'resumed'
   })
 }
@@ -155,8 +189,10 @@ export function linkTrailForSave(linkedTrailId: number | null): Promise<void> {
 export function discardRecording(sessionId: number): Promise<void> {
   return exclusive(async () => {
     useRecordingStore.getState().setStreamState({ stream: { kind: 'stopped' } })
+    logEvent('info', 'capture', 'stream stopped')
     await stopBackgroundTracking()
     await activitiesRepository.discardSession(sessionId)
+    logEvent('info', 'recording', 'discarded', { sessionId })
     useRecordingStore.getState().reset()
   })
 }
@@ -174,6 +210,7 @@ export function ensureStreaming(): Promise<void> {
     const session = await activitiesRepository.getActiveSession()
     if (!session || session.pausedAt != null) return
     if (!(await hasForegroundAccess())) {
+      logEvent('warn', 'capture', 'recovery found no location permission')
       useRecordingStore.getState().setStreamState({ stream: { kind: 'faulted', fault: 'permission-missing' } })
       return
     }
@@ -181,7 +218,11 @@ export function ensureStreaming(): Promise<void> {
     if (stream.kind === 'faulted' && stream.fault === 'permission-missing') {
       useRecordingStore.getState().setStreamState({ stream: { kind: 'stopped' } })
     }
-    if (!(await refreshAvailability()) || useRecordingStore.getState().stream.kind === 'live') return
+    if (!(await refreshAvailability()) || useRecordingStore.getState().stream.kind === 'live') {
+      logEvent('info', 'capture', 'recovery left the live request alone')
+      return
+    }
+    logEvent('info', 'capture', 'recovery re-issued the stream')
     await issueStream()
   })
 }
@@ -195,8 +236,11 @@ async function resumeAfterProcessDeath(session: RecordingSession): Promise<void>
   const relaunched = applyRelaunch(session, Date.now())
   await activitiesRepository.markResumed(relaunched.id, relaunched.pausedMs, relaunched.currentSegment, relaunched.segmentStartedAt)
   useRecordingStore.getState().hydrate(relaunched, points)
+  logEvent('info', 'recording', 'segment began', { segment: relaunched.currentSegment, segmentStartedAt: relaunched.segmentStartedAt })
   const since = points.length > 0 ? points[points.length - 1].t : session.startedAt
-  showToast(`Recording interrupted ${formatClockTime(since)}–${formatClockTime(Date.now())}`)
+  const now = Date.now()
+  showToast(`Recording interrupted ${formatClockTime(since)}–${formatClockTime(now)}`)
+  logEvent('warn', 'launch', 'announced an interruption', { from: formatClockTime(since), to: formatClockTime(now) })
   await issueStreamIfAvailable()
 }
 
@@ -234,7 +278,9 @@ export function finishRecording(sessionId: number, input: NewActivityInput): Pro
       // Stopped by the next launch.
     }
     useRecordingStore.getState().setStreamState({ stream: { kind: 'stopped' } })
+    logEvent('info', 'capture', 'stream stopped')
     const activityId = await useActivitiesStore.getState().saveActivity(sessionId, input)
+    logEvent('info', 'recording', 'finished', { sessionId })
     useRecordingStore.getState().reset()
     return activityId
   })

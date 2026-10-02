@@ -15,6 +15,7 @@ export function toLocationFix(location: Location.LocationObject): LocationFix {
     lng: location.coords.longitude,
     ele: location.coords.altitude,
     t: Math.round(location.timestamp),
+    accuracy: location.coords.accuracy,
   }
 }
 

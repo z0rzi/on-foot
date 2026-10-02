@@ -14,6 +14,7 @@ import { packDescriptor } from './descriptor'
 import { formatBytes } from './format'
 import { OFFLINE_MARGIN_KM, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM } from './constants'
 import { showToast } from '../../components/toast'
+import { logEvent } from '../../log'
 import { useSheetBackDismiss } from '../../components/useSheetBackDismiss'
 import { guardDownload } from './downloadConsent'
 import { planOfflineChanges, seedSelection } from './plan'
@@ -87,6 +88,7 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
 
     const apply = () => {
       if (!bounds) {
+        logEvent('warn', 'error', 'download refused, trail has no route', { trailId: trail.id })
         Alert.alert('Cannot download', 'This trail has no route to cover.')
         return
       }

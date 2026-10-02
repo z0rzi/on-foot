@@ -10,6 +10,7 @@ import { TrailListItem } from '../../src/trails/TrailListItem'
 import { ListScreen } from '../../src/components/ListScreen'
 import { useTheme } from '../../src/theme/useTheme'
 import { TrailSummary } from '../../src/data/trails/types'
+import { logEvent } from '../../src/log'
 
 export default function TrailsScreen() {
   const c = useTheme()
@@ -40,7 +41,8 @@ export default function TrailsScreen() {
                 try {
                   await removeForTrail(offlineController, trail.id)
                   await removeTrail(trail.id)
-                } catch {
+                } catch (error) {
+                  logEvent('error', 'error', 'deleting the trail failed', { error: String(error) })
                   Alert.alert('Could not delete', 'Something went wrong deleting this trail. Please try again.')
                 } finally {
                   setPending(false)

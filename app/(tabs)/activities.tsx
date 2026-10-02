@@ -7,6 +7,7 @@ import { useRecordingStore, recordingPhase } from '../../src/recording/recording
 import { ActivityListItem } from '../../src/activities/ActivityListItem'
 import { ListScreen } from '../../src/components/ListScreen'
 import { ActivitySummary } from '../../src/data/activities/types'
+import { logEvent } from '../../src/log'
 
 export default function ActivitiesScreen() {
   const router = useRouter()
@@ -37,7 +38,9 @@ export default function ActivitiesScreen() {
             text: 'Delete',
             style: 'destructive',
             onPress: () => {
-              void removeActivity(activity.id)
+              void removeActivity(activity.id).catch((error) =>
+                logEvent('error', 'error', 'deleting the activity failed', { error: String(error) }),
+              )
             },
           },
         ],

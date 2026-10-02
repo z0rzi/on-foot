@@ -8,6 +8,7 @@ import { MetricsGrid } from '../components/MetricsGrid'
 import { FormField, FormScreen, FormTextInput, SubmitButton } from '../components/form'
 import { effortField } from './effort'
 import { useTheme } from '../theme/useTheme'
+import { logEvent } from '../log'
 
 export interface ActivityFormValues {
   name: string
@@ -47,7 +48,8 @@ export function ActivityForm({
         effort,
         comments: comments.trim().length > 0 ? comments.trim() : null,
       })
-    } catch {
+    } catch (error) {
+      logEvent('error', 'error', 'saving the activity failed', { error: String(error) })
       Alert.alert('Could not save activity', 'Something went wrong while saving. Please try again.')
       setBusy(false)
     }
@@ -61,7 +63,8 @@ export function ActivityForm({
         style: 'destructive',
         onPress: () => {
           setBusy(true)
-          onDiscard().catch(() => {
+          onDiscard().catch((error) => {
+            logEvent('error', 'error', 'discarding the activity failed', { error: String(error) })
             Alert.alert('Could not discard', 'Something went wrong. Please try again.')
             setBusy(false)
           })

@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { View } from 'react-native'
 import { useSharedValue, useDerivedValue } from 'react-native-reanimated'
 import { BottomSheetModal } from '@gorhom/bottom-sheet'
@@ -22,6 +22,8 @@ import { buildElevationProfile } from '../elevation/profile'
 import { ElevationGraph, GRAPH_HEIGHT } from '../elevation/ElevationGraph'
 import { usePreferencesStore } from '../settings/preferencesStore'
 import { profileSegmentsFor } from './profileSource'
+import { logEvent } from '../log'
+import { useSheetGeometryLog } from './useSheetGeometryLog'
 
 export function MapScreen() {
   const sheetRef = useRef<BottomSheetModal>(null)
@@ -63,6 +65,12 @@ export function MapScreen() {
   const controlsBottom = useDerivedValue(() =>
     showFloatingGraph ? graphBottom.value + GRAPH_HEIGHT : baseControlsBottom.value,
   )
+
+  useEffect(() => {
+    logEvent('info', 'map', 'map mode', { mode })
+  }, [mode])
+
+  useSheetGeometryLog({ mode, sheetTop, rootHeight, graphBottom })
 
   return (
     <>
