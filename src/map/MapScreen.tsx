@@ -3,6 +3,7 @@ import { View } from 'react-native'
 import { useSharedValue, useDerivedValue } from 'react-native-reanimated'
 import { BottomSheetModal } from '@gorhom/bottom-sheet'
 import { MapCanvas } from './MapCanvas'
+import { MapInfoSheet } from './MapInfoSheet'
 import { MapControls } from './MapControls'
 import { RecordButton } from './RecordButton'
 import { PausedControls } from './PausedControls'
@@ -43,8 +44,13 @@ export function MapScreen() {
   const rootHeight = useSharedValue(0)
   const sheetTop = useSharedValue(0)
   // The sheet's live top edge, as a bottom offset; the fundamental quantity everything below rides on.
+  // A sheet reports 0 before it has laid out and its own container height while parked at its
+  // pre-layout position; neither is an edge to ride, so both fall back to the root's own bottom
+  // rather than pushing the graph and controls off the screen.
   const graphBottom = useDerivedValue(() =>
-    rootHeight.value === 0 || sheetTop.value === 0 ? 0 : rootHeight.value - sheetTop.value,
+    rootHeight.value === 0 || sheetTop.value === 0 || sheetTop.value >= rootHeight.value
+      ? 0
+      : rootHeight.value - sheetTop.value,
   )
   const baseControlsBottom = useDerivedValue(() =>
     graphBottom.value === 0 ? 0 : graphBottom.value + MapTokens.controlsSpacing,
@@ -65,6 +71,27 @@ export function MapScreen() {
   const controlsBottom = useDerivedValue(() =>
     showFloatingGraph ? graphBottom.value + GRAPH_HEIGHT : baseControlsBottom.value,
   )
+
+  // One sheet instance for the life of the screen, its content switched by mode. Three sheets that
+  // mounted and unmounted as the mode changed could hand over mid-animation: the outgoing one left
+  // its last position in sheetTop and the incoming one never reached its snap point, so a recording
+  // resumed on launch showed no sheet at all until the app was restarted (FIELD-2).
+  const sheetContent =
+    mode === 'trail' && trail ? (
+      <TrailInfoSheet trail={trail} profile={sheetProfile} />
+    ) : mode === 'activity' && activity ? (
+      <ActivityInfoSheet
+        activity={activity}
+        profile={sheetProfile}
+        onViewLinkedTrail={(id) => select('trail', id)}
+      />
+    ) : mode === 'recording' ? (
+      <RecordingInfoSheet
+        followedTrailName={trail?.name ?? null}
+        profile={sheetProfile}
+        onRemoveTrail={clearSelection}
+      />
+    ) : null
 
   useEffect(() => {
     logEvent('info', 'map', 'map mode', { mode })
@@ -88,46 +115,33 @@ export function MapScreen() {
           animatedBottom={mode !== 'free' ? controlsBottom : undefined}
         />
         {mode === 'trail' && trail && (
-          <>
-            <MapModeChip
-              icon="trail-sign"
-              color={c.trailLine}
-              label={`Viewing trail · ${trail.name}`}
-              onExit={clearSelection}
-              exitAccessibilityLabel="Exit trail view"
-            />
-            <TrailInfoSheet trail={trail} profile={sheetProfile} animatedPosition={sheetTop} />
-          </>
+          <MapModeChip
+            icon="trail-sign"
+            color={c.trailLine}
+            label={`Viewing trail · ${trail.name}`}
+            onExit={clearSelection}
+            exitAccessibilityLabel="Exit trail view"
+          />
         )}
         {mode === 'activity' && activity && (
-          <>
-            <MapModeChip
-              icon="walk"
-              color={c.activityLine}
-              label={`Viewing activity · ${activity.name}`}
-              onExit={clearSelection}
-              exitAccessibilityLabel="Exit activity view"
-            />
-            <ActivityInfoSheet
-              activity={activity}
-              profile={sheetProfile}
-              onViewLinkedTrail={(id) => select('trail', id)}
-              animatedPosition={sheetTop}
-            />
-          </>
+          <MapModeChip
+            icon="walk"
+            color={c.activityLine}
+            label={`Viewing activity · ${activity.name}`}
+            onExit={clearSelection}
+            exitAccessibilityLabel="Exit activity view"
+          />
         )}
-        {mode === 'recording' && (
-          <>
-            {phase === 'paused' && (
-              <MapModeChip icon="pause" color={c.recordingLine} label="Paused" />
-            )}
-            <RecordingInfoSheet
-              followedTrailName={trail?.name ?? null}
-              profile={sheetProfile}
-              onRemoveTrail={clearSelection}
-              animatedPosition={sheetTop}
-            />
-          </>
+        {mode === 'recording' && phase === 'paused' && (
+          <MapModeChip icon="pause" color={c.recordingLine} label="Paused" />
+        )}
+        {sheetContent && (
+          <MapInfoSheet
+            animatedPosition={sheetTop}
+            onIndexChange={(index) => logEvent('info', 'map', 'sheet settled', { mode, index })}
+          >
+            {sheetContent}
+          </MapInfoSheet>
         )}
         {showFloatingGraph && (
           <ElevationGraph profile={activeProfile} placement="floating" animatedBottom={graphBottom} />

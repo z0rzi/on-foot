@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import type { SharedValue } from 'react-native-reanimated'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../theme/useTheme'
 import { useRecordingStore, recordingPhase } from './recordingStore'
@@ -8,7 +7,6 @@ import { usePreferencesStore } from '../settings/preferencesStore'
 import { metricsForSegments, formatDistance, formatElevation } from '../data/geo/metrics'
 import { groupPointsBySegment } from '../data/activities/mapping'
 import { formatPace, formatSpeed, formatStopwatch } from '../activities/format'
-import { MapInfoSheet } from '../map/MapInfoSheet'
 import { MetricsGrid } from '../components/MetricsGrid'
 import { AccentButton } from '../components/AccentButton'
 import { ElevationGraph } from '../elevation/ElevationGraph'
@@ -22,12 +20,10 @@ export function RecordingInfoSheet({
   followedTrailName,
   profile,
   onRemoveTrail,
-  animatedPosition,
 }: {
   followedTrailName: string | null
   profile: ElevationProfile | null
   onRemoveTrail: () => void
-  animatedPosition?: SharedValue<number>
 }) {
   useEffect(() => {
     logEvent('info', 'map', 'recording sheet mounted')
@@ -55,7 +51,7 @@ export function RecordingInfoSheet({
       : { label: 'Speed (km/h)', value: formatSpeed(metrics.distanceMeters, durationSeconds) }
 
   return (
-    <MapInfoSheet animatedPosition={animatedPosition}>
+    <>
       <View style={styles.header}>
         <Text style={[styles.recording, { color: c.recordingLine }]}>{status.title}</Text>
         {followedTrailName != null && (
@@ -102,7 +98,7 @@ export function RecordingInfoSheet({
           { ...paceSpeedTile, onPress: togglePaceSpeed, accessibilityLabel: 'Toggle pace or speed' },
         ]}
       />
-    </MapInfoSheet>
+    </>
   )
 }
 

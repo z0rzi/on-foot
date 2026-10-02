@@ -1,14 +1,12 @@
 import { useRef, useState } from 'react'
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import type { SharedValue } from 'react-native-reanimated'
 import type { BottomSheetModal } from '@gorhom/bottom-sheet'
 import { Trail } from '../data/trails/types'
 import { formatDistance, formatElevation, formatMetricsSummary } from '../data/geo/metrics'
 import { useTheme } from '../theme/useTheme'
 import { EnumBadge } from '../components/EnumBadge'
 import { difficultyField } from './difficulty'
-import { MapInfoSheet } from '../map/MapInfoSheet'
 import { MetricsGrid } from '../components/MetricsGrid'
 import { ElevationGraph } from '../elevation/ElevationGraph'
 import type { ElevationProfile } from '../elevation/profile'
@@ -29,11 +27,9 @@ import { guardDownload } from '../map/offline/downloadConsent'
 export function TrailInfoSheet({
   trail,
   profile,
-  animatedPosition,
 }: {
   trail: Trail
   profile: ElevationProfile | null
-  animatedPosition?: SharedValue<number>
 }) {
   const c = useTheme()
   const caps = useMapCapabilities()
@@ -101,7 +97,7 @@ export function TrailInfoSheet({
   const menuItems = offlineMenuItems(state).map((item) => ({ ...item, onPress: handlers[item.action] }))
 
   return (
-    <MapInfoSheet animatedPosition={animatedPosition}>
+    <>
       <View style={styles.titleRow}>
         <Text style={[styles.name, { color: c.panelContent }]} numberOfLines={1}>{trail.name}</Text>
         {state.kind === 'downloading' && (
@@ -157,7 +153,7 @@ export function TrailInfoSheet({
       {menuAnchor && (
         <OfflineActionsMenu items={menuItems} anchor={menuAnchor} onClose={() => setMenuAnchor(null)} />
       )}
-    </MapInfoSheet>
+    </>
   )
 }
 

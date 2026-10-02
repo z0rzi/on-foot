@@ -459,6 +459,17 @@ the debug log records the sheet's mount, every map-mode transition, and `sheetTo
 next reproduction is readable from Settings → Debug log. Note that the sample is taken once, at the
 `'active'` transition, and none is taken on a cold start: one healthy reading does not refute this
 finding. The fix itself is still open.
+· **Cause found and fixed** (device log of 2026-10-02 17:57): `MapScreen` rendered **three** `BottomSheet`
+instances — one per mode — all writing the same `sheetTop` shared value. A cold start that resumes a
+recording mounts the trail sheet and swaps it for the recording sheet in the same tick: the outgoing
+sheet left `736` (its snap point) in `sheetTop` while the incoming one never reached its own, so the
+log read healthy while nothing was on screen, and only a restart recovered. The two runs that worked
+had left 14 s and 22 s between the trail sheet mounting and the swap; the broken one had under a
+second. Fixed by hoisting a single `MapInfoSheet` into `MapScreen` whose content switches by mode, so
+there is one sheet instance and one writer; `enableDynamicSizing` is off (explicit snap points are the
+contract), `graphBottom` now treats `sheetTop >= rootHeight` as "no edge yet" so the symptom cannot
+recur, and the sheet logs each snap it settles on. **Needs a device pass**: record, kill the app,
+reopen, and confirm the recording sheet appears.
 
 **FIELD-3 — The interruption toast is hidden, and its range overstates the gap** · It fires while the
 splash screen still covers the map, and its start is the last stored point, so a stationary user is

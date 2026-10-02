@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import type { SharedValue } from 'react-native-reanimated'
 import { Ionicons } from '@expo/vector-icons'
 import { Activity } from '../data/activities/types'
 import { Trail, trailsRepository } from '../data/trails'
@@ -9,7 +8,6 @@ import { EnumBadge } from '../components/EnumBadge'
 import { effortField } from '../activities/effort'
 import { formatActivityDate, formatActivitySummary, formatDuration } from '../activities/format'
 import { formatDistance, formatElevation } from '../data/geo/metrics'
-import { MapInfoSheet } from './MapInfoSheet'
 import { MetricsGrid } from '../components/MetricsGrid'
 import { ElevationGraph } from '../elevation/ElevationGraph'
 import type { ElevationProfile } from '../elevation/profile'
@@ -18,12 +16,10 @@ export function ActivityInfoSheet({
   activity,
   profile,
   onViewLinkedTrail,
-  animatedPosition,
 }: {
   activity: Activity
   profile: ElevationProfile | null
   onViewLinkedTrail: (trailId: number) => void
-  animatedPosition?: SharedValue<number>
 }) {
   const c = useTheme()
   // Keyed to the id it loaded, so a stale link (or the no-link case) is derived away during render
@@ -46,7 +42,7 @@ export function ActivityInfoSheet({
     linkedTrailId != null && loaded?.id === linkedTrailId ? loaded.trail : null
 
   return (
-    <MapInfoSheet animatedPosition={animatedPosition}>
+    <>
       <Text style={[styles.name, { color: c.panelContent }]} numberOfLines={1}>{activity.name}</Text>
       <View style={styles.summaryRow}>
         <EnumBadge field={effortField} value={activity.effort} />
@@ -82,7 +78,7 @@ export function ActivityInfoSheet({
           </Text>
         </Pressable>
       )}
-    </MapInfoSheet>
+    </>
   )
 }
 

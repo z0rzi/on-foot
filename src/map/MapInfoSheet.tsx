@@ -8,9 +8,11 @@ const SNAP_POINTS = ['16%', '55%']
 
 export function MapInfoSheet({
   animatedPosition,
+  onIndexChange,
   children,
 }: {
   animatedPosition?: SharedValue<number>
+  onIndexChange?: (index: number) => void
   children: ReactNode
 }) {
   const c = useTheme()
@@ -18,8 +20,12 @@ export function MapInfoSheet({
     <BottomSheet
       index={0}
       snapPoints={SNAP_POINTS}
+      // The snap points above are the whole contract; dynamic sizing (on by default in v5) would add
+      // a content-derived one and let a content height change move the sheet on its own.
+      enableDynamicSizing={false}
       enablePanDownToClose={false}
       animatedPosition={animatedPosition}
+      onChange={onIndexChange}
       backgroundStyle={{ backgroundColor: c.panelBackground }}
       handleIndicatorStyle={{ backgroundColor: c.onSurfaceVariant }}
     >
