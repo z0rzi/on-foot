@@ -34,6 +34,13 @@ export const SEAMS: Seam[] = [
     rationale:
       'Only src/location wraps the location SDK and its background task; recording and map code use the location port, never the SDK.',
   },
+  {
+    name: 'external-apps',
+    tokens: ['expo-linking'],
+    allow: ['src/external/'],
+    rationale:
+      'Only src/external hands a URL to another app; features ask it to open a destination and never reach for the linking SDK.',
+  },
 ]
 
 const importPattern = (token: string): RegExp => {

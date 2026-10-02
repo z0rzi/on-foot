@@ -47,6 +47,7 @@ That is the whole process. One array entry; the test, the gate, and the docs fol
 | `persistence` | `expo-sqlite`, `drizzle-orm` | `src/data/db/` |
 | `net` | `@react-native-community/netinfo` | `src/net/` |
 | `location` | `expo-location`, `expo-task-manager` | `src/location/` |
+| `external-apps` | `expo-linking` | `src/external/` |
 
 ## The persistence seam's row types are checked, not cast
 

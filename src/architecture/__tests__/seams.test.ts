@@ -43,4 +43,9 @@ describe('architecture seams', () => {
     const files = [{ path: 'src/recording/recordingController.ts', content: "import * as Location from 'expo-location'" }]
     expect(findSeamViolations(files).some((v) => v.seam === 'location')).toBe(true)
   })
+
+  test('flags the linking SDK outside src/external', () => {
+    const files = [{ path: 'src/trails/TrailInfoSheet.tsx', content: "import { openURL } from 'expo-linking'" }]
+    expect(findSeamViolations(files).some((v) => v.seam === 'external-apps')).toBe(true)
+  })
 })
