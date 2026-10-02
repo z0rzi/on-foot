@@ -1,14 +1,20 @@
 import { Dimensions, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
-import { useTheme } from '../../theme/useTheme'
+import { useTheme } from '../theme/useTheme'
+
+export interface ActionItem {
+  label: string
+  danger?: boolean
+  onPress: () => void
+}
 
 // Rendered in a Modal so it escapes the bottom sheet and the tab bar (neither can clip it), then
 // positioned so its bottom-right sits just above the anchor (the ⋮ button) — the menu opens upward.
-export function OfflineActionsMenu({
+export function ActionsMenu({
   items,
   anchor,
   onClose,
 }: {
-  items: { label: string; danger?: boolean; onPress: () => void }[]
+  items: ActionItem[]
   anchor: { x: number; y: number }
   onClose: () => void
 }) {

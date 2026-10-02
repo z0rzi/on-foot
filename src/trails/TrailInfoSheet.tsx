@@ -20,7 +20,7 @@ import { flattenSegments } from '../map/geo'
 import { packDescriptor } from '../map/offline/descriptor'
 import { OFFLINE_MARGIN_KM } from '../map/offline/constants'
 import { OfflineLayerChooser } from '../map/offline/OfflineLayerChooser'
-import { OfflineActionsMenu } from '../map/offline/OfflineActionsMenu'
+import { ActionsMenu } from '../components/ActionsMenu'
 import { showToast } from '../components/toast'
 import { guardDownload } from '../map/offline/downloadConsent'
 
@@ -151,7 +151,7 @@ export function TrailInfoSheet({
       <OfflineLayerChooser ref={chooserRef} trail={trail} />
 
       {menuAnchor && (
-        <OfflineActionsMenu items={menuItems} anchor={menuAnchor} onClose={() => setMenuAnchor(null)} />
+        <ActionsMenu items={menuItems} anchor={menuAnchor} onClose={() => setMenuAnchor(null)} />
       )}
     </>
   )
