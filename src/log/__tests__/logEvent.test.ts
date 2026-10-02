@@ -11,8 +11,12 @@ describe('logEvent', () => {
     append.mockResolvedValue(undefined)
   })
 
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
   it('writes the level, area, message and the time it was logged', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000)
+    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000)
     logEvent('info', 'recording', 'start requested')
     await flushLog()
 
@@ -23,6 +27,8 @@ describe('logEvent', () => {
       message: 'start requested',
       detail: null,
     })
+
+    nowSpy.mockRestore()
   })
 
   it('encodes detail as compact JSON', async () => {
@@ -35,15 +41,28 @@ describe('logEvent', () => {
   })
 
   it('reaches the repository in the order the entries were logged', async () => {
-    const order: string[] = []
-    append.mockImplementation(async (entry) => { order.push(entry.message) })
+    let firstSettled = false
+    const callOrder: string[] = []
+
+    append.mockImplementation(async (entry) => {
+      if ((entry.message === 'second' || entry.message === 'third') && !firstSettled) {
+        throw new Error(`${entry.message} was invoked before first settled`)
+      }
+
+      callOrder.push(entry.message)
+
+      if (entry.message === 'first') {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        firstSettled = true
+      }
+    })
 
     logEvent('info', 'recording', 'first')
     logEvent('info', 'recording', 'second')
     logEvent('info', 'recording', 'third')
     await flushLog()
 
-    expect(order).toEqual(['first', 'second', 'third'])
+    expect(callOrder).toEqual(['first', 'second', 'third'])
   })
 
   it('swallows a repository failure and still writes the next entry', async () => {
