@@ -51,7 +51,7 @@ const app = jest.mocked(appActivity)
 const notifications = jest.mocked(notificationAccess)
 
 const recording: RecordingSession = {
-  id: 7, startedAt: 1000, linkedTrailId: null, pausedAt: null, pausedMs: 500, currentSegment: 1,
+  id: 7, startedAt: 1000, linkedTrailId: null, pausedAt: null, pausedMs: 500, currentSegment: 1, segmentStartedAt: 1000,
 }
 const paused: RecordingSession = { ...recording, pausedAt: 4000 }
 
@@ -86,7 +86,7 @@ beforeEach(() => {
 
   repo.getActiveSession.mockImplementation(async () => row)
   repo.startSession.mockImplementation(async (startedAt) => {
-    row = { id: 42, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0 }
+    row = { id: 42, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0, segmentStartedAt: startedAt }
     calls.push('startSession')
     return 42
   })
@@ -94,8 +94,8 @@ beforeEach(() => {
     row = row && { ...row, pausedAt }
     calls.push('markPaused')
   })
-  repo.markResumed.mockImplementation(async (_id, pausedMs, currentSegment) => {
-    row = row && { ...row, pausedAt: null, pausedMs, currentSegment }
+  repo.markResumed.mockImplementation(async (_id, pausedMs, currentSegment, segmentStartedAt) => {
+    row = row && { ...row, pausedAt: null, pausedMs, currentSegment, segmentStartedAt }
     calls.push('markResumed')
   })
   repo.discardSession.mockImplementation(async () => {
@@ -210,6 +210,12 @@ describe('startRecording', () => {
     const results = await Promise.all([startRecording(), startRecording()])
     expect(results).toEqual(['started', 'started'])
     expect(repo.startSession).toHaveBeenCalledTimes(1)
+  })
+
+  it('begins the first segment when the session starts', async () => {
+    await startRecording()
+    const session = useRecordingStore.getState().session
+    expect(session?.segmentStartedAt).toBe(session?.startedAt)
   })
 })
 
@@ -329,23 +335,99 @@ describe('resumeRecording', () => {
   })
 
   it('commits the resume, then starts the stream', async () => {
-    await resumeRecording()
+    await expect(resumeRecording()).resolves.toBe('resumed')
     expect(calls).toEqual(['markResumed', 'start'])
     expect(useRecordingStore.getState().session?.pausedAt).toBeNull()
     expect(useRecordingStore.getState().stream).toEqual({ kind: 'live' })
   })
 
-  it('commits the resume and starts nothing while location is off', async () => {
+  it('begins the next segment at the moment of the resume', async () => {
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(9000)
+    try {
+      await resumeRecording()
+    } finally {
+      clock.mockRestore()
+    }
+    expect(repo.markResumed).toHaveBeenCalledWith(7, 5500, 2, 9000)
+    expect(useRecordingStore.getState().session?.segmentStartedAt).toBe(9000)
+  })
+
+  it('stays paused when location access is refused', async () => {
+    port.requestForegroundAccess.mockResolvedValue(false)
+    await expect(resumeRecording()).resolves.toBe('permission-denied')
+    expect(repo.markResumed).not.toHaveBeenCalled()
+    expect(port.startBackgroundTracking).not.toHaveBeenCalled()
+    expect(useRecordingStore.getState().session).toEqual(paused)
+  })
+
+  it('stays paused when "All the time" location access is refused', async () => {
+    port.requestBackgroundAccess.mockResolvedValue(false)
+    await expect(resumeRecording()).resolves.toBe('permission-denied')
+    expect(repo.markResumed).not.toHaveBeenCalled()
+    expect(port.startBackgroundTracking).not.toHaveBeenCalled()
+  })
+
+  it('stays paused while location is off and the prompt is declined', async () => {
     port.isLocationAvailable.mockResolvedValue(false)
-    await resumeRecording()
-    expect(repo.markResumed).toHaveBeenCalledWith(7, expect.any(Number), 2)
+    port.promptToEnableLocation.mockResolvedValue(false)
+    await expect(resumeRecording()).resolves.toBe('location-off')
+    expect(repo.markResumed).not.toHaveBeenCalled()
+    expect(port.startBackgroundTracking).not.toHaveBeenCalled()
+    expect(useRecordingStore.getState().session).toEqual(paused)
+  })
+
+  it('resumes once the user accepts the location prompt', async () => {
+    port.isLocationAvailable.mockResolvedValueOnce(false)
+    await expect(resumeRecording()).resolves.toBe('resumed')
+    expect(repo.markResumed).toHaveBeenCalledTimes(1)
+    expect(port.startBackgroundTracking).toHaveBeenCalledWith(RECORDING_OPTIONS)
+  })
+
+  it('commits the resume and starts nothing when location still reads off after the prompt was accepted', async () => {
+    port.isLocationAvailable.mockResolvedValue(false)
+    await expect(resumeRecording()).resolves.toBe('resumed')
+    expect(repo.markResumed).toHaveBeenCalledTimes(1)
     expect(port.startBackgroundTracking).not.toHaveBeenCalled()
     expect(useRecordingStore.getState().locationAvailable).toBe(false)
   })
 
+  it('does not hold a discard behind the location prompt', async () => {
+    const prompt = deferred<boolean>()
+    port.isLocationAvailable.mockResolvedValue(false)
+    port.promptToEnableLocation.mockReturnValue(prompt.promise)
+    const resumed = resumeRecording()
+    await settle()
+    await expect(discardRecording(7)).resolves.toBeUndefined()
+    prompt.resolve(false)
+    await expect(resumed).resolves.toBe('location-off')
+  })
+
+  it('writes the resume only once the app is active again', async () => {
+    const active = deferred()
+    app.whenAppActive.mockReturnValue(active.promise)
+    const resumed = resumeRecording()
+    await settle()
+    expect(repo.markResumed).not.toHaveBeenCalled()
+    active.resolve()
+    await expect(resumed).resolves.toBe('resumed')
+  })
+
+  it('asks nothing when no session is paused', async () => {
+    row = recording
+    await expect(resumeRecording()).resolves.toBe('resumed')
+    expect(port.requestForegroundAccess).not.toHaveBeenCalled()
+    expect(repo.markResumed).not.toHaveBeenCalled()
+  })
+
+  it('resumes once when Resume is pressed twice before either resume queues', async () => {
+    const results = await Promise.all([resumeRecording(), resumeRecording()])
+    expect(results).toEqual(['resumed', 'resumed'])
+    expect(repo.markResumed).toHaveBeenCalledTimes(1)
+  })
+
   it('keeps the resume when the start is rejected, recording the fault', async () => {
     port.startBackgroundTracking.mockRejectedValue(new Error('refused'))
-    await expect(resumeRecording()).resolves.toBeUndefined()
+    await expect(resumeRecording()).resolves.toBe('resumed')
     expect(useRecordingStore.getState().session?.pausedAt).toBeNull()
     expect(useRecordingStore.getState().stream).toEqual({ kind: 'faulted', fault: 'start-failed' })
   })
@@ -423,7 +505,8 @@ describe('resumeIfActive', () => {
     } finally {
       clock.mockRestore()
     }
-    expect(repo.markResumed).toHaveBeenCalledWith(7, 500, 2)
+    expect(repo.markResumed).toHaveBeenCalledWith(7, 500, 2, reopenedAt)
+    expect(useRecordingStore.getState().session?.segmentStartedAt).toBe(reopenedAt)
     expect(useRecordingStore.getState().session?.currentSegment).toBe(2)
     expect(jest.mocked(showToast)).toHaveBeenCalledWith('Recording interrupted 13:56–14:40')
     expect(port.startBackgroundTracking).toHaveBeenCalledTimes(1)

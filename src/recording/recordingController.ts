@@ -18,13 +18,17 @@ import { useRecordingStore } from './recordingStore'
 import { resumeActionFor, ResumeAction } from './resume'
 import { applyPause, applyRelaunch, applyResume } from './session'
 
-export type StartResult = 'started' | 'permission-denied' | 'already-active' | 'location-off'
+export type CaptureReadiness = 'ready' | 'permission-denied' | 'location-off'
+export type CaptureRefusal = Exclude<CaptureReadiness, 'ready'>
+export type StartResult = 'started' | 'already-active' | CaptureRefusal
+export type ResumeResult = 'resumed' | CaptureRefusal
 
 // The durable session is the recording; the location stream is how it captures. They can disagree
 // in ways the app observes — location off, a refused start, a missing permission — and the store
-// records each so the sheet shows it instead of a confident "Recording". Every operation that reads
-// or changes the session or the stream runs as one turn of a single chain, so none interleaves with
-// another. A start issued with no location provider available makes no request, and on a registered
+// records each so the sheet shows it instead of a confident "Recording". Every operation that changes
+// the session or the stream runs as one turn of a single chain, so none interleaves with another; the
+// pre-turn probes that decide whether to prompt read the session outside a turn, and every turn
+// re-reads what it acts on. A start issued with no location provider available makes no request, and on a registered
 // task it destroys the live one, so starts are issued only while a provider is available. A live
 // request survives location being switched off and on, so it is re-issued only when no start is
 // known to be live.
@@ -65,16 +69,23 @@ async function issueStreamIfAvailable(): Promise<void> {
   if (await refreshAvailability()) await issueStream()
 }
 
-// Prompts run before the turn is queued: a dialog that never answers must not hold pause, resume or
-// discard behind it.
-export async function startRecording(): Promise<StartResult> {
-  if (await activitiesRepository.getActiveSession()) return 'already-active'
+// What capturing needs before a session may record: location access and a location provider, or the
+// user's acceptance of the prompt to turn one on. It runs before a turn is queued: a dialog that never
+// answers must not hold pause, resume or discard behind it.
+async function ensureCaptureReady(): Promise<CaptureReadiness> {
   if (!(await requestForegroundAccess())) return 'permission-denied'
-  // A launched recording must go on capturing once the app leaves the foreground, so starting asks
-  // for "All the time" access; recovery only ever restarts a stream while the app is active, so it
-  // needs no more than the foreground grant checked in ensureStreaming.
+  // A recording must go on capturing once the app leaves the foreground, so capturing asks for "All
+  // the time" access; recovery only ever restarts a stream while the app is active, so it needs no
+  // more than the foreground grant checked in ensureStreaming.
   if (!(await requestBackgroundAccess())) return 'permission-denied'
   if (!(await isLocationAvailable()) && !(await promptToEnableLocation())) return 'location-off'
+  return 'ready'
+}
+
+export async function startRecording(): Promise<StartResult> {
+  if (await activitiesRepository.getActiveSession()) return 'already-active'
+  const readiness = await ensureCaptureReady()
+  if (readiness !== 'ready') return readiness
   await ensureTrackingNotificationAccess()
   await whenAppActive()
   return exclusive<StartResult>(async () => {
@@ -83,7 +94,9 @@ export async function startRecording(): Promise<StartResult> {
     if (await activitiesRepository.getActiveSession()) return 'started'
     const startedAt = Date.now()
     const sessionId = await activitiesRepository.startSession(startedAt)
-    useRecordingStore.getState().beginSession({ id: sessionId, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0 })
+    useRecordingStore.getState().beginSession({
+      id: sessionId, startedAt, linkedTrailId: null, pausedAt: null, pausedMs: 0, currentSegment: 0, segmentStartedAt: startedAt,
+    })
     await issueStream()
     return 'started'
   })
@@ -108,16 +121,25 @@ export function pauseRecording(): Promise<void> {
   })
 }
 
-// A resumed session is visibly recording whether or not its stream starts, so a refused start is a
-// capture fault the sheet shows, not a failed resume.
-export function resumeRecording(): Promise<void> {
-  return exclusive(async () => {
+// Resuming passes the same gate as starting, so a refusal leaves the session paused; the notification
+// hint is start's alone, asked once per process. Once resumed, the session
+// is visibly recording whether or not its stream starts, so a refused start is a capture fault the sheet
+// shows, not a failed resume.
+export async function resumeRecording(): Promise<ResumeResult> {
+  const current = await activitiesRepository.getActiveSession()
+  if (!current || current.pausedAt == null) return 'resumed'
+  const readiness = await ensureCaptureReady()
+  if (readiness !== 'ready') return readiness
+  await whenAppActive()
+  return exclusive<ResumeResult>(async () => {
     const session = await activitiesRepository.getActiveSession()
-    if (!session || session.pausedAt == null) return
+    // Not paused here means a concurrent resume reached the turn first.
+    if (!session || session.pausedAt == null) return 'resumed'
     const next = applyResume(session, Date.now())
-    await activitiesRepository.markResumed(session.id, next.pausedMs, next.currentSegment)
+    await activitiesRepository.markResumed(session.id, next.pausedMs, next.currentSegment, next.segmentStartedAt)
     useRecordingStore.getState().setSession(next)
     await issueStreamIfAvailable()
+    return 'resumed'
   })
 }
 
@@ -170,8 +192,8 @@ export function ensureStreaming(): Promise<void> {
 // a restored task never gets.
 async function resumeAfterProcessDeath(session: RecordingSession): Promise<void> {
   const points = await activitiesRepository.getSessionPoints(session.id)
-  const relaunched = applyRelaunch(session)
-  await activitiesRepository.markResumed(relaunched.id, relaunched.pausedMs, relaunched.currentSegment)
+  const relaunched = applyRelaunch(session, Date.now())
+  await activitiesRepository.markResumed(relaunched.id, relaunched.pausedMs, relaunched.currentSegment, relaunched.segmentStartedAt)
   useRecordingStore.getState().hydrate(relaunched, points)
   const since = points.length > 0 ? points[points.length - 1].t : session.startedAt
   showToast(`Recording interrupted ${formatClockTime(since)}–${formatClockTime(Date.now())}`)

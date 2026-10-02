@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router'
 import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
 import { resumeRecording, linkTrailForSave } from '../recording/recordingController'
+import { captureRefusalAlert } from '../recording/captureAlerts'
 import { useMapStore } from '../store/mapStore'
 import { ControlButton } from '../components/ControlButton'
 import { PlayIcon } from '../assets/icons/play'
@@ -18,7 +19,11 @@ export function PausedControls({ animatedBottom }: { animatedBottom?: SharedValu
 
   const onResume = useCallback(async () => {
     try {
-      await resumeRecording()
+      const result = await resumeRecording()
+      if (result !== 'resumed') {
+        const { title, message } = captureRefusalAlert(result, 'resume')
+        Alert.alert(title, message)
+      }
     } catch {
       Alert.alert('Could not resume recording', 'Something went wrong. Please try again.')
     }

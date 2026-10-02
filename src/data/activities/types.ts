@@ -45,4 +45,6 @@ export interface RecordingSession {
   pausedAt: number | null
   pausedMs: number
   currentSegment: number
+  // When the current segment began; a fix taken earlier does not belong to it.
+  segmentStartedAt: number
 }

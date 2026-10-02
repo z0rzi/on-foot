@@ -9,6 +9,7 @@ import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
 import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
 import { startRecording, pauseRecording } from '../recording/recordingController'
+import { captureRefusalAlert } from '../recording/captureAlerts'
 import { showToast } from '../components/toast'
 import { ControlButton, controlSurfaceStyle } from '../components/ControlButton'
 import { PlayIcon } from '../assets/icons/play'
@@ -39,15 +40,11 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
   const onPlay = useCallback(async () => {
     try {
       const result = await startRecording()
-      if (result === 'permission-denied') {
-        Alert.alert(
-          'Location permission needed',
-          'To record your activity while the app is in the background, allow location access "All the time".',
-        )
-      } else if (result === 'already-active') {
+      if (result === 'already-active') {
         router.push('/activity/save')
-      } else if (result === 'location-off') {
-        Alert.alert('Location is off', 'Turn on location to start recording.')
+      } else if (result !== 'started') {
+        const { title, message } = captureRefusalAlert(result, 'start')
+        Alert.alert(title, message)
       }
     } catch {
       Alert.alert('Could not start recording', 'Something went wrong. Please try again.')
