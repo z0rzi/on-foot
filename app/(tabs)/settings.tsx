@@ -30,6 +30,15 @@ export default function Screen() {
         <Text style={[styles.rowLabel, { color: c.onSurface }]}>Offline maps</Text>
         <Ionicons name="chevron-forward" size={20} color={c.onSurfaceVariant} />
       </Pressable>
+      <Pressable
+        accessibilityLabel="Debug log"
+        onPress={() => router.push('/settings/log')}
+        style={[styles.row, { borderColor: c.panelDivider, marginTop: 8 }]}
+      >
+        <Ionicons name="document-text-outline" size={20} color={c.onSurface} />
+        <Text style={[styles.rowLabel, { color: c.onSurface }]}>Debug log</Text>
+        <Ionicons name="chevron-forward" size={20} color={c.onSurfaceVariant} />
+      </Pressable>
       <Text style={[styles.sectionLabel, { color: c.onSurfaceVariant }]}>Elevation graph</Text>
       <View style={styles.chipRow}>
         {PLACEMENT_OPTIONS.map((opt) => {
