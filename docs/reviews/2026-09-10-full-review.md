@@ -398,13 +398,13 @@ import rule in `POST-WORK.md` is followed (only the stores and the two selection
 
 | Debt | Count / where | Governing rule |
 |---|---|---|
-| `expo-location` used outside a seam | 4 files: `src/map/useLocationPermission.ts`, `src/recording/locationTask.ts`, `src/recording/options.ts`, `src/recording/recordingController.ts` | `seams.md` "Candidates under review" — consolidate behind one wrapper, device-verified |
+| ~~`expo-location` used outside a seam~~ | **resolved** (`dd7ffff`): zero files. The only remaining mentions are the `SEAMS` entry itself and a test fixture string; `location` is now an enforced seam | `seams.ts` — enforced |
 | `@react-native-async-storage/async-storage` outside a seam | 2 files: `src/store/mapStore.ts`, `src/settings/preferencesStore.ts` | same |
 | `expo-file-system` outside a seam | 2 files: `src/data/trails/gpx/readFile.ts`, `src/map/offline/diskSpace.ts` | same (two unrelated uses; "possibly two thin wrappers") |
 | Dead column `recording_sessions.ended_at` | `src/data/db/schema.ts:40`; migration `0004` already nulls it | health-check §8 recorded-not-done (needs a migration) |
-| Justified lint escapes | 4 `eslint-disable`s + the `parse.ts` `any` block | `lint-debt.md` "Standing inline exceptions" |
+| Justified lint escapes | 4 `eslint-disable`s, one of which is the `parse.ts` `any` block (`RecordButton`, `MapControls`, `parse.ts`, `useMovingStopwatch`) | `lint-debt.md` "Standing inline exceptions" |
 | Comment density in `mapStore.ts` | 60 of 275 lines (22%), all *why* comments | health-check §8 "worth watching" |
-| `## Existing shape` spec section | 0 of 25 specs carry it — the rule dates from 2026-09-08 and no spec has been written since | `AGENTS.md`; applies to new specs only — baseline to watch |
+| `## Existing shape` spec section | 5 of 26 specs carry it (was 0 of 25; every spec written since the 2026-09-08 rule has one, including the debug log's) | `AGENTS.md`; applies to new specs only — baseline to watch |
 | Legacy geometry shape `{ points }` | `src/data/trails/mapping.ts:22-28`, `src/data/activities/mapping.ts:57-62` (tested) | backward compatibility for pre-segment rows; remove with a data migration |
 | GPX waypoints parsed and persisted, never rendered | `src/data/trails/types.ts:10`, `gpx/parse.ts:59` | `tasks.md` feature "Add waypoints" |
 | Android-only surfaces | `src/components/toast.ts` (no-op elsewhere), `modules/share-intent` (`platforms: ["android"]`) | the app's declared target; documented inline |
