@@ -56,3 +56,9 @@ modules/**/build/
 
 # Brainstorming visual companion scratch
 .superpowers/
+
+# agent tooling scratch
+.serena/
+
+# local dev-client launch script (carries a LAN address)
+/run-app.sh
