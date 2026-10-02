@@ -83,9 +83,10 @@ export async function openMapApp(point: { lat: number; lng: number }, label: str
 ```
 
 Builds the URI and `await openURL(...)` from `expo-linking` — the single import of that module in
-the whole app. On success, `logEvent('info', 'map', 'Opened external map app')`. On rejection,
-`logEvent('warn', 'map', 'External map app failed', <error message>)` and
-`showToast('No map app found')`.
+the whole app. On success, `logEvent('info', 'map', 'opened external map app')`. On rejection,
+`logEvent('warn', 'map', 'map app launch failed', { error: String(error) })` and
+`showToast('No map app found')` — lowercase message and `String(error)` detail being the log's
+existing conventions (`src/recording/recordingController.ts:43`).
 
 `openURL` is typed `Promise<true>` in SDK 57 and documented to reject "if there are no applications
 registered for the URL or the user cancels the dialog". The cancel half is the iOS confirmation
@@ -237,3 +238,7 @@ Not unit-tested, by policy: the menu's rendering and ordering, and the chooser i
 `npm run verify` run from inside a worktree matches `/.claude/worktrees/` in jest's
 `testPathIgnorePatterns` and collects **zero** tests, reporting green regardless. Run the suite with
 an explicit override (`npx jest --testPathIgnorePatterns=/node_modules/`) while working here.
+
+`--testPathIgnorePatterns` is an *array* option, so it swallows a trailing path as a second ignore
+pattern — silently excluding the very file you meant to run. To target one file, put the path
+**first**: `npx jest <path> --testPathIgnorePatterns=/node_modules/`.
