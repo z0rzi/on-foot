@@ -438,7 +438,12 @@ the sheet. Not reproduced by swipe-away, nor by a relaunch after a kill. Candida
 height changing during its mount animation, with dynamic sizing on by default in 5.2.14; or the trail
 sheet being swapped for the recording sheet on a warm runtime after a process death, both writing
 `sheetTop`. · Next: diagnostics logging sheet mounts, map-mode swaps and the sheet position when the
-app becomes active. · **should-fix, S (diagnostics) then fix**.
+app becomes active. · **should-fix, S (diagnostics) then fix**. · **Diagnostics shipped** (`0f10e56`):
+the debug log records the sheet's mount, every map-mode transition, and `sheetTop`/`rootHeight`/
+`graphBottom`/`windowHeight` each time the app becomes active (`src/map/useSheetGeometryLog.ts`), so the
+next reproduction is readable from Settings → Debug log. Note that the sample is taken once, at the
+`'active'` transition, and none is taken on a cold start: one healthy reading does not refute this
+finding. The fix itself is still open.
 
 **FIELD-3 — The interruption toast is hidden, and its range overstates the gap** · It fires while the
 splash screen still covers the map, and its start is the last stored point, so a stationary user is
