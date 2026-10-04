@@ -1,11 +1,6 @@
 import { Dimensions, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme } from '../theme/useTheme'
-
-export interface ActionItem {
-  label: string
-  danger?: boolean
-  onPress: () => void
-}
+import type { ActionItem } from './actionItem'
 
 // Rendered in a Modal so it escapes the bottom sheet and the tab bar (neither can clip it), then
 // positioned so its bottom-right sits just above the anchor (the ⋮ button) — the menu opens upward.

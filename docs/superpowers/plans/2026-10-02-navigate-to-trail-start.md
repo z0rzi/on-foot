@@ -18,7 +18,7 @@ Every task's requirements implicitly include all of these. Values are copied ver
 - **Failure toast:** `'No map app found'`, shown exactly once.
 - **⋮ accessibility label:** `'Trail actions'` (was `'Offline actions'`).
 - **URI shape:** `geo:<lat>,<lng>?q=<lat>,<lng>(<label>)`, coordinates at **six** decimals.
-- **Log lines:** `logEvent('info', 'map', 'opened external map app')` on success; `logEvent('warn', 'map', 'map app launch failed', { error: String(error) })` on failure. Lowercase message, `String(error)` detail — the log's existing convention (`src/recording/recordingController.ts:43`).
+- **Log lines:** `logEvent('info', 'map', 'handed destination to the OS chooser')` on success; `logEvent('warn', 'map', 'map app launch failed', { error: String(error) })` on failure. Lowercase message, `String(error)` detail — the log's existing convention (`src/recording/recordingController.ts:43`).
 - **The debug log never records coordinates.** No latitude or longitude in any message or detail.
 - **`expo-linking` may be imported by `src/external/` only.** Never React Native's `Linking`: its specifier is `react-native`, which every component imports, so the seam could not enforce it.
 - **No new `any` / `as any` / `@ts-ignore` / `eslint-disable`** without a one-line justification.
@@ -38,9 +38,11 @@ Every task's requirements implicitly include all of these. Values are copied ver
 | `src/external/openMapApp.ts` (create) | The launch: the app's only `expo-linking` import, plus the success log, failure log and failure toast. |
 | `src/external/index.ts` (create) | Barrel, following `src/log/index.ts`. |
 | `src/map/geo.ts` (modify) | Add `startPointOf` beside `overallEndpoints`. |
-| `src/components/ActionsMenu.tsx` (create, moved) | Domain-free ⋮ menu. Exports `ActionItem`. |
+| `src/components/actionItem.ts` (create) | The `ActionItem` contract, in a `.ts` so pure modules need not depend on a `.tsx` — following `src/components/enumField.ts`. |
+| `src/components/ActionsMenu.tsx` (create, moved) | Domain-free ⋮ menu, consuming `ActionItem`. |
 | `src/map/offline/OfflineActionsMenu.tsx` (delete) | Replaced by the above. |
-| `src/trails/TrailInfoSheet.tsx` (modify) | Composes the item list; relabels the ⋮. |
+| `src/trails/trailActions.ts` (create) | Pure builder composing `[navigate, ...offline]`, beside the `offlineMenuItems` precedent. |
+| `src/trails/TrailInfoSheet.tsx` (modify) | Calls the builder; relabels the ⋮. |
 | `src/architecture/seams.ts` (modify) | The `external-apps` seam. |
 | `docs/architecture/seams.md` (modify) | The new row in *Seams enforced today*. |
 
@@ -264,7 +266,7 @@ describe('openMapApp', () => {
     opened.mockResolvedValue(true)
     await openMapApp(point, 'Col de Bise')
     expect(opened).toHaveBeenCalledWith(geoUri(point, 'Col de Bise'))
-    expect(logged).toHaveBeenCalledWith('info', 'map', 'opened external map app')
+    expect(logged).toHaveBeenCalledWith('info', 'map', 'handed destination to the OS chooser')
     expect(toasted).not.toHaveBeenCalled()
   })
 
@@ -320,7 +322,7 @@ import { geoUri, type Destination } from './geoUri'
 export async function openMapApp(point: Destination, label: string): Promise<void> {
   try {
     await openURL(geoUri(point, label))
-    logEvent('info', 'map', 'opened external map app')
+    logEvent('info', 'map', 'handed destination to the OS chooser')
   } catch (error) {
     logEvent('warn', 'map', 'map app launch failed', { error: String(error) })
     showToast('No map app found')
@@ -632,10 +634,11 @@ If the app crashes at launch with a Mapbox error, `.env` is missing from the wor
 6. Settings → Debug log shows one `map` entry per hand-off, with no coordinates in it.
 7. A trail in the `downloading`, `available` and `failed` offline states still shows its own items below the new one.
 8. With a screen reader on, the ⋮ announces "Trail actions".
+9. In the receiving map app, press Back — On Foot's trail sheet comes back, not the launcher. Without a `<queries>` manifest block `resolveActivity` returns null, so React Native adds `FLAG_ACTIVITY_NEW_TASK` and the map app starts in its own task; this step checks what that does to the back stack.
 
 - [ ] **Step 3: Record the outcome**
 
-Note any deviation from steps 1-8 in the session log before closing out. Steps 5 and 6 are the two that can invalidate a design decision rather than just reveal a bug.
+Note any deviation from steps 1-9 in the session log before closing out. Steps 5, 6 and 9 are the ones that can invalidate a design decision rather than just reveal a bug.
 
 ---
 

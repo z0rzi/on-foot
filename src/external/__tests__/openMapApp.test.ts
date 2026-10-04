@@ -25,12 +25,11 @@ describe('openMapApp', () => {
     opened.mockResolvedValue(true)
     await openMapApp(point, 'Col de Bise')
     expect(opened).toHaveBeenCalledWith(geoUri(point, 'Col de Bise'))
-    expect(logged).toHaveBeenCalledWith('info', 'map', 'opened external map app')
+    expect(logged).toHaveBeenCalledWith('info', 'map', 'handed destination to the OS chooser')
     expect(toasted).not.toHaveBeenCalled()
   })
 
-  // On Android a rejection means no activity handled the intent: startActivity has already
-  // resolved by the time the chooser is drawn, so the message can name the actual cause.
+  // A rejection means the hand-off failed; the cause is only in the log detail.
   test('reports exactly once when no app handles the intent', async () => {
     opened.mockRejectedValue(new Error('No Activity found to handle Intent'))
     await openMapApp(point, 'Col de Bise')

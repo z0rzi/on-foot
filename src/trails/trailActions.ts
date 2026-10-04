@@ -1,4 +1,4 @@
-import type { ActionItem } from '../components/ActionsMenu'
+import type { ActionItem } from '../components/actionItem'
 import type { GpxPoint } from '../data/trails/types'
 
 export function trailActionItems(

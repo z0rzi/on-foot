@@ -582,7 +582,7 @@ PERF-1 are adjacent to §4/§5/§6 and were not visible from those sections' sco
 - **Hunches without an anchor** (kept out of §3): the Telegram → "Add trail" loop in `tasks.md`
   (a second share while `/trail/new` is open pushes a second instance; `useIncomingShare.ts:12`
   always `push`es) is consistent with the code but was not reproduced; `ActionsMenu`'s
-  (`src/components/ActionsMenu.tsx:21`) `Dimensions.get('window')` is non-reactive, which only
+  (`src/components/ActionsMenu.tsx`) `Dimensions.get('window')` is non-reactive, which only
   matters if the portrait lock in `app.config.ts` is ever lifted; `locationTask.ts` lets a
   repository rejection surface as an unhandled task error (points from that batch are lost
   silently) — acceptable for a background task but worth a one-line `catch` that at least keeps

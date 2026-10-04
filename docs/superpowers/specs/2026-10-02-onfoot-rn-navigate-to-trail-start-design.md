@@ -45,7 +45,9 @@ transitive need. The inbound direction has a home (`src/trails/useIncomingShare.
 - `src/external/index.ts` — new: the barrel, following `src/log/index.ts`.
 - `src/map/geo.ts` — add `startPointOf`.
 - `src/components/ActionsMenu.tsx` — moved from `src/map/offline/OfflineActionsMenu.tsx`.
-- `src/trails/TrailInfoSheet.tsx` — compose the item list, relabel the ⋮.
+- `src/components/actionItem.ts` — new: the `ActionItem` contract, following `enumField.ts`.
+- `src/trails/trailActions.ts` — new: the pure item builder, following `offlineMenuItems`.
+- `src/trails/TrailInfoSheet.tsx` — call the builder, relabel the ⋮.
 - `src/architecture/seams.ts` — the `external-apps` entry.
 - `docs/architecture/seams.md` — add the `external-apps` row to *Seams enforced today*.
 - Tests: `src/external/__tests__/geoUri.test.ts`,
@@ -83,16 +85,23 @@ export async function openMapApp(point: { lat: number; lng: number }, label: str
 ```
 
 Builds the URI and `await openURL(...)` from `expo-linking` — the single import of that module in
-the whole app. On success, `logEvent('info', 'map', 'opened external map app')`. On rejection,
-`logEvent('warn', 'map', 'map app launch failed', { error: String(error) })` and
+the whole app. On success, `logEvent('info', 'map', 'handed destination to the OS chooser')`. On
+rejection, `logEvent('warn', 'map', 'map app launch failed', { error: String(error) })` and
 `showToast('No map app found')` — lowercase message and `String(error)` detail being the log's
 existing conventions (`src/recording/recordingController.ts:43`).
+
+The success message says what the code can observe and no more. `openURL` resolves as soon as
+`startActivity` returns — when the chooser is *drawn*, before the user picks anything — so a line
+claiming the app was opened would assert an outcome the app cannot see, in the log that is meant to
+be the first place to look for a field report.
 
 `openURL` is typed `Promise<true>` in SDK 57 and documented to reject "if there are no applications
 registered for the URL or the user cancels the dialog". The cancel half is the iOS confirmation
 sheet: on Android, `startActivity` has already resolved by the time the disambiguation dialog is
-drawn, so a rejection on this platform means no handler. That is what lets the toast name the
-actual cause instead of hedging — and the app is Android-only today, as `showToast` itself records.
+drawn, so backing out of the chooser cannot reject a settled promise — and the app is Android-only
+today, as `showToast` itself records. The toast therefore names the dominant cause, not the only
+one: React Native's `IntentModule.openURL` rejects with `Could not open URL …` for *any*
+exception, so "No map app found" is an informed simplification, with the true error in the log.
 
 **No `canOpenURL` pre-check.** On Android 11+ it returns `false` for any scheme absent from a
 `<queries>` manifest block, and Expo's config has no first-class key for `<queries>` — a pre-check
