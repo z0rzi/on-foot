@@ -519,9 +519,16 @@ a question about the fix but about whether the build takes it. Ruled out: a preb
 ships none and autolinking compiles from `node_modules`), a second copy of the module, and the
 `navigate-to-trail-start` worktree (it has no `node_modules`). Not established: why the compiled class
 is upstream's. The patch now carries a **marker string** (`[onfoot-patch]`) precisely so a build can be
-checked rather than assumed — see `docs/architecture/native-patches.md`. Next build: grep the APK for
-the marker **before** testing; absent means the build is ignoring the patch and the problem is the
-toolchain, not the guard.
+checked rather than assumed — see `docs/architecture/native-patches.md`. The marker then came back **zero** on a
+fresh build, which located the cause: **Expo 57 ships its modules as prebuilt AARs**
+(`node_modules/expo-location/local-maven-repo/…/expo.modules.location-57.0.11.aar`, declared by a
+`publication` block in `expo-module.config.json`), and Gradle resolves that instead of compiling
+`android/src`. The patch was never in any APK. Fixed by listing the module in
+`expo.autolinking.android.buildFromSource` in `package.json`, which forces a source build; see
+`docs/architecture/native-patches.md`. The same applies to the pre-existing expo-task-manager patch,
+which has not been reaching the APK either. **Still to verify on device**: rebuild, confirm the APK
+carries the `[onfoot-patch]` marker, then re-run the revoke-mid-recording repro and confirm no
+`data_app_crash` entry follows.
 
 **FIELD-5 — A crash in a relaunched recording process can hang instead of dying** · After
 `am crash`, crash handling started (`FATAL EXCEPTION: main`) but the main thread stayed blocked for

@@ -77,5 +77,15 @@
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@rnmapbox/.*|react-navigation|@react-navigation/.*|@gorhom/.*|zustand))"
     ]
+  },
+  "expo": {
+    "autolinking": {
+      "android": {
+        "buildFromSource": [
+          "expo-location",
+          "expo-task-manager"
+        ]
+      }
+    }
   }
 }
