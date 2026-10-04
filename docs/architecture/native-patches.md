@@ -29,7 +29,24 @@ plugin, which forces `shouldUsePublication = false` and makes Gradle compile the
 `node_modules/<module>/android`.
 
 **So: every patched module must also be listed in `buildFromSource`.** Adding a patch without it is a
-silent no-op. Two ways to confirm a build obeyed it:
+silent no-op.
+
+**The list is transitive.** A module built from source resolves its Expo dependencies as Gradle
+projects, so those must be source-built too or configuration fails outright:
+
+```
+Build file 'node_modules/expo-task-manager/android/build.gradle' line: 19
+> Project with path ':unimodules-app-loader' could not be found in project ':expo-task-manager'.
+```
+
+That is why `unimodules-app-loader` is in the list — `expo-task-manager` declares
+`implementation project(':unimodules-app-loader')`. When adding a module, read its `android/build.gradle`
+for `project(':…')` dependencies and add those as well. The failure is loud and immediate (configuration,
+not compilation), so it is cheap to discover.
+
+Cost: source-building these three turned a release build into ~13 min on a warm cache.
+
+Two ways to confirm a build obeyed it:
 
 - the Gradle log prints `[📦]` beside each module resolved from a publication — a patched module must
   **not** appear with that marker;
