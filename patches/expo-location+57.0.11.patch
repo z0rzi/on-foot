@@ -1,8 +1,8 @@
 diff --git a/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt b/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt
-index b4f6c06..c8b4543 100644
+index b4f6c06..3f9e216 100644
 --- a/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt
 +++ b/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt
-@@ -86,6 +86,14 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+@@ -86,6 +86,16 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
      } else {
        try {
          mLocationClient.lastLocation.addOnCompleteListener { task ->
@@ -10,8 +10,10 @@ index b4f6c06..c8b4543 100644
 +          // Task.getResult() rethrows the task's failure (a SecurityException once the location
 +          // permission has been revoked) wrapped in a RuntimeExecutionException, which would reach
 +          // the callback thread uncaught and kill the process.
++          // The marker makes this patch's presence in a built APK checkable with one grep, which is
++          // the only way to tell a build that took it from one that silently did not.
 +          if (!task.isSuccessful) {
-+            Log.e(TAG, "Cannot get last location: " + task.exception?.message)
++            Log.e(TAG, "[onfoot-patch] last location task failed: " + task.exception?.message)
 +            return@addOnCompleteListener
 +          }
            task.result?.let { handleLocationUpdate(listOf(it)) }

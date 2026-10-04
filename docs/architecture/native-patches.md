@@ -46,6 +46,27 @@ process instead of stopping capture cleanly.
 
 Not reported upstream yet.
 
+## Checking a patch actually reached the build
+
+A patch that applies to `node_modules` is not the same as a patch that is compiled into the APK — on
+2026-10-04 a build made two days after the expo-location patch was applied still crashed at upstream's
+line number, and nothing in the source tree explained it. So each patch carries a **marker string**
+that exists only in the patched version, and a build can be checked rather than assumed:
+
+```bash
+APK=android/app/build/outputs/apk/release/app-release.apk
+for d in $(unzip -Z1 $APK 'classes*.dex'); do unzip -p $APK $d | strings -a | grep -c '\[onfoot-patch\]'; done
+```
+
+A zero total means the build did not take the patch, whatever `node_modules` looks like. The marker is
+also what appears in logcat when the guarded path runs, so the same string proves it on a device:
+
+```bash
+adb logcat -d | grep onfoot-patch
+```
+
+Add a marker to any new patch, and keep it out of the hot path — it is a diagnostic, not a feature.
+
 ## Upgrading a patched module
 
 1. Bump the dependency. `postinstall` will fail loudly if a patch no longer applies — that failure is

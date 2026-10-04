@@ -479,8 +479,9 @@ had left 14 s and 22 s between the trail sheet mounting and the swap; the broken
 second. Fixed by hoisting a single `MapInfoSheet` into `MapScreen` whose content switches by mode, so
 there is one sheet instance and one writer; `enableDynamicSizing` is off (explicit snap points are the
 contract), `graphBottom` now treats `sheetTop >= rootHeight` as "no edge yet" so the symptom cannot
-recur, and the sheet logs each snap it settles on. **Needs a device pass**: record, kill the app,
-reopen, and confirm the recording sheet appears.
+recur, and the sheet logs each snap it settles on. · **Device-verified** (2026-10-04, same repro that
+produced the original screenshot: revoke the location permission mid-recording, let the process die,
+reopen): the recording sheet is present and stays present. **FIELD-2 is closed.**
 
 **FIELD-3 — The interruption toast is hidden, and its range overstates the gap** · It fires while the
 splash screen still covers the map, and its start is the last stored point, so a stationary user is
@@ -512,6 +513,15 @@ device** — re-run the revoke-mid-recording repro on a build made after `c3d627
 `data_app_crash` entry follows. Note also that the crash process had `pss=0.00` and died before the JS
 side started, which is why the debug log holds no trace of it: as `docs/architecture/debug-log.md`
 records, a native death leaves only the silence after the last entry.
+· **Recurred** (2026-10-04 16:43:50, same stack, same `LocationTaskConsumer.kt:89`) on an APK built at
+16:42:12 from a source tree whose patch had been applied since 2026-10-02 16:28 — so this is no longer
+a question about the fix but about whether the build takes it. Ruled out: a prebuilt AAR (expo-location
+ships none and autolinking compiles from `node_modules`), a second copy of the module, and the
+`navigate-to-trail-start` worktree (it has no `node_modules`). Not established: why the compiled class
+is upstream's. The patch now carries a **marker string** (`[onfoot-patch]`) precisely so a build can be
+checked rather than assumed — see `docs/architecture/native-patches.md`. Next build: grep the APK for
+the marker **before** testing; absent means the build is ignoring the patch and the problem is the
+toolchain, not the guard.
 
 **FIELD-5 — A crash in a relaunched recording process can hang instead of dying** · After
 `am crash`, crash handling started (`FATAL EXCEPTION: main`) but the main thread stayed blocked for
