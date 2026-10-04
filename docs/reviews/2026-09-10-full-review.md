@@ -526,9 +526,14 @@ fresh build, which located the cause: **Expo 57 ships its modules as prebuilt AA
 `android/src`. The patch was never in any APK. Fixed by listing the module in
 `expo.autolinking.android.buildFromSource` in `package.json`, which forces a source build; see
 `docs/architecture/native-patches.md`. The same applies to the pre-existing expo-task-manager patch,
-which has not been reaching the APK either. **Still to verify on device**: rebuild, confirm the APK
-carries the `[onfoot-patch]` marker, then re-run the revoke-mid-recording repro and confirm no
-`data_app_crash` entry follows.
+which has not been reaching the APK either. · **Device-verified, FIELD-4 is closed** (2026-10-04
+17:38): the APK built after the `buildFromSource` change carries the `[onfoot-patch]` marker in its
+dex, and the repro now produces the permission kill at 17:38:53.432 (`reason=8`) with **no
+`APP CRASH(EXCEPTION)` after it** — where the same repro crashed 560 ms later on every previous build.
+The guard is observed doing its job in the restarted process:
+`E LocationTaskConsumer: [onfoot-patch] last location task failed: uid 10340 does not have any of
+[ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION]` at 17:38:53.865. The crash path is the one the finding
+named, the fix is the one it proposed, and both are now proven rather than assumed.
 
 **FIELD-5 — A crash in a relaunched recording process can hang instead of dying** · After
 `am crash`, crash handling started (`FATAL EXCEPTION: main`) but the main thread stayed blocked for

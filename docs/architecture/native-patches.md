@@ -72,11 +72,14 @@ promise. Designed in
 **If dropped:** background location may crash on affected OEMs, and the `RECEIVE_BOOT_COMPLETED`
 permission in `app.config.ts` becomes load-bearing again.
 
-**Caveat (2026-10-04):** expo-task-manager also ships a prebuilt AAR, so for as long as this project has
-resolved that publication, this patch has applied to `node_modules` without reaching the APK — the
-shipped behaviour has been upstream's `setPersisted(true)`. Listing the module in `buildFromSource`
-turns the patch on, which is a **behaviour change to verify on device**, not just a fix: check that a
-recording still starts, survives backgrounding, and delivers batches.
+**History (2026-10-04):** expo-task-manager also ships a prebuilt AAR, so until this date the patch
+applied to `node_modules` without ever reaching the APK — the shipped behaviour was upstream's
+`setPersisted(true)`. It is now genuinely live: the module is source-built, proven by the fact that the
+build *failed* for a reason only a source build can produce (its `project(':unimodules-app-loader')`
+dependency had no Gradle project). `adb shell dumpsys jobscheduler` shows the `TaskJobService` record
+with no persisted flag, consistent with the patch. **Still worth a functional pass**, since this is the
+first build in which the change takes effect: a recording should start, survive backgrounding and the
+screen locking, and keep delivering batches.
 
 ## `expo-location+57.0.11.patch`
 
