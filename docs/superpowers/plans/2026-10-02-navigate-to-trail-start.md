@@ -34,7 +34,8 @@ Every task's requirements implicitly include all of these. Values are copied ver
 
 | File | Responsibility |
 |------|----------------|
-| `src/external/geoUri.ts` (create) | Pure: a destination + label → a `geo:` URI. Owns coordinate precision and label encoding. Exports `Destination`. |
+| `src/external/types.ts` (create) | The `Destination` contract. Added after review, so the seam leaf matches `src/location/` and `src/net/`; Tasks 2-3 below declared it inside `geoUri.ts` instead. |
+| `src/external/geoUri.ts` (create) | Pure: a destination + label → a `geo:` URI. Owns coordinate precision and label encoding. |
 | `src/external/openMapApp.ts` (create) | The launch: the app's only `expo-linking` import, plus the success log, failure log and failure toast. |
 | `src/external/index.ts` (create) | Barrel, following `src/log/index.ts`. |
 | `src/map/geo.ts` (modify) | Add `startPointOf` beside `overallEndpoints`. |

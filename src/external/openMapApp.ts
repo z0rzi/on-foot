@@ -1,7 +1,8 @@
 import { openURL } from 'expo-linking'
 import { showToast } from '../components/toast'
 import { logEvent } from '../log'
-import { geoUri, type Destination } from './geoUri'
+import { geoUri } from './geoUri'
+import type { Destination } from './types'
 
 // The app's single outward door: the only module that may hand a URL to another app. A geo: URI
 // dispatches ACTION_VIEW, so Android's own chooser decides which map app receives the destination.

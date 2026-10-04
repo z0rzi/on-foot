@@ -1,7 +1,4 @@
-export interface Destination {
-  lat: number
-  lng: number
-}
+import type { Destination } from './types'
 
 const COORD_DECIMALS = 6
 

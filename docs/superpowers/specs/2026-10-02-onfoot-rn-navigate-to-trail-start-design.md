@@ -40,6 +40,7 @@ transitive need. The inbound direction has a home (`src/trails/useIncomingShare.
 
 ## Scope
 
+- `src/external/types.ts` — new: the `Destination` contract, as in `src/location/` and `src/net/`.
 - `src/external/geoUri.ts` — new: the URI, pure.
 - `src/external/openMapApp.ts` — new: the launch, the log, the failure toast.
 - `src/external/index.ts` — new: the barrel, following `src/log/index.ts`.
