@@ -444,6 +444,17 @@ recording's foreground service up — and three were `EXCESSIVE CPU USAGE` while
 per 5 min against a 2% limit, at up to 384 MB. The "Recording interrupted" toast reports these deaths
 truthfully. Open: what burns CPU while the app is cached with no recording, and whether any kill fell
 during a recording that had lost its foreground service. · **should-fix, investigate**.
+· **Data, 2026-10-02 → 10-04** (`adb shell dumpsys activity exit-info com.zorzi.onfootrn`): one
+`EXCESSIVE CPU USAGE` kill in the window, at 2026-10-02 16:46:30 — `excessive cpu 11750 during 300152
+dur=1120074 limit=2`, importance 400 (cached), pss 338 MB / rss 268 MB. That is 11.75 s of CPU in 300 s
+≈ **3.9 % against a 2 % cap**, in a process that had been alive ~18.7 min. **The stronger lead is
+memory, not CPU**: at the 17:57:22 permission kill the same day the app was at importance 125 — a
+foreground service, recording — holding **pss 495 MB / rss 601 MB**. Against that, every kill across
+10-03 and 10-04 is routine housekeeping at importance 400 (`TOO MANY EMPTY PROCS` and generic system
+kills) with pss 10–44 MB and **no excessive-CPU kill at all**. So the pathology tracks what a recording
+session retains, not idle caching — "what burns CPU while cached with no recording" may be the wrong
+question; ask instead what a recording holds on to once it ends. The finding's second open question is
+still open: no kill in this window fell during a recording that had lost its foreground service.
 
 **FIELD-2 — The recording sheet is sometimes missing after reopening while following a trail** · The
 sheet stays at `@gorhom/bottom-sheet`'s initial position (the window height), so `MapScreen`'s
@@ -488,6 +499,19 @@ the failure instead of reading `task.result`, which rethrows the task's `Securit
 upstream and re-applies through `postinstall` from clean; the crash path itself is **device-verified
 only** — Jest cannot reach native code. Both patches are now documented in
 `docs/architecture/native-patches.md`.
+· **Diagnosis confirmed, fix still unverified** (device, 2026-10-02 17:57:23): revoking the permission
+mid-recording killed the process (`reason=8 PERMISSION CHANGE`); Android restarted it for the foreground
+service, and that process died 560 ms later with `reason=4 APP CRASH(EXCEPTION)` —
+`RuntimeExecutionException` caused by `SecurityException: uid 10340 does not have any of
+[ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION]`, thrown from `zzw.getResult` at
+`LocationTaskConsumer.didReceiveBroadcast$lambda$2(LocationTaskConsumer.kt:89)`. That is exactly the
+line and mechanism this finding names, so the diagnosis is right. **But that binary did not contain the
+patch**: line 89 is a comment in the patched source and `task.result` moved to line 97, so the trace is
+against upstream. Why the build lacked it was not established. The patch therefore remains **untested on
+device** — re-run the revoke-mid-recording repro on a build made after `c3d627b` and confirm no
+`data_app_crash` entry follows. Note also that the crash process had `pss=0.00` and died before the JS
+side started, which is why the debug log holds no trace of it: as `docs/architecture/debug-log.md`
+records, a native death leaves only the silence after the last entry.
 
 **FIELD-5 — A crash in a relaunched recording process can hang instead of dying** · After
 `am crash`, crash handling started (`FATAL EXCEPTION: main`) but the main thread stayed blocked for
