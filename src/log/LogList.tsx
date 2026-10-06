@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, FlatList, Share, StyleSheet, Text, View } from 'react-native'
+import { Alert, FlatList, Share, StyleSheet, Text, View } from 'react-native'
 import { LogEntry, logRepository } from '../data/log'
 import { AccentButton } from '../components/AccentButton'
+import { LoadingScreen } from '../components/LoadingScreen'
 import { useTheme } from '../theme/useTheme'
 import { formatActivityDate, formatClockSeconds } from '../activities/format'
 import { deviceInfo } from './deviceInfo'
@@ -60,13 +61,7 @@ export function LogList() {
     ])
   }, [])
 
-  if (!entries) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={c.controlAccent} />
-      </View>
-    )
-  }
+  if (!entries) return <LoadingScreen />
 
   const levelColour = (level: LogEntry['level']) =>
     level === 'error' ? c.danger : level === 'warn' ? c.warning : c.onSurface
@@ -105,7 +100,6 @@ export function LogList() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, padding: 12 },
   row: { paddingVertical: 8, paddingHorizontal: 12, borderBottomWidth: 1 },
   day: { fontSize: 11, fontWeight: '700', marginBottom: 4 },
