@@ -182,7 +182,6 @@ Create `src/components/useLoadedEntity.ts`:
 import { useEffect, useRef, useState } from 'react'
 import { logEvent } from '../log'
 import { LoadOutcome, LoadedState, resolveLoad } from './loadedEntity'
-import { logEvent as _unused } from '../log'
 
 export function useLoadedEntity<T>(
   id: number | null,
@@ -224,9 +223,6 @@ export function useLoadedEntity<T>(
   return resolveLoad(id, loaded)
 }
 ```
-
-Delete the stray second `logEvent` import line shown above — it is there to be removed; the file must
-import `logEvent` exactly once.
 
 - [ ] **Step 2: Rewrite the map adapter on top of it**
 
