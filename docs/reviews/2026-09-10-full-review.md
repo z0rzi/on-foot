@@ -45,7 +45,7 @@ report: clearly improving; no regressions found.
 | Dimension | Status | Summary | Findings (must / should / minor) |
 |---|---|---|---|
 | Architecture & seams | 🟢 | Seams intact; one presentation leak into the data layer; a native module outside the scanner; one unjustified double cast at the map seam | 0 / 1 / 3 |
-| Duplication & drift | 🟠 | Bounds computed twice; profile+banding derived three times; five copies of "load by id, spinner, back"; two theme tokens for one role | 0 / 2 / 6 |
+| Duplication & drift | 🟠 | Bounds computed twice; profile+banding derived three times; three copies of "load by id, spinner, back" (now one hook); two theme tokens for one role | 0 / 2 / 6 |
 | Dead code | 🟢 | No leftovers; a dead validator + three unread capability flags; two unread theme tokens | 0 / 0 / 4 |
 | Error & failure handling | 🟠 | Empty GPX saves silently; orphaned location stream; four `void …then()` chains with no failure outcome | 0 / 3 / 2 |
 | Test coverage of pure logic | 🟢 | Decision logic is tested and tests assert behaviour; `formatBytes` and the empty-GPX case are the gaps | 0 / 0 / 2 |
@@ -242,10 +242,12 @@ local SQLite reads, so the probability is low, but the outcome when it happens i
 Fix: the shared hook from DUP-3 with an `error` status mapped to Alert + back. · **should-fix, M**
 (S if done alone with a `.catch` per site, but that would fork the pattern a fifth time). · **Done**
 (`f325ff6`): all four named sites are covered — `useSelectedEntity`, `ActivityInfoSheet` and
-`edit.tsx` through the hook's `error` status (mapped to Alert + back, or a logged clear for the map
-selection), `save.tsx` through its own `.catch` (DUP-3's singleton load has no id to key the hook
-to). This does not mean the codebase has no unhandled rejections — see ERR-6, found in this same
-work's area and deliberately left open.
+`edit.tsx` through the hook's `error` status, with three different outcomes: a logged clear of the
+map selection for `useSelectedEntity`, no visible change for `ActivityInfoSheet` (it renders no
+link either way; the hook's own log is the only record), and Alert + back for `edit.tsx`;
+`save.tsx` through its own `.catch` (DUP-3's singleton load has no id to key the hook to). This does
+not mean the codebase has no unhandled rejections — see ERR-6, found in this same work's area and
+deliberately left open.
 
 **ERR-4 — Silent no-ops** · `app/(tabs)/activities.tsx:23` returns without feedback when an
 activity is tapped during a recording (deliberate rule, invisible to the user); `app/_layout.tsx:31`
@@ -265,11 +267,22 @@ an Alert for `pickGpx`; a logged catch for the focus reload, which has no user a
 **ERR-6 — `metricsForSegments` runs outside the surrounding `try`** · `app/trail/new.tsx:50` calls
 `metricsForSegments(parsed.segments)` after the `try`/`catch` at `new.tsx:33-47` has already closed,
 so a throw there is an unhandled rejection behind a spinner that never exits — the same defect class
-as ERR-3, in a file this work's hook adoption touched. Deliberately not fixed: folding the call into
+as ERR-3, in a file this work touched. Deliberately not fixed: folding the call into
 the existing `try` would label it with that block's "Not a GPX file" alert, which would misreport
 what failed. `app/(tabs)/trails.tsx:27`'s `void loadTrails()` is the same class; see ERR-5 rather
 than a third row for it. · Fix: a third outcome in the same effect, not a wider catch, so a metrics
 failure gets its own message instead of borrowing the parse failure's. · **should-fix, S**.
+
+**ERR-7 — A deleted trail leaves a permanently dangling `linked_trail_id`, now logged on every open**
+· `src/data/db/schema.ts:21,41` declares `linked_trail_id` as a plain `integer` on both `activities`
+and `recording_sessions` — no foreign key, no `ON DELETE SET NULL`. And
+`src/data/db/trailsRepository.ts:26-28`'s `deleteTrail` deletes only the trail row, so an activity
+that links a since-deleted trail is stuck that way forever: `src/components/useLoadedEntity.ts` now
+writes a "linked trail not found" `warn` entry every time that activity's sheet is opened — found in
+this same work's area (see the loaded-entity design spec). Repeating benign noise is exactly what
+degrades the debug log `AGENTS.md` makes the first place to look for a field bug. · Fix: null the
+column in `deleteTrail`, or add the FK with `ON DELETE SET NULL` so SQLite enforces it. ·
+**should-fix, S**.
 
 Clean and defensible: the recording transitions (rollback, pause-before-stop, resume-before-commit)
 with their failure-path tests; `offlineStore.remove` best-effort semantics and orphan-subscription
