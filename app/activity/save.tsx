@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import { Alert } from 'react-native'
 import { RecordingSession, TrackPoint, activitiesRepository } from '../../src/data/activities'
 import { activityMetricsFromSegments, buildNewActivityInput, groupPointsBySegment, lastTrackPoint } from '../../src/data/activities/mapping'
 import { discardRecording, finishRecording } from '../../src/recording/recordingController'
 import { ActivityForm } from '../../src/activities/ActivityForm'
-import { useTheme } from '../../src/theme/useTheme'
 import { useGoBackOrHome } from '../../src/components/useGoBackOrHome'
 import { ScreenHeader } from '../../src/components/ScreenHeader'
+import { LoadingScreen } from '../../src/components/LoadingScreen'
+import { logEvent } from '../../src/log'
 
 export default function SaveActivityScreen() {
-  const c = useTheme()
   // This screen is pushed over the map, so return by popping back to the existing map instance —
   // replacing the root would mount a second map on top of the live one (stacking, camera reset).
   const goToMap = useGoBackOrHome()
@@ -20,28 +20,33 @@ export default function SaveActivityScreen() {
 
   useEffect(() => {
     let active = true
-    void activitiesRepository.getActiveSession().then(async (loaded) => {
-      if (!active) return
-      if (!loaded) {
+    void activitiesRepository
+      .getActiveSession()
+      .then(async (loaded) => {
+        if (!active) return
+        // No active session is the normal path back from a save or a discard elsewhere, not a failure.
+        if (!loaded) {
+          goToMap()
+          return
+        }
+        const loadedPoints = await activitiesRepository.getSessionPoints(loaded.id)
+        if (!active) return
+        setSession(loaded)
+        setSegments(groupPointsBySegment(loadedPoints))
+        setLoading(false)
+      })
+      .catch((err: unknown) => {
+        if (!active) return
+        logEvent('error', 'error', 'save screen load failed', { error: String(err) })
+        Alert.alert('Could not open this recording', 'Something went wrong. Please try again.')
         goToMap()
-        return
-      }
-      const loadedPoints = await activitiesRepository.getSessionPoints(loaded.id)
-      if (!active) return
-      setSession(loaded)
-      setSegments(groupPointsBySegment(loadedPoints))
-      setLoading(false)
-    })
-    return () => { active = false }
+      })
+    return () => {
+      active = false
+    }
   }, [goToMap])
 
-  if (loading || !session) {
-    return (
-      <View style={[styles.center, { backgroundColor: c.background }]}>
-        <ActivityIndicator size="large" color={c.controlAccent} />
-      </View>
-    )
-  }
+  if (loading || !session) return <LoadingScreen />
 
   const endedAt = session.pausedAt ?? lastTrackPoint(segments)?.t ?? session.startedAt
   const metrics = activityMetricsFromSegments(segments, session.startedAt, endedAt, session.pausedMs)
@@ -66,7 +71,3 @@ export default function SaveActivityScreen() {
     </>
   )
 }
-
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-})
