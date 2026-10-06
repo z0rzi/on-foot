@@ -36,8 +36,9 @@ export default function SaveActivityScreen() {
         setLoading(false)
       })
       .catch((err: unknown) => {
-        if (!active) return
+        // Logged before the liveness check: a rejection that lands after unmount still happened.
         logEvent('error', 'error', 'save screen load failed', { error: String(err) })
+        if (!active) return
         Alert.alert('Could not open this recording', 'Something went wrong. Please try again.')
         goToMap()
       })

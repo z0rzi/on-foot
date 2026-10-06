@@ -4,6 +4,8 @@ import { LoadOutcome, LoadedState, resolveLoad } from './loadedEntity'
 
 export function useLoadedEntity<T>(
   id: number | null,
+  // Must be a module-level reference: it sits in the effect's dep array below, so an inline arrow
+  // would re-run the load, and the state write that follows, on every render, forever.
   load: (id: number) => Promise<T | null>,
   options: { label: string; version?: number; onUnavailable?: (reason: 'missing' | 'error') => void },
 ): LoadOutcome<T> {

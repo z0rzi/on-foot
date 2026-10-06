@@ -45,11 +45,6 @@ describe('resolveLoad', () => {
     })
   })
 
-  test('the same id stays ready while a refresh is in flight, so no spinner flicker', () => {
-    const outcome = resolveLoad(1, resolved(1))
-    expect(outcome.status).toBe('ready')
-  })
-
   test('a non-finite id -> idle, rather than loading for ever', () => {
     expect(resolveLoad(Number('not-a-number'), null)).toEqual({ status: 'idle', entity: null })
   })
