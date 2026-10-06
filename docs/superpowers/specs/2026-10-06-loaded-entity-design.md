@@ -77,9 +77,14 @@ useLoadedEntity<T>(
 
 - `load` must be module-level: it sits in the effect's dep array, so an inline arrow would reload on
   every render. This constraint and its reason carry over from `useSelectedEntity`.
-- `onUnavailable` is held in a ref and kept **out** of the effect deps, so a call site can pass an
+- `onUnavailable` is read through a ref kept **out** of the effect deps, so a call site can pass an
   inline arrow without re-triggering the load. Two of the three call sites want a closure, so without
-  this the helper would ship with a live footgun.
+  this the helper would ship with a live footgun. The ref is seeded by `useRef` and updated in its
+  own effect, never during render: `react-hooks/refs` is an `error` in `eslint.config.js:50`, the
+  repo's two existing disables of it are both justified as writes that happen *never during render*,
+  and a render React discards would still mutate a render-phase write, leaving the ref holding a
+  closure from a tree that was never committed. `.current` is only ever read from an async promise
+  callback, so it is always read post-commit.
 - `version` is the owning store's mutation count, unchanged in meaning: it changes exactly when the
   entity may have changed, so a focus refresh of a list does not re-read the entity. Defaults to `0`.
 - `label` is required. A log line that does not say what failed to load is useless.
@@ -89,17 +94,30 @@ useLoadedEntity<T>(
 ### `src/components/LoadingScreen.tsx`
 
 The centred `ActivityIndicator` (`size="large"`, `color={c.controlAccent}`) on `c.background`, taken
-verbatim from the three copies, including the `styles.center` the three share.
+verbatim from the copies, including the `styles.center` they share.
+
+There are **four** copies, not the three the review names: `src/log/LogList.tsx:63-68` is the same
+block without a `backgroundColor`, because it renders inside a screen that already paints one. It is
+absorbed too rather than left behind as an unnamed fourth instance — `app/settings/log.tsx:11` wraps
+it in a `View` with `backgroundColor: c.background`, so painting the same colour again is visually
+identical and the component needs no prop to cover the case.
 
 ### `src/trails/newTrailHref.ts`
 
 ```ts
-export function newTrailHref(uri: string, name?: string | null): string
+export function newTrailHref(uri: string, name?: string | null): `/trail/new?${string}`
 ```
 
 Returns `/trail/new?uri=…` with `&name=…` appended only when `name` is non-empty. Built with
-`encodeURIComponent`, not `URLSearchParams`, which form-encodes a space as `+`. The return type is a
-plain `string` because `app/+native-intent.ts` is contractually a `string`-returning function.
+`encodeURIComponent`, not `URLSearchParams`, which form-encodes a space as `+`.
+
+The return type is the template-literal type, **not** `string`. `app.config.ts:81` enables
+`experiments.typedRoutes`, so `router.push` accepts only the generated `Href` union, and today's call
+sites compile solely because a template-literal *expression* is checked structurally against that
+pattern. A `string`-returning helper breaks three of the four sites — verified against this
+toolchain: `error TS2345: Argument of type 'string' is not assignable to parameter of type
+'"/trail/new" | ``/trail/new?${string}`` | …'`. A template-literal type is itself a `string` subtype,
+so `app/+native-intent.ts`'s declared `: string` return still accepts it.
 
 ## Site-by-site changes
 
@@ -138,8 +156,12 @@ field mystery the debug log exists for, and both are rare events rather than a h
 
 TDD'd, per `AGENTS.md`:
 
-- `resolveLoad` — all five branches, plus the stale-id case (a result keyed to the previous id while a
-  new id is in flight) and the version-change case.
+- `resolveLoad` — all five branches, plus the stale-id case (a result keyed to the previous id while
+  a new id is in flight), a stale *failure* not being reported for a new id, and the refresh case,
+  which at this level is "the same id stays `ready` while a reload is in flight, so no spinner
+  flicker". `version` is not an input to `resolveLoad`; it only re-runs the hook's effect.
+  A non-numeric route param reaches `Number(params.id)` as `NaN`, which `!==` itself, so the guard
+  treats a non-finite id as `idle` rather than letting it read as loading forever.
 - `newTrailHref` — a uri with spaces, `#` and `&`; name present, empty and null.
 
 Device-verified, as all React and native behaviour in this project is: the hook's effect wiring and
@@ -161,3 +183,11 @@ reshaping of `save.tsx`'s or `new.tsx`'s load bodies to fit a hook they do not f
 dependency: hook-level testing would need `@testing-library/react-native`, which is a deliberate,
 separately-scoped decision about all of this project's untested hooks, not something to smuggle in
 here.
+
+Two unhandled-rejection paths in files this work edits are **not** `ERR-3` sites and are not fixed
+here, because both need a decision this spec has not made: `app/(tabs)/trails.tsx:26`'s
+`void loadTrails()` (that is `ERR-5`, its own backlog row), and `app/trail/new.tsx:51`, where
+`metricsForSegments` sits outside the surrounding `try` — a throw there is an unhandled rejection
+behind a spinner that never exits. Folding it into the existing `try` would label it with that
+block's "Not a GPX file" alert, which would be a lie about what failed. It is recorded as a new
+finding instead.
