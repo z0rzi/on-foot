@@ -32,6 +32,13 @@ Jest 29 via jest-expo.
 - A `load` function passed to `useLoadedEntity` must be module-level: it sits in the effect's dep
   array, so an inline arrow would reload on every render.
 - Tests use `describe` / `test` (not `it`), matching `src/map/__tests__/geo.test.ts`.
+- `react-hooks/refs` is `'error'` (`eslint.config.js:50`). Never write a ref during render. The two
+  existing disables of this rule (`src/map/MapControls.tsx:70`, `src/map/RecordButton.tsx:72`) are
+  both justified as writes that happen *never during render*, so a render-phase write cannot honestly
+  join them.
+- `experiments.typedRoutes` is on (`app.config.ts:81`). `router.push` accepts only the generated
+  `Href` union, so a helper that builds a route must return a template-literal type, never `string`.
+- Baseline on master before this plan: **64 suites / 544 tests**.
 
 ---
 
@@ -103,6 +110,10 @@ describe('resolveLoad', () => {
     const outcome = resolveLoad(1, resolved(1))
     expect(outcome.status).toBe('ready')
   })
+
+  test('a non-finite id -> idle, rather than loading for ever', () => {
+    expect(resolveLoad(Number('not-a-number'), null)).toEqual({ status: 'idle', entity: null })
+  })
 })
 ```
 
@@ -128,7 +139,9 @@ export type LoadedState<T> = { id: number; result: LoadResult<T> }
 // answer to a question nobody is asking any more: it reads as still loading rather than being
 // cleared with a setState-in-effect.
 export function resolveLoad<T>(id: number | null, loaded: LoadedState<T> | null): LoadOutcome<T> {
-  if (id == null) return { status: 'idle', entity: null }
+  // A bad route param arrives as NaN, which is never equal to itself, so without this it would read
+  // as permanently loading.
+  if (id == null || !Number.isFinite(id)) return { status: 'idle', entity: null }
   if (loaded == null || loaded.id !== id) return { status: 'loading', entity: null }
   if (!loaded.result.ok) return { status: 'error', entity: null }
   if (loaded.result.entity == null) return { status: 'missing', entity: null }
@@ -139,7 +152,7 @@ export function resolveLoad<T>(id: number | null, loaded: LoadedState<T> | null)
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx jest src/components/__tests__/loadedEntity.test.ts`
-Expected: PASS, 9 tests.
+Expected: PASS, 10 tests.
 
 - [ ] **Step 5: Commit**
 
@@ -190,27 +203,32 @@ export function useLoadedEntity<T>(
 ): LoadOutcome<T> {
   const { label, version = 0, onUnavailable } = options
   const [loaded, setLoaded] = useState<LoadedState<T> | null>(null)
-  // Read through a ref so the callback can be an inline arrow at the call site: in the effect's
-  // dep array it would re-run the load on every render.
+  // Read through a ref so the callback can be an inline arrow at the call site: in the effect's dep
+  // array it would re-run the load on every render. Written in an effect and never during render —
+  // a render React discards would still mutate it, leaving a closure from a tree never committed.
   const unavailable = useRef(onUnavailable)
-  unavailable.current = onUnavailable
+  useEffect(() => {
+    unavailable.current = onUnavailable
+  }, [onUnavailable])
 
   useEffect(() => {
+    // Deliberately no `Number.isFinite` guard here, unlike resolveLoad: a bad id must still reach
+    // `load` so the repository answers null and the caller's onUnavailable fires. Skipping the load
+    // would strand the screen on a spinner with nothing to leave it.
     if (id == null) return
     let active = true
     void load(id).then(
       (entity) => {
+        if (entity == null) logEvent('warn', 'error', `${label} not found`, { id })
         if (!active) return
         setLoaded({ id, result: { ok: true, entity } })
-        if (entity == null) {
-          logEvent('warn', 'error', `${label} not found`, { id })
-          unavailable.current?.('missing')
-        }
+        if (entity == null) unavailable.current?.('missing')
       },
       (err: unknown) => {
+        // Logged before the liveness check: a rejection that lands after unmount still happened.
+        logEvent('error', 'error', `${label} load failed`, { id, error: String(err) })
         if (!active) return
         setLoaded({ id, result: { ok: false } })
-        logEvent('error', 'error', `${label} load failed`, { id, error: String(err) })
         unavailable.current?.('error')
       },
     )
@@ -257,8 +275,9 @@ export function useSelectedEntity<T extends { id: number }>(
 - [ ] **Step 3: Verify the whole gate**
 
 Run: `npm run verify`
-Expected: PASS — types, 535 tests (526 + Task 1's 9), lint clean. The type-checker is what proves
-`useSelectedTrail`, `useSelectedActivity` and `MapScreen` still line up with the unchanged signature.
+Expected: PASS — types, **554** tests (544 + Task 1's 10), lint clean. The type-checker is what
+proves `useSelectedTrail`, `useSelectedActivity` and `MapScreen` still line up with the unchanged
+signature. Lint is the step that would catch a ref written during render, so do not skip it.
 
 - [ ] **Step 4: Commit**
 
@@ -357,16 +376,15 @@ git commit -m "refactor(map): load the linked trail through the shared hook, and
 **Files:**
 - Create: `src/components/LoadingScreen.tsx`
 - Modify: `app/trail/[id]/edit.tsx` (whole file, currently 63 lines)
+- Modify: `src/log/LogList.tsx:2`, `:63-68`, `:108`
 
 **Interfaces:**
 - Consumes: `useLoadedEntity` (Task 2), `loadTrail` (Task 3).
 - Produces: `LoadingScreen` (no props). Task 5 uses it twice more.
 
-**A TypeScript detail that decides the shape of the screen code:** destructuring
-`const { status, entity } = useLoadedEntity(...)` breaks the discriminated union — `entity` stays
-`T | null` no matter what you then check `status` against. Keep the object and narrow through it
-(`loaded.status !== 'ready'`) wherever you need the entity to be non-null. Destructure only where
-`T | null` is exactly what you want, as Task 3 does.
+**On narrowing:** both forms compile — TypeScript's dependent destructuring narrows
+`const { status, entity } = …` just as `loaded.status !== 'ready'` narrows `loaded.entity`. The
+object form is used below because it reads better at a `return` guard, not because the other fails.
 
 - [ ] **Step 1: Write `LoadingScreen`**
 
@@ -451,13 +469,30 @@ the `useEffect`, and the `styles` block are all gone.
 - [ ] **Step 3: Verify**
 
 Run: `npm run verify`
-Expected: PASS. A `trail.metrics` error on possibly-null here means the destructuring trap above was
-hit — keep `loaded` as an object.
+Expected: PASS, 554 tests.
+
+- [ ] **Step 3b: Absorb the fourth copy of the spinner**
+
+There are four, not the three the review names. `src/log/LogList.tsx:63-68` is the same block without
+a `backgroundColor`, and `app/settings/log.tsx:11` already wraps it in a `View` with
+`backgroundColor: c.background` — so the component covers it with no prop and no visible change.
+Leaving it would make `LoadingScreen` the named owner of a shape with an unnamed fourth instance.
+
+In `src/log/LogList.tsx`: drop `ActivityIndicator` from the line 2 `react-native` import (it has no
+other use; keep `Alert`, `FlatList`, `Share`, `StyleSheet`, `Text`, `View`, which all do), add
+`import { LoadingScreen } from '../components/LoadingScreen'`, replace lines 63-68 with
+
+```tsx
+  if (!entries) return <LoadingScreen />
+```
+
+and delete the now-unused `center: { flex: 1, alignItems: 'center', justifyContent: 'center' },` entry
+from `styles` at line 108. Every other `c.*` use in the file stays.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/components/LoadingScreen.tsx "app/trail/[id]/edit.tsx"
+git add src/components/LoadingScreen.tsx "app/trail/[id]/edit.tsx" src/log/LogList.tsx
 git commit -m "feat(trails): give the edit screen one spinner component and a visible failure path"
 ```
 
@@ -556,8 +591,9 @@ and delete the trailing `styles` block (lines 85-87). Change nothing about the `
 - [ ] **Step 3: Verify**
 
 Run: `npm run verify`
-Expected: PASS, and the duplication test in particular — the three identical `styles.center` blocks
-it was shadowing are now one component.
+Expected: PASS, 554 tests. Note the duplication test never reported these blocks — `DUPLICATION_WINDOW`
+is 8 significant lines (`src/architecture/duplication.ts:9`) and `DUP-4` is explicitly about twins
+*under* that window, so nothing observable changes in the gate here.
 
 - [ ] **Step 4: Commit**
 
@@ -575,11 +611,14 @@ git commit -m "fix(activities): surface a failed save-screen load instead of spi
 - Test: `src/trails/__tests__/newTrailHref.test.ts`
 - Modify: `src/trails/useIncomingShare.ts:12,21`
 - Modify: `app/+native-intent.ts:3`
-- Modify: `app/(tabs)/trails.tsx:73`
+- Modify: `app/(tabs)/trails.tsx:75`
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces: `newTrailHref(uri: string, name?: string | null): string`.
+- Produces: ``newTrailHref(uri: string, name?: string | null): `/trail/new?${string}` ``. The return
+  type is **not** `string`: `experiments.typedRoutes` is on, so `router.push` takes only the generated
+  `Href` union and a `string` fails with `TS2345`. A template-literal type is a `string` subtype, so
+  `redirectSystemPath`'s declared `: string` return still accepts it.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -635,9 +674,9 @@ Expected: FAIL — `Cannot find module '../newTrailHref'`.
 Create `src/trails/newTrailHref.ts`:
 
 ```ts
-// A plain string because app/+native-intent.ts is contractually a string-returning function, and
+// The template-literal return type, not string: typed routes accept only the generated Href union.
 // encodeURIComponent rather than URLSearchParams, which form-encodes a space as '+'.
-export function newTrailHref(uri: string, name?: string | null): string {
+export function newTrailHref(uri: string, name?: string | null): `/trail/new?${string}` {
   const query = `uri=${encodeURIComponent(uri)}`
   return name ? `/trail/new?${query}&name=${encodeURIComponent(name)}` : `/trail/new?${query}`
 }
@@ -674,7 +713,7 @@ export function redirectSystemPath({ path }: { path: string; initial: boolean })
 ```
 
 In `app/(tabs)/trails.tsx`, add `import { newTrailHref } from '../../src/trails/newTrailHref'` and
-replace line 73 (`router.push({ pathname: '/trail/new', params: { … } })`) with:
+replace line 75 (`router.push({ pathname: '/trail/new', params: { … } })`) with:
 
 ```tsx
     router.push(newTrailHref(asset.uri, fallback))
@@ -687,7 +726,9 @@ This moves that site from the object form to the string form. It is equivalent: 
 - [ ] **Step 6: Verify**
 
 Run: `npm run verify`
-Expected: PASS — 542 tests (535 + 7).
+Expected: PASS — **561** tests (554 + 7). `app/__tests__/native-intent.test.ts` already asserts
+`/trail/new?uri=${encodeURIComponent(path)}`, which is exactly what the helper builds, so it should
+keep passing untouched.
 
 - [ ] **Step 7: Commit**
 
@@ -709,7 +750,8 @@ git commit -m "refactor(trails): build the new-trail href in one place"
 - [ ] **Step 1: Tick row 6**
 
 Match the existing convention exactly, as rows 1-5 do: wrap the description in `~~strikethrough~~`
-and end the row with `**done** — <short-sha>`. Use the merge or final commit sha of this work.
+and end the row with `**done** — <short-sha>`, citing the sha of Task 6's commit (the last code
+commit of this work), as rows 1-5 cite their feature's own commit.
 
 - [ ] **Step 2: Correct the two stale claims, in place**
 
@@ -722,8 +764,19 @@ The review is a living record and must not be left asserting things that are no 
   (`app/activity/save.tsx`, a singleton load; `app/trail/new.tsx`, a file parse) are a different
   shape that took only `LoadingScreen`. Record the corrected count and why the other two were left
   with their own load bodies.
-- In `ERR-3`, note that all four sites are covered: three through the hook's rejection branch and
-  `save.tsx` through its own `.catch`.
+- In `ERR-3`, note that its four named sites are covered — three through the hook's rejection branch
+  and `save.tsx` through its own `.catch` — without claiming the codebase now has no unhandled
+  rejections, because it does.
+
+- [ ] **Step 2b: Record the rejection path this work found but did not own**
+
+`app/trail/new.tsx:51` calls `metricsForSegments` *outside* the surrounding `try`, so a throw there
+is an unhandled rejection behind a spinner that never exits — the same defect class as `ERR-3`, in a
+file this work edits. It was deliberately not fixed: folding the call into the existing `try` would
+label it with that block's "Not a GPX file" alert, which would be a lie about what failed. Add it as
+a new finding in the error-handling section, sized S, noting that the fix is a third outcome in that
+effect rather than a wider net. `app/(tabs)/trails.tsx:26`'s `void loadTrails()` is the same class
+and is already covered by `ERR-5`, so reference that row rather than duplicating it.
 
 - [ ] **Step 3: Verify and commit**
 
