@@ -1,6 +1,6 @@
 import { Alert } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
-import { loadTrail } from '../../../src/data/trails'
+import { trailsRepository } from '../../../src/data/trails'
 import { useTrailsStore } from '../../../src/store/trailsStore'
 import { TrailForm } from '../../../src/trails/TrailForm'
 import { useGoBackOrHome } from '../../../src/components/useGoBackOrHome'
@@ -16,7 +16,7 @@ export default function EditTrailScreen() {
 
   // A trail that is gone was deleted from under this screen, which needs no explanation; a failed
   // read does.
-  const loaded = useLoadedEntity(id, loadTrail, {
+  const loaded = useLoadedEntity(id, trailsRepository.getTrail, {
     label: 'trail',
     onUnavailable: (reason) => {
       if (reason === 'error') {

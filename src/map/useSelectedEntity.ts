@@ -1,9 +1,7 @@
 import { useMapStore } from '../store/mapStore'
 import { useLoadedEntity } from '../components/useLoadedEntity'
 
-// `load` sits in the hook's effect dep array, so callers pass a module-level function — an inline
-// arrow would reload on every render. `mutationVersion` is the store's count of mutations to the
-// collection: it changes exactly when the entity may have changed, so a focus refresh of the list
+// `mutationVersion` is the store's count of mutations to the collection: it changes exactly when the entity may have changed, so a focus refresh of the list
 // does not re-read the entity.
 export function useSelectedEntity<T extends { id: number }>(
   kind: 'trail' | 'activity',
