@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useRootNavigationState, useRouter } from 'expo-router'
 import { addShareIntentListener, getInitialShareIntentUri } from '../../modules/share-intent'
+import { newTrailHref } from './newTrailHref'
 
 export function useIncomingShare() {
   const router = useRouter()
@@ -9,7 +10,7 @@ export function useIncomingShare() {
 
   useEffect(() => {
     const sub = addShareIntentListener((uri) => {
-      router.push(`/trail/new?uri=${encodeURIComponent(uri)}`)
+      router.push(newTrailHref(uri))
     })
     return () => sub.remove()
   }, [router])
@@ -18,6 +19,6 @@ export function useIncomingShare() {
     if (!navReady || handledInitial.current) return
     handledInitial.current = true
     const uri = getInitialShareIntentUri()
-    if (uri) router.push(`/trail/new?uri=${encodeURIComponent(uri)}`)
+    if (uri) router.push(newTrailHref(uri))
   }, [navReady, router])
 }
