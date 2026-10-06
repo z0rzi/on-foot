@@ -36,7 +36,7 @@ answer during render.
 Also reused: `src/components/ScreenHeader.tsx` (so no back button is extracted),
 `src/components/useGoBackOrHome.ts` (the leave behaviour on all three screens), the app's single
 error-surfacing idiom `Alert.alert('Could not …', 'Something went wrong. Please try again.')` —
-23 existing call sites — and `logEvent` from `src/log`.
+5 existing call sites — and `logEvent` from `src/log`.
 
 Extracted to be shared: `resolveLoad` + `useLoadedEntity`, `LoadingScreen`, `newTrailHref`, and
 `loadTrail`, which is about to have three callers.
@@ -150,7 +150,11 @@ surfaces:
 
 The hook logs every outcome the caller cannot see: a rejection at `error`/`error`, a `missing` at
 `warn`/`error`, both carrying the label. An entity vanishing mid-navigation is exactly the kind of
-field mystery the debug log exists for, and both are rare events rather than a hot path.
+field mystery the debug log exists for, and a rejection is a rare event. A `missing` from the
+linked-trail path is not: nothing clears `linkedTrailId` when the trail it points to is deleted, so
+that id is a permanent dangling reference and the `warn` repeats on every open of the activity's
+sheet. That is a pre-existing data defect this hook surfaced rather than caused — recorded as ERR-7
+in `docs/reviews/2026-09-10-full-review.md`.
 
 ## Testing
 
@@ -183,6 +187,14 @@ reshaping of `save.tsx`'s or `new.tsx`'s load bodies to fit a hook they do not f
 dependency: hook-level testing would need `@testing-library/react-native`, which is a deliberate,
 separately-scoped decision about all of this project's untested hooks, not something to smuggle in
 here.
+
+No helper for the cancel-flag / log / alert / leave skeleton either, even though the Problem section
+above names it as shared with `save.tsx` and `new.tsx`. After this work that skeleton exists in three
+spellings — `useLoadedEntity.ts`, `save.tsx`, `new.tsx` — and only the spinner inside it
+(`LoadingScreen`) was actually extracted. A helper spanning a singleton two-stage read and a GPX
+parse with three domain-specific outcomes would have to parameterise over all three, which makes it
+the premature abstraction `AGENTS.md` warns against as much as it warns against the duplication that
+motivated this spec. Left as three spellings; revisit only if a fourth screen needs the same shape.
 
 Two unhandled-rejection paths in files this work edits are **not** `ERR-3` sites and are not fixed
 here, because both need a decision this spec has not made: `app/(tabs)/trails.tsx:26`'s

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Activity } from '../data/activities/types'
-import { Trail, trailsRepository } from '../data/trails'
+import { loadTrail } from '../data/trails'
+import { useTrailsStore } from '../store/trailsStore'
 import { useTheme } from '../theme/useTheme'
+import { useLoadedEntity } from '../components/useLoadedEntity'
 import { EnumBadge } from '../components/EnumBadge'
 import { effortField } from '../activities/effort'
 import { formatActivityDate, formatActivitySummary, formatDuration } from '../activities/format'
@@ -22,24 +23,14 @@ export function ActivityInfoSheet({
   onViewLinkedTrail: (trailId: number) => void
 }) {
   const c = useTheme()
-  // Keyed to the id it loaded, so a stale link (or the no-link case) is derived away during render
-  // instead of cleared with a setState-in-effect.
-  const [loaded, setLoaded] = useState<{ id: number; trail: Trail | null } | null>(null)
-  const linkedTrailId = activity.linkedTrailId
-
-  useEffect(() => {
-    if (linkedTrailId == null) return
-    let active = true
-    void trailsRepository.getTrail(linkedTrailId).then((t) => {
-      if (active) setLoaded({ id: linkedTrailId, trail: t })
-    })
-    return () => {
-      active = false
-    }
-  }, [linkedTrailId])
-
-  const linkedTrail =
-    linkedTrailId != null && loaded?.id === linkedTrailId ? loaded.trail : null
+  const trailsVersion = useTrailsStore((s) => s.version)
+  // A link that is gone is simply not rendered; the hook logs it. Keyed to the trails mutation
+  // count as well as the id, so deleting the linked trail withdraws the link from an open sheet
+  // instead of leaving a button that selects something no longer there.
+  const { entity: linkedTrail } = useLoadedEntity(activity.linkedTrailId, loadTrail, {
+    label: 'linked trail',
+    version: trailsVersion,
+  })
 
   return (
     <>

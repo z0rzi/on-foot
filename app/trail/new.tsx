@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native'
+import { Alert } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
 import { readGpxFile } from '../../src/data/trails/gpx/readFile'
 import { GpxError, GpxParseResult, parseGpx } from '../../src/data/trails/gpx/parse'
@@ -7,13 +7,12 @@ import { metricsForSegments } from '../../src/data/geo/metrics'
 import { useTrailsStore } from '../../src/store/trailsStore'
 import { TrailGeometry, TrailMetrics } from '../../src/data/trails/types'
 import { TrailForm } from '../../src/trails/TrailForm'
-import { useTheme } from '../../src/theme/useTheme'
 import { useGoBackOrHome } from '../../src/components/useGoBackOrHome'
 import { ScreenHeader } from '../../src/components/ScreenHeader'
+import { LoadingScreen } from '../../src/components/LoadingScreen'
 import { logEvent } from '../../src/log'
 
 export default function NewTrailScreen() {
-  const c = useTheme()
   const params = useLocalSearchParams<{ uri?: string; name?: string }>()
   const addTrail = useTrailsStore((s) => s.addTrail)
   const leave = useGoBackOrHome('/trails')
@@ -56,13 +55,7 @@ export default function NewTrailScreen() {
     return () => { cancelled = true }
   }, [params.uri, params.name, leave])
 
-  if (loading || !metrics || !geometry) {
-    return (
-      <View style={[styles.center, { backgroundColor: c.background }]}>
-        <ActivityIndicator size="large" color={c.controlAccent} />
-      </View>
-    )
-  }
+  if (loading || !metrics || !geometry) return <LoadingScreen />
 
   return (
     <>
@@ -81,7 +74,3 @@ export default function NewTrailScreen() {
     </>
   )
 }
-
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-})

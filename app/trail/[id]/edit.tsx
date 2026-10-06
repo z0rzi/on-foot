@@ -1,44 +1,33 @@
-import { useEffect, useState } from 'react'
-import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import { Alert } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
-import { Trail, trailsRepository } from '../../../src/data/trails'
+import { loadTrail } from '../../../src/data/trails'
 import { useTrailsStore } from '../../../src/store/trailsStore'
 import { TrailForm } from '../../../src/trails/TrailForm'
-import { useTheme } from '../../../src/theme/useTheme'
 import { useGoBackOrHome } from '../../../src/components/useGoBackOrHome'
 import { ScreenHeader } from '../../../src/components/ScreenHeader'
+import { LoadingScreen } from '../../../src/components/LoadingScreen'
+import { useLoadedEntity } from '../../../src/components/useLoadedEntity'
 
 export default function EditTrailScreen() {
-  const c = useTheme()
   const leave = useGoBackOrHome()
   const params = useLocalSearchParams<{ id: string }>()
   const id = Number(params.id)
   const updateTrail = useTrailsStore((s) => s.updateTrail)
 
-  const [loading, setLoading] = useState(true)
-  const [trail, setTrail] = useState<Trail | null>(null)
-
-  useEffect(() => {
-    let active = true
-    void trailsRepository.getTrail(id).then((loaded) => {
-      if (!active) return
-      if (!loaded) {
-        leave()
-        return
+  // A trail that is gone was deleted from under this screen, which needs no explanation; a failed
+  // read does.
+  const loaded = useLoadedEntity(id, loadTrail, {
+    label: 'trail',
+    onUnavailable: (reason) => {
+      if (reason === 'error') {
+        Alert.alert('Could not open this trail', 'Something went wrong. Please try again.')
       }
-      setTrail(loaded)
-      setLoading(false)
-    })
-    return () => { active = false }
-  }, [id, leave])
+      leave()
+    },
+  })
 
-  if (loading || !trail) {
-    return (
-      <View style={[styles.center, { backgroundColor: c.background }]}>
-        <ActivityIndicator size="large" color={c.controlAccent} />
-      </View>
-    )
-  }
+  if (loaded.status !== 'ready') return <LoadingScreen />
+  const trail = loaded.entity
 
   return (
     <>
@@ -57,7 +46,3 @@ export default function EditTrailScreen() {
     </>
   )
 }
-
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-})

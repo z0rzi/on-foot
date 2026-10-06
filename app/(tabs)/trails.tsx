@@ -11,6 +11,7 @@ import { ListScreen } from '../../src/components/ListScreen'
 import { useTheme } from '../../src/theme/useTheme'
 import { TrailSummary } from '../../src/data/trails/types'
 import { logEvent } from '../../src/log'
+import { newTrailHref } from '../../src/trails/newTrailHref'
 
 export default function TrailsScreen() {
   const c = useTheme()
@@ -72,7 +73,7 @@ export default function TrailsScreen() {
     if (result.canceled) return
     const asset = result.assets[0]
     const fallback = asset.name?.replace(/\.[^.]+$/, '')
-    router.push({ pathname: '/trail/new', params: { uri: asset.uri, name: fallback ?? '' } })
+    router.push(newTrailHref(asset.uri, fallback))
   }, [router])
 
   return (
