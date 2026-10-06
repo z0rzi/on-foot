@@ -123,7 +123,12 @@ load is the same shape and the three route screens repeat the mount-load / `acti
 `router.back()` skeleton. None of the five has a failure outcome (ERR-3). · Fix: one
 `useLoadedEntity(id, load)` returning `{ status: 'loading' | 'ready' | 'missing' | 'error', entity }`
 plus a `LoadingScreen` component; the screens map `missing`/`error` to Alert + back. ·
-**minor, S–M** (M when done together with ERR-3).
+**minor, S–M** (M when done together with ERR-3). · **Done** (`f325ff6`): "exists five times" was
+wrong. Three sites are id-keyed loads — `useSelectedEntity`, `ActivityInfoSheet`, `edit.tsx` — and
+now share `useLoadedEntity`. The other two are a different shape and were deliberately left with
+their own load bodies, taking only `LoadingScreen`: `app/activity/save.tsx` loads a singleton
+(`getActiveSession()`) plus a dependent read, with no id to key to; `app/trail/new.tsx` reads a file
+and parses GPX with its own correct domain-specific failures.
 
 **DUP-4 — Verbatim twins under the gate's 8-line window** · Back header button
 `src/trails/TrailForm.tsx:68-72` = `app/settings/offline.tsx:16-20`; centred spinner + identical
@@ -131,7 +136,12 @@ plus a `LoadingScreen` component; the screens map `missing`/`error` to Alert + b
 `app/trail/new.tsx:49-55,72-74`); the `/trail/new?uri=` href built as a string in three places
 (`src/trails/useIncomingShare.ts:12,21`, `app/+native-intent.ts:3`) and as an object in
 `app/(tabs)/trails.tsx:73`. · Fix: `BackButton`, `LoadingScreen` (see DUP-3), `newTrailHref(uri,
-name?)`. · **minor, S**.
+name?)`. · **minor, S**. · **Done** (`f325ff6`): the back-header-button clause is obsolete — checked,
+not deleted: `src/components/ScreenHeader.tsx:16-18` already owns that `Pressable` and its
+`accessibilityLabel`, and both named sites route through it, so no `BackButton` was extracted
+because none was needed. The spinner had **four** copies, not three — `src/log/LogList.tsx` was the
+fourth — and all four now render `LoadingScreen`. `newTrailHref(uri, name?)` exists
+(`src/trails/newTrailHref.ts`, 7 tests) and is the one owner of the href at all four former sites.
 
 **DUP-5 — Two theme tokens for one role** · `controlsText` (`src/theme/colors.ts:21,53,85`) has a
 single consumer, the 2D/3D label at `src/map/MapControls.tsx:129`, while the four sibling icons in
@@ -230,7 +240,12 @@ a rejected repository call becomes an unhandled rejection: in `save.tsx` and `ed
 never exits (no retry, no back); in the two hooks the entity stays `null` with no signal. These are
 local SQLite reads, so the probability is low, but the outcome when it happens is a stuck screen. ·
 Fix: the shared hook from DUP-3 with an `error` status mapped to Alert + back. · **should-fix, M**
-(S if done alone with a `.catch` per site, but that would fork the pattern a fifth time).
+(S if done alone with a `.catch` per site, but that would fork the pattern a fifth time). · **Done**
+(`f325ff6`): all four named sites are covered — `useSelectedEntity`, `ActivityInfoSheet` and
+`edit.tsx` through the hook's `error` status (mapped to Alert + back, or a logged clear for the map
+selection), `save.tsx` through its own `.catch` (DUP-3's singleton load has no id to key the hook
+to). This does not mean the codebase has no unhandled rejections — see ERR-6, found in this same
+work's area and deliberately left open.
 
 **ERR-4 — Silent no-ops** · `app/(tabs)/activities.tsx:23` returns without feedback when an
 activity is tapped during a recording (deliberate rule, invisible to the user); `app/_layout.tsx:31`
@@ -240,9 +255,21 @@ so after one failed init the settings list says "No offline maps yet" until the 
 `showToast('Finish the recording first')` for the first; for the second re-run `init` on focus of
 `OfflineMapsList` (cheap) or keep a `loadFailed` flag the list can show. · **minor, S**.
 
-**ERR-5 — Unhandled picker rejection** · `app/(tabs)/trails.tsx:65-74` `pickGpx` is an async
+**ERR-5 — Unhandled picker rejection** · `app/(tabs)/trails.tsx:68-77` `pickGpx` is an async
 `onPress`; `DocumentPicker.getDocumentAsync` can reject (the attribute exemption in
-`eslint.config.js` hides it). · Fix: try/catch with an Alert. · **minor, S**.
+`eslint.config.js` hides it). The same file's `app/(tabs)/trails.tsx:27` `void loadTrails()` on
+focus is the same shape — a rejected repository read has no failure outcome. · Fix: try/catch with
+an Alert for `pickGpx`; a logged catch for the focus reload, which has no user action to retry. ·
+**minor, S**.
+
+**ERR-6 — `metricsForSegments` runs outside the surrounding `try`** · `app/trail/new.tsx:50` calls
+`metricsForSegments(parsed.segments)` after the `try`/`catch` at `new.tsx:33-47` has already closed,
+so a throw there is an unhandled rejection behind a spinner that never exits — the same defect class
+as ERR-3, in a file this work's hook adoption touched. Deliberately not fixed: folding the call into
+the existing `try` would label it with that block's "Not a GPX file" alert, which would misreport
+what failed. `app/(tabs)/trails.tsx:27`'s `void loadTrails()` is the same class; see ERR-5 rather
+than a third row for it. · Fix: a third outcome in the same effect, not a wider catch, so a metrics
+failure gets its own message instead of borrowing the parse failure's. · **should-fix, S**.
 
 Clean and defensible: the recording transitions (rollback, pause-before-stop, resume-before-commit)
 with their failure-path tests; `offlineStore.remove` best-effort semantics and orphan-subscription
@@ -419,7 +446,7 @@ import rule in `POST-WORK.md` is followed (only the stores and the two selection
 | 3 | ~~`resumeIfActive` stops an orphaned stream; save goes through a controller `finishRecording`~~ | ERR-1 | Medium-high: battery + misleading notification; controller keeps its invariant | S | Low-medium (device-verify) | **done** — `331e00b` |
 | 4 | ~~Prune the six unused deps; pin `@types/jest`; ignore `.claude/`, `.serena/`, `run-app.sh`~~ | DEP-1..4 | Medium: smaller install, honest `verify` scope, clean `git status` | S | Low (bundle check) | **done** — `4c41b17` |
 | 5 | ~~Doc refresh: README, `app.config.ts` permission comment, adapter comment, lint-debt table~~ | DOC-1..4 | Medium: first-contact docs stop lying; no code risk | S | None | **done** — `ec9f703` (DOC-2 had already been fixed in `dd7ffff`) |
-| 6 | `useLoadedEntity` + `LoadingScreen` with an error outcome; `BackButton`; `newTrailHref` | DUP-3, DUP-4, ERR-3 | High: five copies → one, and every load gets a visible failure path | M | Low-medium | next |
+| 6 | ~~`useLoadedEntity` + `LoadingScreen` with an error outcome; `newTrailHref`~~ | DUP-3, DUP-4, ERR-3 | High: three id-keyed loads and four spinner copies collapse to one hook and one component each; every load gets a visible failure path | M | Low-medium | **done** — `f325ff6` |
 | 7 | One owner for profile + slope banding (derive once, pass bands down) | DUP-2, PERF-2 | Medium: three derivations → one; makes the smoothing contract structural | M | Medium (device-verify graph + route colours) | next |
 | 8 | Move `format*` out of `data/geo` into a presentation module (with `formatBytes`) | ARCH-1 | Medium: layering matches `POST-WORK.md`; one home for units | S | Low | next |
 | 9 | `boundsForTrail` = `boundsForPoints` + margin; one `LngLatBounds` | DUP-1 | Medium | S | Low (both tested) | next |
