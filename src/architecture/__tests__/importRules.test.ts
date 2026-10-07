@@ -19,7 +19,7 @@ describe('directory import rules', () => {
 
   test('allows the same import outside the governed directory', () => {
     const files = [
-      { path: 'src/elevation/ElevationGraph.tsx', content: "import { usePreferencesStore } from '../settings/preferencesStore'" },
+      { path: 'src/map/useRouteDisplay.ts', content: "import { usePreferencesStore } from '../settings/preferencesStore'" },
     ]
     expect(findImportRuleViolations(files)).toHaveLength(0)
   })
