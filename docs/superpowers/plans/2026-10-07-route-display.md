@@ -19,7 +19,7 @@
 - **Never reshape correct code to satisfy a linter.** A justified inline `eslint-disable` is a first-class outcome; an unjustifiable one is a real finding.
 - `npm run verify` (tsc + jest + expo lint) must be green before any task is considered done.
 - Commit subjects: lowercase, conventional-commit prefix, one line, no body.
-- **Baseline before you start: 66 suites / 560 tests passing** (measured 2026-10-07, not quoted from memory). Task 1 adds 5 → 565. No other task changes the count.
+- **Baseline before you start: 66 suites / 560 tests passing** (measured 2026-10-07, not quoted from memory). Task 1 adds 5 tests in a new suite → 67 suites / 565 tests. No other task changes either count.
 
 ---
 
@@ -221,7 +221,7 @@ In `src/map/MapScreen.tsx`:
 - [ ] **Step 5: Verify**
 
 Run: `npm run verify`
-Expected: green. 66 suites / 565 tests. No behaviour has changed yet — `MapScreen` now derives the bands too, but `ElevationGraph` and `useRouteColouring` still derive their own. That redundancy is removed in Tasks 3 and 4.
+Expected: green. 67 suites / 565 tests. No behaviour has changed yet — `MapScreen` now derives the bands too, but `ElevationGraph` and `useRouteColouring` still derive their own. That redundancy is removed in Tasks 3 and 4.
 
 - [ ] **Step 6: Commit**
 
@@ -316,7 +316,7 @@ and the floating graph at line 147 with:
 - [ ] **Step 5: Verify**
 
 Run: `npm run verify`
-Expected: green, 66 suites / 565 tests. If `tsc` reports that `display` is possibly `null` at the floating graph, `showFloatingGraph` was rewritten in a way that broke aliased-condition narrowing — restore the exact `const` form from Task 2 Step 2 rather than adding a non-null assertion.
+Expected: green, 67 suites / 565 tests. If `tsc` reports that `display` is possibly `null` at the floating graph, `showFloatingGraph` was rewritten in a way that broke aliased-condition narrowing — restore the exact `const` form from Task 2 Step 2 rather than adding a non-null assertion.
 
 - [ ] **Step 6: Commit**
 
@@ -416,7 +416,7 @@ In `src/map/MapScreen.tsx`, line 105:
 - [ ] **Step 5: Verify**
 
 Run: `npm run verify`
-Expected: green, 66 suites / 565 tests. The profile and banding are now derived exactly once per selection.
+Expected: green, 67 suites / 565 tests. The profile and banding are now derived exactly once per selection.
 
 - [ ] **Step 6: Commit**
 
@@ -440,7 +440,7 @@ git commit -m "refactor(elevation): colour the route from the derived view, not 
 - [ ] **Step 1: Confirm the whole gate is green**
 
 Run: `npm run verify`
-Expected: green, 66 suites / 565 tests.
+Expected: green, 67 suites / 565 tests.
 
 - [ ] **Step 2: Tick the findings in the authoritative review**
 
