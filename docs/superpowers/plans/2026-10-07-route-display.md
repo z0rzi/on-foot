@@ -475,9 +475,10 @@ Map rendering and the graph are not unit-tested, so this is the real gate. Run i
 2. **Select an activity.** Same, with the activity's own colouring.
 3. **Open an activity with a linked trail and follow the link.** The trail appears, coloured, with its graph.
 4. **Start a recording with no trail selected.** The graph shows live elevation and colours as you move; the live track on the map stays a **plain** line — unchanged, and deliberately so (DUP-9).
-5. **Start a recording with a trail selected.** The trail is coloured, its graph is shown, and the live track is plain.
+5. **Start a recording with a trail selected, and leave it running for several minutes with the map visible.** The trail is coloured, its graph is shown, and the live track is plain — and it must stay that way without accumulating per-fix jank. The branch originally rebuilt the trail's colouring on every GPS fix in this exact state; that was found in review and fixed, and this is the check that would catch it coming back.
 6. **Change the elevation smoothing preference** (Settings) while a trail is selected. The bands must move **on the route and in the graph together** — this is the single most valuable check in the list, because a split derivation is exactly what would let them disagree.
 7. **Switch the graph between floating and in-sheet placement.** Both render; the floating one sits flush on the sheet's top edge and the controls ride above it.
 8. **Scrub the graph.** The tooltip shows elevation, distance and grade, and the marker tracks along the route on the map.
+9. **While recording with NO trail, scrub the live graph.** This is the one state where the derived value legitimately changes identity on every fix, so the profile grows underneath the gesture. The tooltip and the map marker must still track correctly as new fixes land.
 
 A subjective note worth taking while you are there: trail selection should feel quicker on a long trail. It will not be instant — the full-geometry read and the map layer rebuild are untouched.
