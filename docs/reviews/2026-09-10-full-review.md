@@ -45,7 +45,7 @@ report: clearly improving; no regressions found.
 | Dimension | Status | Summary | Findings (must / should / minor) |
 |---|---|---|---|
 | Architecture & seams | 🟢 | Seams intact; one presentation leak into the data layer; a native module outside the scanner; one unjustified double cast at the map seam | 0 / 1 / 3 |
-| Duplication & drift | 🟠 | Bounds computed twice; profile+banding derived three times; two route-line components where the thinner cannot show slope; three copies of "load by id, spinner, back" (now one hook); two theme tokens for one role | 0 / 2 / 6 |
+| Duplication & drift | 🟠 | Bounds computed twice; profile+banding derived three times; two route-line components where the thinner cannot show slope; three copies of "load by id, spinner, back" (now one hook); two theme tokens for one role | 0 / 2 / 7 |
 | Dead code | 🟢 | No leftovers; a dead validator + three unread capability flags; two unread theme tokens | 0 / 0 / 4 |
 | Error & failure handling | 🟠 | Empty GPX saves silently; orphaned location stream; four `void …then()` chains with no failure outcome | 0 / 3 / 2 |
 | Test coverage of pure logic | 🟢 | Decision logic is tested and tests assert behaviour; `formatBytes` and the empty-GPX case are the gaps | 0 / 0 / 2 |
