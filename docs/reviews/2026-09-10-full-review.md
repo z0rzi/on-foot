@@ -45,7 +45,7 @@ report: clearly improving; no regressions found.
 | Dimension | Status | Summary | Findings (must / should / minor) |
 |---|---|---|---|
 | Architecture & seams | 🟢 | Seams intact; one presentation leak into the data layer; a native module outside the scanner; one unjustified double cast at the map seam | 0 / 1 / 3 |
-| Duplication & drift | 🟠 | Bounds computed twice; profile+banding derived three times; three copies of "load by id, spinner, back" (now one hook); two theme tokens for one role | 0 / 2 / 6 |
+| Duplication & drift | 🟠 | Bounds computed twice; profile+banding derived three times; two route-line components where the thinner cannot show slope; three copies of "load by id, spinner, back" (now one hook); two theme tokens for one role | 0 / 2 / 6 |
 | Dead code | 🟢 | No leftovers; a dead validator + three unread capability flags; two unread theme tokens | 0 / 0 / 4 |
 | Error & failure handling | 🟠 | Empty GPX saves silently; orphaned location stream; four `void …then()` chains with no failure outcome | 0 / 3 / 2 |
 | Test coverage of pure logic | 🟢 | Decision logic is tested and tests assert behaviour; `formatBytes` and the empty-GPX case are the gaps | 0 / 0 / 2 |
@@ -169,6 +169,21 @@ convention repeated at each call site" that `POST-WORK.md` warns will drift. · 
 clear, or — with PERF-1 — make the hook's revalidation key explicit so the guarantee is named in one
 place. · **minor, S**. · **Done** (`085d4da`): the manual clear is gone; both tabs clear through the
 hook.
+
+**DUP-9 — The port has two route-line components, and the thinner one cannot show slope** ·
+`src/map/provider/types.ts:65-71` (`RouteLineProps`) carries no `colouredLines`, while
+`TrailOverlayProps` does; the Mapbox adapter implements the data-driven colour path once, in
+`TrailOverlay` (`adapter.tsx:124-136`), and `RouteLine` (`adapter.tsx:194`) is a feature subset of
+it. · Visible consequence: during a recording with **no trail selected**, the elevation graph is
+slope-coloured but the live track it profiles is drawn as a plain line — the map and the graph
+disagree about the same route. · Why it is here and not in item 7: found while collapsing the three
+profile derivations (2026-10-07); fixing it is a port change plus a second copy of the adapter's
+colour path, which is the duplication that item 7 exists to remove, so it was deliberately left out
+of a pure refactor. · Fix: give the colour path one owner at the port — either `colouredLines` on
+`RouteLineProps` with the adapter's colour branch extracted and shared, or render the live track
+through `TrailOverlay` with endpoints and arrows omitted. Then decide separately whether the live
+track should also be coloured while following a trail, which would need its own profile derived from
+`livePoints` on every fix batch. · **minor, S-M**.
 
 ### 3.3 Dead code
 
