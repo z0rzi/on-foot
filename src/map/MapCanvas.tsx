@@ -12,13 +12,22 @@ import { boundsForPoints, flattenSegments } from './geo'
 import { MapOverlays, type OverlayRoute } from './MapOverlays'
 import { ScrubMarkerLayer } from './ScrubMarkerLayer'
 import { useRouteColouring } from '../elevation/useRouteColouring'
+import type { RouteDisplay } from '../elevation/routeDisplay'
 
 // Counts points without allocating the flattened copy flattenSegments would build.
 function pointCount<T>(segments: T[][]): number {
   return segments.reduce((total, segment) => total + segment.length, 0)
 }
 
-export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: Activity | null }) {
+export function MapCanvas({
+  trail,
+  activity,
+  display,
+}: {
+  trail: Trail | null
+  activity: Activity | null
+  display: RouteDisplay | null
+}) {
   const { components } = useMapProvider()
   const caps = useMapCapabilities()
   const styleId = useMapStore((s) => s.mapStyleId)
@@ -66,7 +75,7 @@ export function MapCanvas({ trail, activity }: { trail: Trail | null; activity: 
     : hasTrail
       ? { segments, kind: 'trail' }
       : null
-  const colouredLines = useRouteColouring(route?.segments ?? null)
+  const colouredLines = useRouteColouring(route ? display : null)
 
   // Frame the entity (trail or activity) a user tap requested, once that entity's own geometry
   // has loaded. select() sets pendingFit; the loaded trail/activity prop lags it (data resolves

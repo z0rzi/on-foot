@@ -98,7 +98,7 @@ export function MapScreen() {
   return (
     <>
       <View style={{ flex: 1 }} onLayout={(e) => { rootHeight.value = e.nativeEvent.layout.height }}>
-        <MapCanvas trail={trailToShow(mode, trail)} activity={mode === 'activity' ? activity : null} />
+        <MapCanvas trail={trailToShow(mode, trail)} activity={mode === 'activity' ? activity : null} display={display} />
         {mode !== 'activity' && phase !== 'paused' && (
           <RecordButton animatedBottom={mode === 'trail' || mode === 'recording' ? controlsBottom : undefined} />
         )}

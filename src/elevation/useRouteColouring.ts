@@ -1,28 +1,22 @@
 import { useMemo } from 'react'
 import type { ColouredLine } from '../map/provider/types'
 import { useTheme } from '../theme/useTheme'
-import { usePreferencesStore } from '../settings/preferencesStore'
-import { buildElevationProfile } from './profile'
-import { displaySlopeBands } from './slope'
 import { buildSlopeRuns } from './mapSlope'
 import { slopeBandColour } from './slopeColour'
-import type { GpxPoint } from '../data/trails/types'
+import type { RouteDisplay } from './routeDisplay'
 
-// Slope-colours a route today; reads the smoothing preference internally. This hook OWNS the
-// metric choice — future speed-colouring for activities branches HERE, keeping the map seam
-// metric-agnostic. Returns undefined when the route has no elevation (plain line).
-export function useRouteColouring(segments: GpxPoint[][] | null): ColouredLine[] | undefined {
+// Slope-colours a route today. This hook OWNS the metric choice — future speed-colouring for
+// activities branches HERE, keeping the map seam metric-agnostic. The bands arrive already
+// derived, so the colours and the graph can never disagree. Returns undefined when there is
+// nothing to colour (no route, or a route with no elevation), which draws a plain line.
+export function useRouteColouring(display: RouteDisplay | null): ColouredLine[] | undefined {
   const c = useTheme()
-  const smoothing = usePreferencesStore((s) => s.elevationSmoothingMeters)
 
   return useMemo(() => {
-    if (!segments) return undefined
-    const profile = buildElevationProfile(segments)
-    if (!profile) return undefined
-    const { bands } = displaySlopeBands(profile, smoothing)
-    return buildSlopeRuns(profile, bands).map((r) => ({
+    if (!display) return undefined
+    return buildSlopeRuns(display.profile, display.bands).map((r) => ({
       coordinates: r.coordinates,
       color: slopeBandColour(r.band, c),
     }))
-  }, [segments, smoothing, c])
+  }, [display, c])
 }
