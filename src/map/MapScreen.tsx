@@ -74,17 +74,17 @@ export function MapScreen() {
   // resumed on launch showed no sheet at all until the app was restarted (FIELD-2).
   const sheetContent =
     mode === 'trail' && trail ? (
-      <TrailInfoSheet trail={trail} profile={sheetDisplay?.profile ?? null} />
+      <TrailInfoSheet trail={trail} display={sheetDisplay} />
     ) : mode === 'activity' && activity ? (
       <ActivityInfoSheet
         activity={activity}
-        profile={sheetDisplay?.profile ?? null}
+        display={sheetDisplay}
         onViewLinkedTrail={(id) => select('trail', id)}
       />
     ) : mode === 'recording' ? (
       <RecordingInfoSheet
         followedTrailName={trail?.name ?? null}
-        profile={sheetDisplay?.profile ?? null}
+        display={sheetDisplay}
         onRemoveTrail={clearSelection}
       />
     ) : null
@@ -140,7 +140,7 @@ export function MapScreen() {
           </MapInfoSheet>
         )}
         {showFloatingGraph && (
-          <ElevationGraph profile={display.profile} placement="floating" animatedBottom={graphBottom} />
+          <ElevationGraph display={display} placement="floating" animatedBottom={graphBottom} />
         )}
       </View>
       <LayersSheet ref={sheetRef} />

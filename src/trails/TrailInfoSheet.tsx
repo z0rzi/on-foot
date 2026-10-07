@@ -9,7 +9,7 @@ import { EnumBadge } from '../components/EnumBadge'
 import { difficultyField } from './difficulty'
 import { MetricsGrid } from '../components/MetricsGrid'
 import { ElevationGraph } from '../elevation/ElevationGraph'
-import type { ElevationProfile } from '../elevation/profile'
+import type { RouteDisplay } from '../elevation/routeDisplay'
 import { useMapCapabilities, useOfflineController } from '../map/provider'
 import { useOfflineStore } from '../map/offline/offlineStore'
 import { offlineStateForTrail } from '../map/offline/badge'
@@ -28,10 +28,10 @@ import { trailActionItems } from './trailActions'
 
 export function TrailInfoSheet({
   trail,
-  profile,
+  display,
 }: {
   trail: Trail
-  profile: ElevationProfile | null
+  display: RouteDisplay | null
 }) {
   const c = useTheme()
   const caps = useMapCapabilities()
@@ -141,7 +141,7 @@ export function TrailInfoSheet({
         </View>
       )}
 
-      {profile && <ElevationGraph profile={profile} placement="inSheet" />}
+      {display && <ElevationGraph display={display} placement="inSheet" />}
 
       <MetricsGrid
         items={[

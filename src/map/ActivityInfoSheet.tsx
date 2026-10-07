@@ -11,15 +11,15 @@ import { formatActivityDate, formatActivitySummary, formatDuration } from '../ac
 import { formatDistance, formatElevation } from '../data/geo/metrics'
 import { MetricsGrid } from '../components/MetricsGrid'
 import { ElevationGraph } from '../elevation/ElevationGraph'
-import type { ElevationProfile } from '../elevation/profile'
+import type { RouteDisplay } from '../elevation/routeDisplay'
 
 export function ActivityInfoSheet({
   activity,
-  profile,
+  display,
   onViewLinkedTrail,
 }: {
   activity: Activity
-  profile: ElevationProfile | null
+  display: RouteDisplay | null
   onViewLinkedTrail: (trailId: number) => void
 }) {
   const c = useTheme()
@@ -42,7 +42,7 @@ export function ActivityInfoSheet({
         </Text>
       </View>
 
-      {profile && <ElevationGraph profile={profile} placement="inSheet" />}
+      {display && <ElevationGraph display={display} placement="inSheet" />}
 
       <MetricsGrid
         items={[

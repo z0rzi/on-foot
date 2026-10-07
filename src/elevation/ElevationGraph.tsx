@@ -6,14 +6,13 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Svg, { Defs, LinearGradient, Line, Path, Stop } from 'react-native-svg'
 import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
-import { usePreferencesStore } from '../settings/preferencesStore'
 import { formatDistance, formatElevation } from '../data/geo/metrics'
-import { ElevationProfile, GradeBand, sampleAt } from './profile'
-import { displaySlopeBands } from './slope'
+import { GradeBand, sampleAt } from './profile'
 import { areaPaths, buildBandTops, linePaths } from './svg'
 import { slopeBandColour } from './slopeColour'
 import { bandLineContrast, bandLineWidth } from './bandStyle'
 import { useScrubStore } from './scrubStore'
+import type { RouteDisplay } from './routeDisplay'
 
 const PLOT_HEIGHT = 62
 const LABEL_ROW = 16
@@ -29,23 +28,22 @@ const GRAPH_HALO = '#FFFFFF'
 interface Cursor { x: number; label: string }
 
 export function ElevationGraph({
-  profile,
+  display,
   placement,
   animatedBottom,
 }: {
-  profile: ElevationProfile
+  display: RouteDisplay
   placement: 'floating' | 'inSheet'
   animatedBottom?: SharedValue<number>
 }) {
+  const { profile, smoothed, bands } = display
   const c = useTheme()
   const insets = useSafeAreaInsets()
   const setPoint = useScrubStore((s) => s.setPoint)
-  const smoothing = usePreferencesStore((s) => s.elevationSmoothingMeters)
   const [width, setWidth] = useState(0)
   const [cursor, setCursor] = useState<Cursor | null>(null)
   const floating = placement === 'floating'
 
-  const { smoothed, bands } = useMemo(() => displaySlopeBands(profile, smoothing), [profile, smoothing])
   // Both path sets are built from the same projected tops, so the samples are resolved and
   // projected once per layout rather than once per path set.
   const tops = useMemo(
