@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { View } from 'react-native'
 import { useSharedValue, useDerivedValue } from 'react-native-reanimated'
 import { BottomSheetModal } from '@gorhom/bottom-sheet'
@@ -19,10 +19,9 @@ import { useMapStore, mapMode, trailToShow } from '../store/mapStore'
 import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
 import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
-import { buildElevationProfile } from '../elevation/profile'
 import { ElevationGraph, GRAPH_HEIGHT } from '../elevation/ElevationGraph'
 import { usePreferencesStore } from '../settings/preferencesStore'
-import { profileSegmentsFor } from './profileSource'
+import { useRouteDisplay } from './useRouteDisplay'
 import { logEvent } from '../log'
 import { useSheetGeometryLog } from './useSheetGeometryLog'
 
@@ -58,14 +57,11 @@ export function MapScreen() {
   const livePoints = useRecordingStore((s) => s.livePoints)
   const graphPlacement = usePreferencesStore((s) => s.elevationGraphPlacement)
 
-  const activeProfile = useMemo(() => {
-    const segments = profileSegmentsFor(mode, trail, activity, livePoints)
-    return segments ? buildElevationProfile(segments) : null
-  }, [mode, trail, activity, livePoints])
+  const display = useRouteDisplay(mode, trail, activity, livePoints)
 
   // The graph either floats over the map (flush on the sheet's top edge) or lives inside the sheet.
-  const showFloatingGraph = graphPlacement === 'floating' && activeProfile != null
-  const sheetProfile = graphPlacement === 'inSheet' ? activeProfile : null
+  const showFloatingGraph = graphPlacement === 'floating' && display != null
+  const sheetDisplay = graphPlacement === 'inSheet' ? display : null
   // Lift the controls above the floating graph so it doesn't cover them; sit them flush on the
   // graph's top edge (stuck to it). Otherwise ride the sheet top.
   const controlsBottom = useDerivedValue(() =>
@@ -78,17 +74,17 @@ export function MapScreen() {
   // resumed on launch showed no sheet at all until the app was restarted (FIELD-2).
   const sheetContent =
     mode === 'trail' && trail ? (
-      <TrailInfoSheet trail={trail} profile={sheetProfile} />
+      <TrailInfoSheet trail={trail} profile={sheetDisplay?.profile ?? null} />
     ) : mode === 'activity' && activity ? (
       <ActivityInfoSheet
         activity={activity}
-        profile={sheetProfile}
+        profile={sheetDisplay?.profile ?? null}
         onViewLinkedTrail={(id) => select('trail', id)}
       />
     ) : mode === 'recording' ? (
       <RecordingInfoSheet
         followedTrailName={trail?.name ?? null}
-        profile={sheetProfile}
+        profile={sheetDisplay?.profile ?? null}
         onRemoveTrail={clearSelection}
       />
     ) : null
@@ -144,7 +140,7 @@ export function MapScreen() {
           </MapInfoSheet>
         )}
         {showFloatingGraph && (
-          <ElevationGraph profile={activeProfile} placement="floating" animatedBottom={graphBottom} />
+          <ElevationGraph profile={display.profile} placement="floating" animatedBottom={graphBottom} />
         )}
       </View>
       <LayersSheet ref={sheetRef} />
