@@ -1,6 +1,6 @@
 import { routeDisplay } from '../routeDisplay'
 import { buildElevationProfile, ElePoint } from '../profile'
-import { displaySlopeBands } from '../slope'
+import { displaySlopeBands, smoothProfile } from '../slope'
 
 // ~111 m between consecutive points at lat 0 (0.001° lng).
 const seg = (eles: number[]): ElePoint[] => eles.map((ele, i) => ({ lat: 0, lng: i * 0.001, ele }))
@@ -36,5 +36,15 @@ describe('routeDisplay', () => {
     const sharp = routeDisplay(segments, 0)!
     const smooth = routeDisplay(segments, 500)!
     expect(sharp.bands.length).toBeGreaterThan(smooth.bands.length)
+  })
+
+  it('keeps the raw profile raw and the smoothed one smoothed', () => {
+    // 500 m, as above: wide enough against this fixture's ~111 m spacing to actually average
+    // the spike away rather than leave every sample's own window containing only itself.
+    const segments = [seg([100, 100, 130, 100, 100])]
+    const d = routeDisplay(segments, 500)!
+    expect(d.profile).toEqual(buildElevationProfile(segments))
+    expect(d.smoothed).toEqual(smoothProfile(d.profile, 500))
+    expect(d.smoothed.samples.map((s) => s.ele)).not.toEqual(d.profile.samples.map((s) => s.ele))
   })
 })
