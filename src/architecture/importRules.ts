@@ -20,7 +20,7 @@ export const IMPORT_RULES: ImportRule[] = [
     within: 'src/data/',
     mustNotImport: 'format/units',
     rationale:
-      'The data layer computes and persists; turning a value into a string for the screen is presentation. Formatters living in data/geo is what ARCH-1 was, and this rule is what stops it coming back.',
+      'The data layer computes and persists; turning a value into a string for the screen is presentation. Formatters living in data/geo is what ARCH-1 was.',
   },
 ]
 
