@@ -126,7 +126,7 @@ export function MapControls({
             accessibilityLabel={is3DMode ? 'Switch to 2D view' : 'Switch to 3D view'}
             onPress={handleToggle}
           >
-            <Text style={{ color: c.controlsText, fontWeight: 'bold', fontSize: 11 }}>
+            <Text style={{ color: c.controlContent, fontWeight: 'bold', fontSize: 11 }}>
               {is3DMode ? '2D' : '3D'}
             </Text>
           </ControlButton>

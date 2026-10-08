@@ -1,4 +1,5 @@
 import { boundsForTrail } from '../bounds'
+import { boundsForPoints } from '../../geo'
 
 describe('boundsForTrail', () => {
   test('returns null for no points', () => {
@@ -24,5 +25,13 @@ describe('boundsForTrail', () => {
     const b = boundsForTrail([{ lat: 5, lng: 5 }, { lat: -5, lng: -5 }], 1)!
     expect(b.ne[0]).toBeGreaterThan(b.sw[0])
     expect(b.ne[1]).toBeGreaterThan(b.sw[1])
+  })
+  test('a zero margin is exactly the raw point bounds', () => {
+    const points = [
+      { lat: 42.8, lng: 0.1 },
+      { lat: 42.9, lng: 0.3 },
+      { lat: 42.7, lng: 0.2 },
+    ]
+    expect(boundsForTrail(points, 0)).toEqual(boundsForPoints(points))
   })
 })

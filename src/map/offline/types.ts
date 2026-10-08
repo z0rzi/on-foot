@@ -1,5 +1,3 @@
-export type LngLatBounds = { ne: [number, number]; sw: [number, number] }
-
 export type LayerKind = 'vector' | 'raster'
 
 export interface SizeEstimate {

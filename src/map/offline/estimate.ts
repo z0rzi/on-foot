@@ -1,4 +1,5 @@
-import { LayerKind, LngLatBounds, SizeEstimate } from './types'
+import { LayerKind, SizeEstimate } from './types'
+import { LngLatBounds } from '../geo'
 import { RASTER_BYTES_PER_TILE, VECTOR_BYTES_PER_TILE } from './constants'
 
 export function lngToTileX(lng: number, z: number): number {

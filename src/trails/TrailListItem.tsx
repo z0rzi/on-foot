@@ -1,5 +1,5 @@
 import { TrailSummary } from '../data/trails/types'
-import { formatMetricsSummary } from './format'
+import { formatTrailSummary } from './format'
 import { useTheme } from '../theme/useTheme'
 import { EntityListItem } from '../components/EntityListItem'
 import { EnumBadge } from '../components/EnumBadge'
@@ -21,7 +21,7 @@ export function TrailListItem({
     <EntityListItem
       title={trail.name}
       badge={<EnumBadge field={difficultyField} value={trail.difficulty} />}
-      lines={[formatMetricsSummary(trail.metrics)]}
+      lines={[formatTrailSummary(trail.metrics)]}
       onPress={() => onSelect(trail.id)}
       pressAccessibilityLabel={`Show ${trail.name} on map`}
       actions={[

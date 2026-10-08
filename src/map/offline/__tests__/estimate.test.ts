@@ -6,7 +6,7 @@ import {
   layerKindForStyle,
 } from '../estimate'
 import { RASTER_BYTES_PER_TILE, VECTOR_BYTES_PER_TILE } from '../constants'
-import { LngLatBounds } from '../types'
+import { LngLatBounds } from '../../geo'
 
 const world: LngLatBounds = { ne: [179, 85], sw: [-179, -85] }
 const tiny: LngLatBounds = { ne: [0.001, 0.001], sw: [-0.001, -0.001] }

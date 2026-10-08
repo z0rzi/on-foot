@@ -18,7 +18,6 @@ export interface AppColors {
   controlContent: string
   controlAccent: string
   onControlAccent: string
-  controlsText: string
   intensityLow: string
   intensityMedium: string
   intensityHigh: string
@@ -50,7 +49,6 @@ export const lightColors: AppColors = {
   controlContent: '#1C1B1F',
   controlAccent: '#2196F3',
   onControlAccent: '#FFFFFF',
-  controlsText: '#000000',
   intensityLow: '#2E7D32',
   intensityMedium: '#F9A825',
   intensityHigh: '#C62828',
@@ -82,7 +80,6 @@ export const darkColors: AppColors = {
   controlContent: '#FFFFFF',
   controlAccent: '#42A5F5',
   onControlAccent: '#1E1E1E',
-  controlsText: '#FFFFFF',
   intensityLow: '#66BB6A',
   intensityMedium: '#FFB300',
   intensityHigh: '#EF5350',
