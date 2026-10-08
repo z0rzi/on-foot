@@ -85,7 +85,7 @@ string is not.
 The rule must be **proven non-vacuous by mutation**: break the pattern, watch a fixture test fail,
 restore it, watch it pass. A gate that cannot fail is the defect this whole finding is about.
 
-Expected after the change: **70 suites / 576 tests**, up from 69 / 571.
+Expected after the change: **70 suites / 577 tests**, up from 69 / 571 — one new suite of six tests.
 
 ## Also fixed here
 
