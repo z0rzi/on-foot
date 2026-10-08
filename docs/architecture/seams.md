@@ -23,10 +23,13 @@ forbidden token. It runs with every `npm test` / `npm run verify`, locally, in t
 hook, and in CI. `SEAMS` is the only source of truth: other docs point here rather than listing
 seams, and the table below mirrors the array — if they ever disagree, the array is right.
 
-Two sibling gates use the same scan: `importRules.ts` (one-way directory bans that are not
-native seams) and `duplication.ts` (verbatim copies of 8+ significant lines, across or within
-files). Both fail `npm run verify` with a report naming the files; the only escape is a
-registered entry with a rationale, never an inline disable.
+Three sibling gates use the same scan: `importRules.ts` (one-way directory bans on what a
+directory may *import*), `exportRules.ts` (directory-scoped bans on what a directory may
+*export* — today, nothing under `src/data/` may export a `format` symbol followed by a capital
+letter), and `duplication.ts` (verbatim copies of 8+ significant lines, across or within files).
+All three fail `npm run verify` with a report naming the files. For `importRules.ts` and
+`duplication.ts` the only escape is a registered entry with a rationale, never an inline disable;
+`exportRules.ts` has no exemption mechanism at all.
 
 ## How to add a seam
 
