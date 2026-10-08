@@ -75,10 +75,3 @@ export function formatDistance(meters: number): string {
 export function formatElevation(meters: number | null): string {
   return meters === null ? '—' : `${meters.toFixed(0)} m`
 }
-
-export function formatMetricsSummary(metrics: TrailMetrics): string {
-  const distance = formatDistance(metrics.distanceMeters)
-  return metrics.elevationGainMeters === null
-    ? `${distance} • no elevation data`
-    : `${distance} • ${formatElevation(metrics.elevationGainMeters)} gain`
-}
