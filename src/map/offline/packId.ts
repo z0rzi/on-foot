@@ -13,3 +13,15 @@ export function parsePackId(id: string): { trailId: number; styleId: string } | 
   if (styleId.length === 0) return null
   return { trailId, styleId }
 }
+
+export function packsForTrail<T extends { id: string }>(
+  items: T[],
+  trailId: number,
+): { pack: T; styleId: string }[] {
+  const matches: { pack: T; styleId: string }[] = []
+  for (const item of items) {
+    const parsed = parsePackId(item.id)
+    if (parsed?.trailId === trailId) matches.push({ pack: item, styleId: parsed.styleId })
+  }
+  return matches
+}

@@ -1,4 +1,4 @@
-import { packId, parsePackId } from '../packId'
+import { packId, parsePackId, packsForTrail } from '../packId'
 
 describe('packId / parsePackId', () => {
   test('builds the canonical name', () => {
@@ -15,5 +15,27 @@ describe('packId / parsePackId', () => {
     expect(parsePackId('some-other-pack')).toBeNull()
     expect(parsePackId('offline:notanumber:x')).toBeNull()
     expect(parsePackId('offline:5')).toBeNull()
+  })
+})
+
+describe('packsForTrail', () => {
+  test('keeps the matching packs with their parsed style', () => {
+    const items = [
+      { id: 'offline:7:outdoors', state: 'complete' },
+      { id: 'offline:7:satellite', state: 'error' },
+      { id: 'offline:9:outdoors', state: 'complete' },
+    ]
+    expect(packsForTrail(items, 7)).toEqual([
+      { pack: items[0], styleId: 'outdoors' },
+      { pack: items[1], styleId: 'satellite' },
+    ])
+  })
+
+  test('drops ids belonging to another trail', () => {
+    expect(packsForTrail([{ id: 'offline:9:outdoors' }], 7)).toEqual([])
+  })
+
+  test('drops ids that do not parse', () => {
+    expect(packsForTrail([{ id: 'not-a-pack-id' }], 7)).toEqual([])
   })
 })

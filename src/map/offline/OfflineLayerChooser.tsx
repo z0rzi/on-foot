@@ -9,7 +9,7 @@ import { useOfflineStore } from './offlineStore'
 import { boundsForTrail } from './bounds'
 import { flattenSegments } from '../geo'
 import { estimatePackSize, layerKindForStyle } from './estimate'
-import { packId, parsePackId } from './packId'
+import { packId, packsForTrail } from './packId'
 import { packDescriptor } from './descriptor'
 import { formatBytes } from '../../format/units'
 import { OFFLINE_MARGIN_KM, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM } from './constants'
@@ -40,9 +40,9 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
     // live progress, so opening the chooser doesn't re-render on every download tick).
     const downloadedIds = useMemo(
       () =>
-        packs
-          .filter((p) => parsePackId(p.id)?.trailId === trail.id && p.state === 'complete')
-          .map((p) => parsePackId(p.id)!.styleId),
+        packsForTrail(packs, trail.id)
+          .filter(({ pack }) => pack.state === 'complete')
+          .map(({ styleId }) => styleId),
       [packs, trail.id],
     )
 

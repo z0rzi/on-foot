@@ -1,6 +1,6 @@
 import type { OfflinePackInfo } from '../provider/types'
 import type { LiveProgress } from './types'
-import { packId, parsePackId } from './packId'
+import { packId, packsForTrail } from './packId'
 
 interface RetryTarget {
   id: string
@@ -17,21 +17,17 @@ export function retryTargetsForTrail(
   progress: Record<string, LiveProgress>,
   trailId: number,
 ): RetryTarget[] {
-  const registryStyleIds = new Set(
-    packs
-      .filter((p) => parsePackId(p.id)?.trailId === trailId)
-      .map((p) => parsePackId(p.id)!.styleId),
-  )
+  const trailPacks = packsForTrail(packs, trailId)
+  const registryStyleIds = new Set(trailPacks.map(({ styleId }) => styleId))
   const styleIds = new Set<string>()
-  for (const p of packs) {
-    const parsed = parsePackId(p.id)
-    if (parsed?.trailId === trailId && (p.state === 'error' || p.state === 'incomplete')) {
-      styleIds.add(parsed.styleId)
-    }
+  for (const { pack, styleId } of trailPacks) {
+    if (pack.state === 'error' || pack.state === 'incomplete') styleIds.add(styleId)
   }
-  for (const [id, prog] of Object.entries(progress)) {
-    const parsed = parsePackId(id)
-    if (parsed?.trailId === trailId && prog.failed) styleIds.add(parsed.styleId)
+  for (const { pack, styleId } of packsForTrail(
+    Object.entries(progress).map(([id, p]) => ({ id, ...p })),
+    trailId,
+  )) {
+    if (pack.failed) styleIds.add(styleId)
   }
   return [...styleIds].map((styleId) => ({
     id: packId(trailId, styleId),
