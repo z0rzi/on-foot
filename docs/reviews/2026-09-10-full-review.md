@@ -48,7 +48,7 @@ this table is corrected in the same commit rather than left to drift.
 | Dimension | Status | Summary | Findings (must / should / minor) |
 |---|---|---|---|
 | Architecture & seams | 🟢 | Seams intact; a native module outside the scanner; one unjustified double cast at the map seam | 0 / 0 / 3 |
-| Duplication & drift | 🟠 | Bounds computed twice; two route-line components where the thinner cannot show slope; three copies of "load by id, spinner, back" (now one hook); two theme tokens for one role; the trails/activities formatter mirror already diverges | 0 / 1 / 6 |
+| Duplication & drift | 🟢 | Two route-line components where the thinner cannot show slope; three copies of "load by id, spinner, back" (now one hook) | 0 / 0 / 3 |
 | Dead code | 🟢 | No leftovers; a dead validator + three unread capability flags; two unread theme tokens | 0 / 0 / 4 |
 | Error & failure handling | 🟠 | `metricsForSegments` runs outside the parse `try` (spinner never exits on a metrics failure); a deleted trail leaves a dangling `linked_trail_id`; two silent no-op/unhandled-rejection paths (activity tap during a recording, offline-registry init, the picker and focus reload) | 0 / 2 / 2 |
 | Test coverage of pure logic | 🟢 | Decision logic is tested and tests assert behaviour; `packDescriptor` and a pure `downloadDecision` are the remaining gap | 0 / 0 / 1 |
@@ -124,7 +124,9 @@ import graph read; dependencies flow UI → store → repository interface → e
 margin expansion. `LngLatBounds` (`src/map/offline/types.ts:1`) and the inline return type at
 `geo.ts:9` are the same shape declared twice. · Fix: `boundsForTrail = expand(boundsForPoints(points),
 marginKm)`; one exported `LngLatBounds` in `map/geo.ts`. Both are tested, so the refactor is safe. ·
-**should-fix, S**.
+**should-fix, S**. · **Done** (`b2a7794`): `boundsForTrail` is now `boundsForPoints` plus an `expand`
+margin step; `LngLatBounds` has one declaration, in `src/map/geo.ts` — `src/map/offline/types.ts` no
+longer declares it.
 
 **DUP-2 — Profile and slope banding have three owners** · `src/map/MapScreen.tsx:53-56` builds
 `activeProfile` from `profileSegmentsFor(...)`; `src/map/MapCanvas.tsx:69` →
@@ -179,7 +181,9 @@ single consumer, the 2D/3D label at `src/map/MapControls.tsx:129`, while the fou
 the same cluster use `controlContent` (`MapControls.tsx:119,137,143,147`); the light values differ by
 one shade (`#000000` vs `#1C1B1F`). The previous report (§9) identified `controlsText` as the
 plausible-sounding token that shipped black-on-blue. · Fix: use `controlContent` at :129 and delete
-`controlsText`. · **minor, S**.
+`controlsText`. · **minor, S**. · **Done** (`9d3b382`): the 2D/3D label now uses `controlContent`,
+like its sibling icons; `controlsText` is deleted from `theme/colors.ts`. The light-theme colour
+this produces at that one label (`#000000` → `#1C1B1F`) has not been seen on a device.
 
 **DUP-6 — The last renamed copy of the trail/activity pair** · `src/store/trailsStore.ts` and
 `src/store/activitiesStore.ts` are the same load / mutate-then-reload store modulo names. At
@@ -190,7 +194,9 @@ third entity store appears. · **minor, accept**.
 `src/map/offline/operations.ts:23`, `src/map/offline/OfflineLayerChooser.tsx:44` all filter packs by
 `parsePackId(p.id)?.trailId === trailId` and then `parsePackId(p.id)!.styleId`. · Fix: a
 `packsForTrail(packs, trailId): { pack, styleId }[]` helper removes five non-null assertions. ·
-**minor, S**.
+**minor, S**. · **Done** (`4490eb9`): `packsForTrail` parses each pack id once and returns
+`{ pack, styleId }[]`, removing the five non-null assertions at `badge.ts`, `operations.ts` and
+`OfflineLayerChooser.tsx`.
 
 **DUP-8 — Two mechanisms keep the map selection fresh after a delete** ·
 `app/(tabs)/activities.tsx:41-42` clears the selection by hand before deleting, while
@@ -241,7 +247,11 @@ domain it summarises, unlike the sibling pair `trails/difficulty.ts` / `activiti
 names by domain. The separators also differ, `•` (U+2022) vs `·` (U+00B7), rendering side by side in
 the same list UI. · Why: neither was fixed on the branch that created the mirror, deliberately — the
 rename would have broken that branch's "pure relocation" guarantee, and the separator change needs a
-device check. · **minor, S**.
+device check. · **minor, S**. · **Done** (`91fc683`): `formatMetricsSummary` is renamed
+`formatTrailSummary`, naming its domain like the sibling pair `difficulty.ts`/`effort.ts`; the
+separator is now `·` (U+00B7) in both formatters. The reasoning for `·` is that it already ships in
+the identical `EntityListItem` component via `formatActivitySummary` — strong evidence, not
+verification; the rendered separator has not been looked at on a device.
 
 ### 3.3 Dead code
 
@@ -546,8 +556,8 @@ import rule in `POST-WORK.md` is followed (only the stores and the two selection
 | 6 | ~~`useLoadedEntity` + `LoadingScreen` with an error outcome; `newTrailHref`~~ | DUP-3, DUP-4, ERR-3 | High: three id-keyed loads and four spinner copies collapse to one hook and one component each; every load gets a visible failure path | M | Low-medium | **done** — `f325ff6` |
 | 7 | ~~One owner for profile + slope banding (derive once, pass bands down)~~ | DUP-2, PERF-2 | Medium: three derivations → one; makes the smoothing contract structural | M | Medium (device-verify graph + route colours) | **done** — `28d1e44` |
 | 8 | ~~Move `format*` out of `data/geo` into a presentation module (with `formatBytes`)~~ | ARCH-1 | Medium: layering matches `POST-WORK.md`; one home for units | S | Low | **done** — `4157735`, `c8b781d`, `c93e98b` |
-| 9 | `boundsForTrail` = `boundsForPoints` + margin; one `LngLatBounds` | DUP-1 | Medium | S | Low (both tested) | next |
-| 10 | Retire `controlsText`/`primary`/`overlayScrim`; delete `isValidCapabilities`; gate on or drop `caps.offline`; bridge `followUserMode` explicitly | DUP-5, DEAD-1..3, ARCH-3, ARCH-4 | Low-medium: fewer traps for the next token/provider change | S | Low | later |
+| 9 | ~~`boundsForTrail` = `boundsForPoints` + margin; one `LngLatBounds`~~ | DUP-1 | Medium | S | Low (both tested) | **done** — `b2a7794` |
+| 10 | ~~Retire `controlsText`~~ (**done** — `9d3b382`); retire `primary`/`overlayScrim`; delete `isValidCapabilities`; gate on or drop `caps.offline`; bridge `followUserMode` explicitly | DEAD-1..3, ARCH-3, ARCH-4 | Low-medium: fewer traps for the next token/provider change | S | Low | later |
 
 **Top three, in one sentence each.** (1) The revalidation key is the single change with the best
 ratio: a few lines in `useSelectedEntity`/`trailsStore` remove a whole-track re-read and re-render
