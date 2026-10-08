@@ -17,6 +17,13 @@ describe('directory import rules', () => {
     expect(findImportRuleViolations(files)).toHaveLength(1)
   })
 
+  test('flags the data layer reaching for a unit formatter', () => {
+    const files = [
+      { path: 'src/data/geo/metrics.ts', content: "import { formatDistance } from '../../format/units'" },
+    ]
+    expect(findImportRuleViolations(files)).toHaveLength(1)
+  })
+
   test('allows the same import outside the governed directory', () => {
     const files = [
       { path: 'src/map/useRouteDisplay.ts', content: "import { usePreferencesStore } from '../settings/preferencesStore'" },
