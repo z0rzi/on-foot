@@ -10,7 +10,7 @@ import { formatPace, formatSpeed, formatStopwatch } from '../activities/format'
 import { MetricsGrid } from '../components/MetricsGrid'
 import { AccentButton } from '../components/AccentButton'
 import { ElevationGraph } from '../elevation/ElevationGraph'
-import type { ElevationProfile } from '../elevation/profile'
+import type { RouteDisplay } from '../elevation/routeDisplay'
 import { useMovingStopwatch } from './useMovingStopwatch'
 import { ensureStreaming } from './recordingController'
 import { recordingHealthFor, recordingStatusText } from './streamHealth'
@@ -18,11 +18,11 @@ import { logEvent } from '../log'
 
 export function RecordingInfoSheet({
   followedTrailName,
-  profile,
+  display,
   onRemoveTrail,
 }: {
   followedTrailName: string | null
-  profile: ElevationProfile | null
+  display: RouteDisplay | null
   onRemoveTrail: () => void
 }) {
   useEffect(() => {
@@ -88,7 +88,7 @@ export function RecordingInfoSheet({
         </View>
       )}
 
-      {profile && <ElevationGraph profile={profile} placement="inSheet" />}
+      {display && <ElevationGraph display={display} placement="inSheet" />}
 
       <MetricsGrid
         items={[

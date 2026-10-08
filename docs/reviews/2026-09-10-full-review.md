@@ -45,7 +45,7 @@ report: clearly improving; no regressions found.
 | Dimension | Status | Summary | Findings (must / should / minor) |
 |---|---|---|---|
 | Architecture & seams | 🟢 | Seams intact; one presentation leak into the data layer; a native module outside the scanner; one unjustified double cast at the map seam | 0 / 1 / 3 |
-| Duplication & drift | 🟠 | Bounds computed twice; profile+banding derived three times; two route-line components where the thinner cannot show slope; three copies of "load by id, spinner, back" (now one hook); two theme tokens for one role | 0 / 2 / 7 |
+| Duplication & drift | 🟠 | Bounds computed twice; two route-line components where the thinner cannot show slope; three copies of "load by id, spinner, back" (now one hook); two theme tokens for one role | 0 / 1 / 8 |
 | Dead code | 🟢 | No leftovers; a dead validator + three unread capability flags; two unread theme tokens | 0 / 0 / 4 |
 | Error & failure handling | 🟠 | Empty GPX saves silently; orphaned location stream; four `void …then()` chains with no failure outcome | 0 / 3 / 2 |
 | Test coverage of pure logic | 🟢 | Decision logic is tested and tests assert behaviour; `formatBytes` and the empty-GPX case are the gaps | 0 / 0 / 2 |
@@ -113,7 +113,15 @@ derived state to have one owner; the previous report deduplicated the *call* int
 `{ profile, banding }` once in `MapScreen` (or a `useDisplayBanding(profile)` hook keyed on
 profile + smoothing) and pass `bands` to both the canvas colouring and the graph;
 `useRouteColouring` then takes a profile, not segments. Device-verify graph and route colours. ·
-**should-fix, M**.
+**should-fix, M**. · **Done** (`28d1e44`, on top of `86e3d6f`, `3284d07`, `ff3b847`): derived once
+in `useRouteDisplay`; `ElevationGraph` and `useRouteColouring` both take the derived `RouteDisplay`
+instead of recomputing it. A whole-branch review found and fixed a real regression in `0e0b7d7`:
+the derived value was first keyed on `[mode, trail, activity, livePoints, smoothing]`, so recording
+with a trail selected gave it a new identity on every GPS fix and made `useRouteColouring` rebuild
+`buildSlopeRuns` on every fix — it is now keyed on the segments array itself, which also removes a
+pre-existing per-fix recompute. Device-verified 2026-10-08 (nine checks, all passed); against
+master on the same 13.3 km trail and smoothing, one measured run each: frame-activity span 657 ms
+→ 480 ms, longest frame 135 ms → 95 ms, median frame 25 ms → 14 ms.
 
 **DUP-3 — "Load by id, key to the id, derive during render" exists five times** ·
 `src/map/useSelectedEntity.ts:16-32`, `src/map/ActivityInfoSheet.tsx:31-46`,
@@ -184,6 +192,23 @@ of a pure refactor. · Fix: give the colour path one owner at the port — eithe
 through `TrailOverlay` with endpoints and arrows omitted. Then decide separately whether the live
 track should also be coloured while following a trail, which would need its own profile derived from
 `livePoints` on every fix batch. · **minor, S-M**.
+
+**DUP-10 — "Which route is on screen" is decided by two functions in two files** ·
+`src/map/profileSource.ts:7-17` (`profileSegmentsFor`, feeding `useRouteDisplay` at
+`MapScreen.tsx:60`, the single owner of the derived `RouteDisplay`) and `src/store/mapStore.ts:150`
+(`trailToShow`) plus the `activity` prop at `MapScreen.tsx:101`, which `MapCanvas.tsx:65-81` turns
+into `hasTrail`/`hasActivity`/`route` to pick what it actually renders — two independent,
+mode-by-mode decisions about which entity is "the route", kept honest only by agreeing with each
+other. · Why: nothing ties them together; a new `MapMode` or a reordered branch in either function
+can diverge from the other with no test or gate to catch it, because the two are different shapes
+(one returns segments, the other a `Trail | null`) and neither imports the other. · Found while
+collapsing the three profile derivations (item 7, 2026-10-07); checked device-side across every
+mode in the 2026-10-08 verification pass — they agree today, but that is an observation about the
+current branch, not a guarantee. · Fix: give `RouteDisplay` a source discriminator (e.g. `kind:
+'trail' | 'activity' | 'live'`) so `MapCanvas` reads what to render from the same value
+`useRouteDisplay` already derives, instead of a second, parallel decision — a bigger change than
+this refactor's scope (a pure derive-once pass), so left for the owner to decide rather than folded
+in silently. · **minor, S-M**.
 
 ### 3.3 Dead code
 
@@ -353,7 +378,16 @@ stale.
 
 **PERF-2 — Triple profile/banding derivation** · see DUP-2 (`MapScreen.tsx:53-56`,
 `useRouteColouring.ts:20-22`, `ElevationGraph.tsx:48`). Same cost class as PERF-1, on selection and
-on every smoothing change. · **minor, M** (resolved by DUP-2).
+on every smoothing change. · **minor, M** (resolved by DUP-2). · **Done** (`28d1e44`, on top of
+`86e3d6f`, `3284d07`, `ff3b847`): derived once in `useRouteDisplay`; `ElevationGraph` and
+`useRouteColouring` both take the derived `RouteDisplay` instead of recomputing it. `0e0b7d7` then
+fixed a regression the first implementation introduced — the derived value changed identity on
+every GPS fix while recording with a trail selected, which made `useRouteColouring` rebuild
+`buildSlopeRuns` every fix; it is now keyed on the segments array itself. Measured, one run each,
+like-for-like against master on the same 13.3 km trail/smoothing: frame-activity span 657 ms →
+480 ms, longest frame 135 ms → 95 ms, the dead gap with nothing drawn 90 ms → 8 ms, median frame
+25 ms → 14 ms; 100 s of recording-with-trail at 1 Hz GPS produced no frame above 26 ms, versus the
+~95 ms frames the same work produces during a selection.
 
 **PERF-3 — Progress ticks re-render the trail sheet** · `src/map/offline/offlineStore.ts:27-28`
 spreads `progress` on every tick; `TrailInfoSheet.tsx:42` subscribes to the whole map and recomputes
@@ -475,7 +509,7 @@ import rule in `POST-WORK.md` is followed (only the stores and the two selection
 | 4 | ~~Prune the six unused deps; pin `@types/jest`; ignore `.claude/`, `.serena/`, `run-app.sh`~~ | DEP-1..4 | Medium: smaller install, honest `verify` scope, clean `git status` | S | Low (bundle check) | **done** — `4c41b17` |
 | 5 | ~~Doc refresh: README, `app.config.ts` permission comment, adapter comment, lint-debt table~~ | DOC-1..4 | Medium: first-contact docs stop lying; no code risk | S | None | **done** — `ec9f703` (DOC-2 had already been fixed in `dd7ffff`) |
 | 6 | ~~`useLoadedEntity` + `LoadingScreen` with an error outcome; `newTrailHref`~~ | DUP-3, DUP-4, ERR-3 | High: three id-keyed loads and four spinner copies collapse to one hook and one component each; every load gets a visible failure path | M | Low-medium | **done** — `f325ff6` |
-| 7 | One owner for profile + slope banding (derive once, pass bands down) | DUP-2, PERF-2 | Medium: three derivations → one; makes the smoothing contract structural | M | Medium (device-verify graph + route colours) | next |
+| 7 | ~~One owner for profile + slope banding (derive once, pass bands down)~~ | DUP-2, PERF-2 | Medium: three derivations → one; makes the smoothing contract structural | M | Medium (device-verify graph + route colours) | **done** — `28d1e44` |
 | 8 | Move `format*` out of `data/geo` into a presentation module (with `formatBytes`) | ARCH-1 | Medium: layering matches `POST-WORK.md`; one home for units | S | Low | next |
 | 9 | `boundsForTrail` = `boundsForPoints` + margin; one `LngLatBounds` | DUP-1 | Medium | S | Low (both tested) | next |
 | 10 | Retire `controlsText`/`primary`/`overlayScrim`; delete `isValidCapabilities`; gate on or drop `caps.offline`; bridge `followUserMode` explicitly | DUP-5, DEAD-1..3, ARCH-3, ARCH-4 | Low-medium: fewer traps for the next token/provider change | S | Low | later |

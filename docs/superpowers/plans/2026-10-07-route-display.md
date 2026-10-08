@@ -19,7 +19,7 @@
 - **Never reshape correct code to satisfy a linter.** A justified inline `eslint-disable` is a first-class outcome; an unjustifiable one is a real finding.
 - `npm run verify` (tsc + jest + expo lint) must be green before any task is considered done.
 - Commit subjects: lowercase, conventional-commit prefix, one line, no body.
-- **Baseline before you start: 66 suites / 560 tests passing** (measured 2026-10-07, not quoted from memory). Task 1 adds 5 → 565. No other task changes the count.
+- **Baseline before you start: 66 suites / 560 tests passing** (measured 2026-10-07, not quoted from memory). Task 1 adds 5 tests in a new suite → 67 suites / 565 tests. No other task changes either count.
 
 ---
 
@@ -221,7 +221,7 @@ In `src/map/MapScreen.tsx`:
 - [ ] **Step 5: Verify**
 
 Run: `npm run verify`
-Expected: green. 66 suites / 565 tests. No behaviour has changed yet — `MapScreen` now derives the bands too, but `ElevationGraph` and `useRouteColouring` still derive their own. That redundancy is removed in Tasks 3 and 4.
+Expected: green. 67 suites / 565 tests. No behaviour has changed yet — `MapScreen` now derives the bands too, but `ElevationGraph` and `useRouteColouring` still derive their own. That redundancy is removed in Tasks 3 and 4.
 
 - [ ] **Step 6: Commit**
 
@@ -316,7 +316,7 @@ and the floating graph at line 147 with:
 - [ ] **Step 5: Verify**
 
 Run: `npm run verify`
-Expected: green, 66 suites / 565 tests. If `tsc` reports that `display` is possibly `null` at the floating graph, `showFloatingGraph` was rewritten in a way that broke aliased-condition narrowing — restore the exact `const` form from Task 2 Step 2 rather than adding a non-null assertion.
+Expected: green, 67 suites / 565 tests. If `tsc` reports that `display` is possibly `null` at the floating graph, `showFloatingGraph` was rewritten in a way that broke aliased-condition narrowing — restore the exact `const` form from Task 2 Step 2 rather than adding a non-null assertion.
 
 - [ ] **Step 6: Commit**
 
@@ -416,7 +416,7 @@ In `src/map/MapScreen.tsx`, line 105:
 - [ ] **Step 5: Verify**
 
 Run: `npm run verify`
-Expected: green, 66 suites / 565 tests. The profile and banding are now derived exactly once per selection.
+Expected: green, 67 suites / 565 tests. The profile and banding are now derived exactly once per selection.
 
 - [ ] **Step 6: Commit**
 
@@ -440,7 +440,7 @@ git commit -m "refactor(elevation): colour the route from the derived view, not 
 - [ ] **Step 1: Confirm the whole gate is green**
 
 Run: `npm run verify`
-Expected: green, 66 suites / 565 tests.
+Expected: green, 67 suites / 565 tests.
 
 - [ ] **Step 2: Tick the findings in the authoritative review**
 
@@ -475,9 +475,10 @@ Map rendering and the graph are not unit-tested, so this is the real gate. Run i
 2. **Select an activity.** Same, with the activity's own colouring.
 3. **Open an activity with a linked trail and follow the link.** The trail appears, coloured, with its graph.
 4. **Start a recording with no trail selected.** The graph shows live elevation and colours as you move; the live track on the map stays a **plain** line — unchanged, and deliberately so (DUP-9).
-5. **Start a recording with a trail selected.** The trail is coloured, its graph is shown, and the live track is plain.
+5. **Start a recording with a trail selected, and leave it running for several minutes with the map visible.** The trail is coloured, its graph is shown, and the live track is plain — and it must stay that way without accumulating per-fix jank. The branch originally rebuilt the trail's colouring on every GPS fix in this exact state; that was found in review and fixed, and this is the check that would catch it coming back.
 6. **Change the elevation smoothing preference** (Settings) while a trail is selected. The bands must move **on the route and in the graph together** — this is the single most valuable check in the list, because a split derivation is exactly what would let them disagree.
 7. **Switch the graph between floating and in-sheet placement.** Both render; the floating one sits flush on the sheet's top edge and the controls ride above it.
 8. **Scrub the graph.** The tooltip shows elevation, distance and grade, and the marker tracks along the route on the map.
+9. **While recording with NO trail, scrub the live graph.** This is the one state where the derived value legitimately changes identity on every fix, so the profile grows underneath the gesture. The tooltip and the map marker must still track correctly as new fixes land.
 
 A subjective note worth taking while you are there: trail selection should feel quicker on a long trail. It will not be instant — the full-geometry read and the map layer rebuild are untouched.
