@@ -107,7 +107,7 @@ Two differences, both fixed:
 1. **`formatMetricsSummary` → `formatTrailSummary`.** The sibling is `formatActivitySummary`, and the
    naming precedent (`trails/difficulty.ts` / `activities/effort.ts`) names by domain. "Metrics" is
    the noun `data/geo` used before the formatter moved out; it no longer says which domain it
-   summarises. Three call sites and one test file.
+   summarises. Two call sites and the declaration, plus one test file.
 
 2. **Separator `•` (U+2022) → `·` (U+00B7).** Both list items render through the *same*
    `EntityListItem` component via its `lines` prop, so the two separators appear in identical
