@@ -72,15 +72,17 @@ to weaken the rule now for a case that does not exist.
 ### What it deliberately does not cover
 
 Re-exports (`export { formatDistance } from '…'`) are not matched. They require an import, which the
-existing `format/units` import rule already catches. Noting it here so the gap is a decision rather
-than an oversight.
+existing `format/units` import rule catches only when the source is `format/units` itself — a
+re-export sourced from `src/trails/format.ts` (e.g. `export { formatMetricsSummary } from
+'../../trails/format'` inside `src/data/`) is ungated: `IMPORT_RULES` has no `trails/format` entry.
+Noting it here so the gap is a decision rather than an oversight.
 
 ## Testing
 
 Mirrors `importRules.test.ts`: one whole-tree test, plus fixture tests that pin the behaviour —
 a `src/data/` file exporting `formatDistance` is a violation; the same file exporting `computeMetrics`
-is not; the same export outside `src/data/` is not; a `format*` name appearing only in a comment or a
-string is not.
+is not; the same export outside `src/data/` is not; a name beginning `format` + capital letter,
+appearing only in a comment or a string, is not.
 
 The rule must be **proven non-vacuous by mutation**: break the pattern, watch a fixture test fail,
 restore it, watch it pass. A gate that cannot fail is the defect this whole finding is about.
