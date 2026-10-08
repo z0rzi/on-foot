@@ -268,7 +268,7 @@ verification; the rendered separator has not been looked at on a device.
 (`colors.ts:16,47,78`) have no consumer. · Fix: delete. · **minor, S**.
 
 **DEAD-3 — `SizeEstimate.tileCount`** · `src/map/offline/types.ts:5`, produced at `estimate.ts:35`,
-read only by `estimate.test.ts`; consumers use `.bytes` (`OfflineLayerChooser.tsx:76,142,144`). ·
+read only by `estimate.test.ts`; consumers use `.bytes` (`OfflineLayerChooser.tsx:77,144,146`). ·
 Trivial; fold into DEAD-1's cleanup. · **minor, S**.
 
 **DEAD-4 — `NetInfoState` re-export** · `src/net/netinfo.ts:4` is consumed only by its own test
