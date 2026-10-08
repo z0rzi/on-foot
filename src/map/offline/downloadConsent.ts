@@ -2,7 +2,7 @@ import { Alert } from 'react-native'
 import { getConnectivity } from '../../net/netinfo'
 import { evaluateDownloadGate, type GateDecision } from '../../net/gate'
 import { hasEnoughDiskSpace, readFreeDiskBytes, requiredDiskSpace } from './diskSpace'
-import { formatBytes } from './format'
+import { formatBytes } from '../../format/units'
 import { logEvent } from '../../log'
 
 // Read connectivity once and route the download: abort when offline, block when the device

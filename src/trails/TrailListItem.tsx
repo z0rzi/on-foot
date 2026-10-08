@@ -1,5 +1,5 @@
 import { TrailSummary } from '../data/trails/types'
-import { formatMetricsSummary } from '../data/geo/metrics'
+import { formatMetricsSummary } from './format'
 import { useTheme } from '../theme/useTheme'
 import { EntityListItem } from '../components/EntityListItem'
 import { EnumBadge } from '../components/EnumBadge'

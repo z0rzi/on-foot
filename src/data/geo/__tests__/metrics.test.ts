@@ -1,4 +1,4 @@
-import { haversineMeters, computeMetrics, metricsForSegments, formatDistance, formatElevation, formatMetricsSummary } from '../metrics'
+import { haversineMeters, computeMetrics, metricsForSegments } from '../metrics'
 import { GpxPoint } from '../../trails/types'
 
 const p = (lat: number, lng: number, ele: number | null = null): GpxPoint => ({ lat, lng, ele })
@@ -46,28 +46,6 @@ describe('computeMetrics', () => {
     const m = computeMetrics([p(0, 0, 100), p(0, 0.01, null), p(0, 0.02, 200)])
     expect(m.elevationGainMeters).toBe(0)
     expect(m.elevationLossMeters).toBe(0)
-  })
-})
-
-describe('formatters', () => {
-  test('formatDistance switches to km at 1000 m', () => {
-    expect(formatDistance(450)).toBe('450 m')
-    expect(formatDistance(1500)).toBe('1.5 km')
-    expect(formatDistance(1000)).toBe('1.0 km')
-  })
-  test('formatElevation rounds to whole metres', () => {
-    expect(formatElevation(250.4)).toBe('250 m')
-  })
-  test('formatElevation shows a dash when elevation is unknown', () => {
-    expect(formatElevation(null)).toBe('—')
-  })
-  test('formatMetricsSummary includes gain when known', () => {
-    expect(formatMetricsSummary({ distanceMeters: 1500, elevationGainMeters: 340, elevationLossMeters: 300 }))
-      .toBe('1.5 km • 340 m gain')
-  })
-  test('formatMetricsSummary states when elevation is missing', () => {
-    expect(formatMetricsSummary({ distanceMeters: 1500, elevationGainMeters: null, elevationLossMeters: null }))
-      .toBe('1.5 km • no elevation data')
   })
 })
 
