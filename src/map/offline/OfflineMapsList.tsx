@@ -7,7 +7,7 @@ import { useMapCapabilities, useOfflineController } from '../provider'
 import { useOfflineStore } from './offlineStore'
 import { useTrailsStore } from '../../store/trailsStore'
 import { groupPacksByTrail, totalOfflineBytes } from './grouping'
-import { formatBytes } from './format'
+import { formatBytes } from '../../format/units'
 import { packId } from './packId'
 import { showToast } from '../../components/toast'
 
