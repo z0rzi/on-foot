@@ -44,8 +44,8 @@ report: clearly improving; no regressions found.
 
 | Dimension | Status | Summary | Findings (must / should / minor) |
 |---|---|---|---|
-| Architecture & seams | 🟢 | Seams intact; a native module outside the scanner; one unjustified double cast at the map seam; the ARCH-1 gate covers the import, not the shape | 0 / 0 / 4 |
-| Duplication & drift | 🟠 | Bounds computed twice; two route-line components where the thinner cannot show slope; three copies of "load by id, spinner, back" (now one hook); two theme tokens for one role; the trails/activities formatter mirror already diverges | 0 / 1 / 9 |
+| Architecture & seams | 🟢 | Seams intact; a native module outside the scanner; one unjustified double cast at the map seam | 0 / 0 / 3 |
+| Duplication & drift | 🟠 | Bounds computed twice; two route-line components where the thinner cannot show slope; three copies of "load by id, spinner, back" (now one hook); two theme tokens for one role; the trails/activities formatter mirror already diverges | 0 / 1 / 6 |
 | Dead code | 🟢 | No leftovers; a dead validator + three unread capability flags; two unread theme tokens | 0 / 0 / 4 |
 | Error & failure handling | 🟠 | Empty GPX saves silently; orphaned location stream; four `void …then()` chains with no failure outcome | 0 / 3 / 2 |
 | Test coverage of pure logic | 🟢 | Decision logic is tested and tests assert behaviour; `packDescriptor` and a pure `downloadDecision` are the remaining gap | 0 / 0 / 1 |
@@ -68,7 +68,8 @@ by role. · Fix: move the three into a presentation module beside `activities/fo
 nine imports. · **should-fix, S**. · **Done** (`4157735`, `c8b781d`, `c93e98b`, `3ff6686`): the three
 formatters now live in `src/format/units.ts` and `src/trails/format.ts`; `src/map/offline/format.ts`
 is gone; an `IMPORT_RULES` entry stops `src/data/` importing `format/units` — it does not cover
-`src/trails/format.ts`, and does not stop a formatter being redefined inside `src/data/` (ARCH-5).
+`src/trails/format.ts`, and a formatter being redefined inside `src/data/` is now caught
+separately, by the export gate (ARCH-5).
 
 **ARCH-2 — A native boundary outside the seam scanner** · `modules/share-intent/index.ts:11`
 (`requireNativeModule('ShareIntent')`), consumed only by `src/trails/useIncomingShare.ts:3` ·
@@ -103,7 +104,9 @@ each body being under its 8-line window. · Fix: a check that no file under `src
 `grep -rnE "^export\s+(function|const)\s+format" src/data` is empty today, so the check would go
 green on its first run. Note also that broadening the existing rule by path alone would not do it:
 the matcher is suffix-anchored, so a single `mustNotImport: 'format'` entry does not catch
-`format/units` — it would take several entries, or a change to `importPattern`. · **minor, S**.
+`format/units` — it would take several entries, or a change to `importPattern`. · **minor, S**. ·
+**Done** (`b592ded`): `src/architecture/exportRules.ts` bans `format*` exports under `src/data/`,
+proven by mutation — re-adding `formatDistance` there now fails the architecture suite.
 
 Clean: no forbidden imports outside `src/map/providers/`, `src/data/db/`, `src/net/`; the store
 stays provider-agnostic (`StyleChoice` / `satellite` marker); no cycles by construction of the
