@@ -48,7 +48,7 @@ this table is corrected in the same commit rather than left to drift.
 | Dimension | Status | Summary | Findings (must / should / minor) |
 |---|---|---|---|
 | Architecture & seams | 🟢 | Seams intact; a native module outside the scanner; one unjustified double cast at the map seam | 0 / 0 / 3 |
-| Duplication & drift | 🟢 | Two route-line components where the thinner cannot show slope; three copies of "load by id, spinner, back" (now one hook) | 0 / 0 / 3 |
+| Duplication & drift | 🟢 | Two route-line components where the thinner cannot show slope; which route is on screen is decided twice | 0 / 0 / 3 |
 | Dead code | 🟢 | No leftovers; a dead validator + three unread capability flags; two unread theme tokens | 0 / 0 / 4 |
 | Error & failure handling | 🟠 | `metricsForSegments` runs outside the parse `try` (spinner never exits on a metrics failure); a deleted trail leaves a dangling `linked_trail_id`; two silent no-op/unhandled-rejection paths (activity tap during a recording, offline-registry init, the picker and focus reload) | 0 / 2 / 2 |
 | Test coverage of pure logic | 🟢 | Decision logic is tested and tests assert behaviour; `packDescriptor` and a pure `downloadDecision` are the remaining gap | 0 / 0 / 1 |
@@ -264,10 +264,10 @@ verification; the rendered separator has not been looked at on a device.
 `offline` only if ARCH-4 wires it; drop the other two until a second provider needs them. ·
 **minor, S**.
 
-**DEAD-2 — Unread theme tokens** · `primary` (`src/theme/colors.ts:4,36,68`) and `overlayScrim`
-(`colors.ts:16,48,80`) have no consumer. · Fix: delete. · **minor, S**.
+**DEAD-2 — Unread theme tokens** · `primary` (`src/theme/colors.ts:4,35,66`) and `overlayScrim`
+(`colors.ts:16,47,78`) have no consumer. · Fix: delete. · **minor, S**.
 
-**DEAD-3 — `SizeEstimate.tileCount`** · `src/map/offline/types.ts:7`, produced at `estimate.ts:34`,
+**DEAD-3 — `SizeEstimate.tileCount`** · `src/map/offline/types.ts:5`, produced at `estimate.ts:35`,
 read only by `estimate.test.ts`; consumers use `.bytes` (`OfflineLayerChooser.tsx:76,142,144`). ·
 Trivial; fold into DEAD-1's cleanup. · **minor, S**.
 
