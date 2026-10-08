@@ -44,11 +44,11 @@ report: clearly improving; no regressions found.
 
 | Dimension | Status | Summary | Findings (must / should / minor) |
 |---|---|---|---|
-| Architecture & seams | 🟢 | Seams intact; a native module outside the scanner; one unjustified double cast at the map seam | 0 / 0 / 3 |
-| Duplication & drift | 🟠 | Bounds computed twice; two route-line components where the thinner cannot show slope; three copies of "load by id, spinner, back" (now one hook); two theme tokens for one role | 0 / 1 / 8 |
+| Architecture & seams | 🟢 | Seams intact; a native module outside the scanner; one unjustified double cast at the map seam; the ARCH-1 gate covers the import, not the shape | 0 / 0 / 4 |
+| Duplication & drift | 🟠 | Bounds computed twice; two route-line components where the thinner cannot show slope; three copies of "load by id, spinner, back" (now one hook); two theme tokens for one role; the trails/activities formatter mirror already diverges | 0 / 1 / 9 |
 | Dead code | 🟢 | No leftovers; a dead validator + three unread capability flags; two unread theme tokens | 0 / 0 / 4 |
 | Error & failure handling | 🟠 | Empty GPX saves silently; orphaned location stream; four `void …then()` chains with no failure outcome | 0 / 3 / 2 |
-| Test coverage of pure logic | 🟢 | Decision logic is tested and tests assert behaviour; `formatBytes` and the empty-GPX case are the gaps | 0 / 0 / 2 |
+| Test coverage of pure logic | 🟢 | Decision logic is tested and tests assert behaviour; `packDescriptor` and a pure `downloadDecision` are the remaining gap | 0 / 0 / 1 |
 | Performance hot spots | 🟠 | Selected trail re-read and map/graph re-derived on every list-tab focus (plausible, unmeasured) | 0 / 1 / 2 |
 | Dependency & config hygiene | 🟠 | Six unused dependencies; `@types/jest` ahead of `jest`; worktree/scratch dirs not ignored by tsc/eslint/git | 0 / 1 / 3 |
 | Documentation freshness | 🟠 | README is the template; `app.config.ts` comment contradicts the shipped patch; two stale code comments | 0 / 1 / 4 |
@@ -67,7 +67,8 @@ by role. · Fix: move the three into a presentation module beside `activities/fo
 `src/format/units.ts`, which could also host `map/offline/format.ts`'s `formatBytes`) and repoint the
 nine imports. · **should-fix, S**. · **Done** (`4157735`, `c8b781d`, `c93e98b`, `3ff6686`): the three
 formatters now live in `src/format/units.ts` and `src/trails/format.ts`; `src/map/offline/format.ts`
-is gone; an `IMPORT_RULES` entry keeps the data layer out of them.
+is gone; an `IMPORT_RULES` entry stops `src/data/` importing `format/units` — it does not cover
+`src/trails/format.ts`, and does not stop a formatter being redefined inside `src/data/` (ARCH-5).
 
 **ARCH-2 — A native boundary outside the seam scanner** · `modules/share-intent/index.ts:11`
 (`requireNativeModule('ShareIntent')`), consumed only by `src/trails/useIncomingShare.ts:3` ·
@@ -91,6 +92,18 @@ reads `caps.offline`; `TrailInfoSheet` renders the offline menu and `OfflineMaps
 unconditionally. The MapLibre escape hatch `AGENTS.md` wants kept reachable would ship a broken
 offline menu. · Fix: gate the offline entry points on `caps.offline` (one `if` in `TrailInfoSheet`
 and `settings.tsx`), or delete the flag (see DEAD-1). · **minor, S**.
+
+**ARCH-5 — The ARCH-1 gate covers the import, not the shape** · `src/architecture/importRules.ts:19-24`
+· `IMPORT_RULES` forbids `src/data/` *importing* `format/units`, but ARCH-1 was formatters *defined*
+inside `src/data/` — a different shape, and the rule does not touch it. Proven by mutation
+(2026-10-08): the verbatim `formatDistance`/`formatElevation` bodies, appended back onto
+`src/data/geo/metrics.ts`, pass every architecture suite today; the duplication gate misses it too,
+each body being under its 8-line window. · Fix: a check that no file under `src/data/` exports a
+`format*` symbol — new architecture tooling, the owner's call rather than ours to add unasked;
+`grep -rnE "^export\s+(function|const)\s+format" src/data` is empty today, so the check would go
+green on its first run. Note also that broadening the existing rule by path alone would not do it:
+the matcher is suffix-anchored, so a single `mustNotImport: 'format'` entry does not catch
+`format/units` — it would take several entries, or a change to `importPattern`. · **minor, S**.
 
 Clean: no forbidden imports outside `src/map/providers/`, `src/data/db/`, `src/net/`; the store
 stays provider-agnostic (`StyleChoice` / `satellite` marker); no cycles by construction of the
@@ -211,6 +224,16 @@ current branch, not a guarantee. · Fix: give `RouteDisplay` a source discrimina
 `useRouteDisplay` already derives, instead of a second, parallel decision — a bigger change than
 this refactor's scope (a pure derive-once pass), so left for the owner to decide rather than folded
 in silently. · **minor, S-M**.
+
+**DUP-11 — The trails/activities formatter mirror already diverges** · `src/trails/format.ts` and
+`src/activities/format.ts` are declared mirrors — the design spec for the formatter move pairs them
+explicitly — but two things differ. `formatMetricsSummary` vs `formatActivitySummary`: the trails
+name is inherited from `data/geo`, where "metrics" was the local noun, and no longer says which
+domain it summarises, unlike the sibling pair `trails/difficulty.ts` / `activities/effort.ts`, which
+names by domain. The separators also differ, `•` (U+2022) vs `·` (U+00B7), rendering side by side in
+the same list UI. · Why: neither was fixed on the branch that created the mirror, deliberately — the
+rename would have broken that branch's "pure relocation" guarantee, and the separator change needs a
+device check. · **minor, S**.
 
 ### 3.3 Dead code
 
