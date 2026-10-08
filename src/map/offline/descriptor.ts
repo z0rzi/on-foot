@@ -1,5 +1,5 @@
 import type { StyleDescriptor, OfflinePackDescriptor } from '../provider/types'
-import type { LngLatBounds } from './types'
+import type { LngLatBounds } from '../geo'
 import { packId } from './packId'
 import { OFFLINE_MAX_ZOOM, OFFLINE_MIN_ZOOM } from './constants'
 

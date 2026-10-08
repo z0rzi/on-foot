@@ -1,12 +1,14 @@
 import { GpxPoint } from '../data/trails/types'
 
+export type LngLatBounds = { ne: [number, number]; sw: [number, number] }
+
 export function toLineCoordinates(points: GpxPoint[]): [number, number][] {
   return points.map((point) => [point.lng, point.lat])
 }
 
 export function boundsForPoints(
-  points: GpxPoint[],
-): { ne: [number, number]; sw: [number, number] } | null {
+  points: { lat: number; lng: number }[],
+): LngLatBounds | null {
   if (points.length === 0) return null
   let minLng = points[0].lng
   let maxLng = points[0].lng
