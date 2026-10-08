@@ -24,7 +24,6 @@ export interface ExportRuleViolation {
   rationale: string
 }
 
-// A fresh regex per call: /g carries lastIndex between uses, and a shared one would skip matches.
 const exportedValueNames = (content: string): string[] => {
   const pattern = /^export\s+(?:async\s+)?(?:function|const|let|var|class)\s+([A-Za-z_$][\w$]*)/gm
   return [...content.matchAll(pattern)].map((match) => match[1])
