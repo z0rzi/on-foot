@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Alert, Pressable, StyleSheet, Text } from 'react-native'
 import { ActivityMetrics, Effort } from '../data/activities/types'
-import { formatDistance, formatElevation } from '../data/geo/metrics'
+import { formatDistance, formatElevation } from '../format/units'
 import { formatDuration } from './format'
 import { EnumSelector } from '../components/EnumSelector'
 import { MetricsGrid } from '../components/MetricsGrid'

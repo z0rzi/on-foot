@@ -68,10 +68,3 @@ export function metricsForSegments(segments: GpxPoint[][]): TrailMetrics {
   }
 }
 
-export function formatDistance(meters: number): string {
-  return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters.toFixed(0)} m`
-}
-
-export function formatElevation(meters: number | null): string {
-  return meters === null ? '—' : `${meters.toFixed(0)} m`
-}

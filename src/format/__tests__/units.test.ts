@@ -1,4 +1,4 @@
-import { formatBytes } from '../units'
+import { formatBytes, formatDistance, formatElevation } from '../units'
 
 describe('formatBytes', () => {
   it('uses GB at a billion bytes and above, to one decimal', () => {
@@ -18,5 +18,22 @@ describe('formatBytes', () => {
   it('never reports 0 KB, because a pack that exists is not nothing', () => {
     expect(formatBytes(200)).toBe('1 KB')
     expect(formatBytes(0)).toBe('1 KB')
+  })
+})
+
+describe('formatDistance', () => {
+  test('switches to km at 1000 m', () => {
+    expect(formatDistance(450)).toBe('450 m')
+    expect(formatDistance(1500)).toBe('1.5 km')
+    expect(formatDistance(1000)).toBe('1.0 km')
+  })
+})
+
+describe('formatElevation', () => {
+  test('rounds to whole metres', () => {
+    expect(formatElevation(250.4)).toBe('250 m')
+  })
+  test('shows a dash when elevation is unknown', () => {
+    expect(formatElevation(null)).toBe('—')
   })
 })

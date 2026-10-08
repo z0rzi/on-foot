@@ -1,5 +1,5 @@
 import type { TrailMetrics } from '../data/trails/types'
-import { formatDistance, formatElevation } from '../data/geo/metrics'
+import { formatDistance, formatElevation } from '../format/units'
 
 export function formatMetricsSummary(metrics: TrailMetrics): string {
   const distance = formatDistance(metrics.distanceMeters)

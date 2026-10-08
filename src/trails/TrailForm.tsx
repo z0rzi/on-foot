@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Alert } from 'react-native'
 import { Difficulty, TrailMetrics } from '../data/trails/types'
-import { formatDistance, formatElevation } from '../data/geo/metrics'
+import { formatDistance, formatElevation } from '../format/units'
 import { EnumSelector } from '../components/EnumSelector'
 import { MetricsGrid } from '../components/MetricsGrid'
 import { FormField, FormScreen, FormTextInput, SubmitButton } from '../components/form'
