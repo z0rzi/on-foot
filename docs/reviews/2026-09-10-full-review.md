@@ -44,7 +44,7 @@ report: clearly improving; no regressions found.
 
 | Dimension | Status | Summary | Findings (must / should / minor) |
 |---|---|---|---|
-| Architecture & seams | 🟢 | Seams intact; one presentation leak into the data layer; a native module outside the scanner; one unjustified double cast at the map seam | 0 / 1 / 3 |
+| Architecture & seams | 🟢 | Seams intact; a native module outside the scanner; one unjustified double cast at the map seam | 0 / 0 / 3 |
 | Duplication & drift | 🟠 | Bounds computed twice; two route-line components where the thinner cannot show slope; three copies of "load by id, spinner, back" (now one hook); two theme tokens for one role | 0 / 1 / 8 |
 | Dead code | 🟢 | No leftovers; a dead validator + three unread capability flags; two unread theme tokens | 0 / 0 / 4 |
 | Error & failure handling | 🟠 | Empty GPX saves silently; orphaned location stream; four `void …then()` chains with no failure outcome | 0 / 3 / 2 |
@@ -65,7 +65,9 @@ side already keeps its formatters in `src/activities/format.ts`. Eight UI files 
 strings (`'no elevation data'`, `'—'`) and the two formatter modules are forked by layer rather than
 by role. · Fix: move the three into a presentation module beside `activities/format.ts` (e.g.
 `src/format/units.ts`, which could also host `map/offline/format.ts`'s `formatBytes`) and repoint the
-nine imports. · **should-fix, S**.
+nine imports. · **should-fix, S**. · **Done** (`c93e98b`): the three formatters now live in
+`src/format/units.ts` and `src/trails/format.ts`; `src/map/offline/format.ts` is gone; an
+`IMPORT_RULES` entry keeps the data layer out of them.
 
 **ARCH-2 — A native boundary outside the seam scanner** · `modules/share-intent/index.ts:11`
 (`requireNativeModule('ShareIntent')`), consumed only by `src/trails/useIncomingShare.ts:3` ·
@@ -337,7 +339,9 @@ a clamp (`Math.max(1, …)`) and appears in three user-facing strings (`download
 `OfflineMapsList.tsx:50-69`, `OfflineLayerChooser.tsx:142-160`); no test. Same for
 `packDescriptor` (trivial) and `guardDownload`'s decision order (offline → disk → metered), which is
 Alert-bound but could be lifted into a pure `downloadDecision(status, freeBytes, estimate)` and
-tested the way `evaluateDownloadGate` is. · **minor, S**.
+tested the way `evaluateDownloadGate` is. · **minor, S**. · **Partly done** (`c93e98b`): `formatBytes`
+now has tests covering its three unit boundaries and the `Math.max(1, …)` clamp, moved to
+`src/format/units.ts`. The `packDescriptor` and `downloadDecision` clauses remain open.
 
 **TEST-2 — No test for a GPX with no points** · `src/data/trails/__tests__/parse.test.ts` covers
 routes, tracks, namespaces, titles and a missing coordinate, but not the empty document / no-points
@@ -510,7 +514,7 @@ import rule in `POST-WORK.md` is followed (only the stores and the two selection
 | 5 | ~~Doc refresh: README, `app.config.ts` permission comment, adapter comment, lint-debt table~~ | DOC-1..4 | Medium: first-contact docs stop lying; no code risk | S | None | **done** — `ec9f703` (DOC-2 had already been fixed in `dd7ffff`) |
 | 6 | ~~`useLoadedEntity` + `LoadingScreen` with an error outcome; `newTrailHref`~~ | DUP-3, DUP-4, ERR-3 | High: three id-keyed loads and four spinner copies collapse to one hook and one component each; every load gets a visible failure path | M | Low-medium | **done** — `f325ff6` |
 | 7 | ~~One owner for profile + slope banding (derive once, pass bands down)~~ | DUP-2, PERF-2 | Medium: three derivations → one; makes the smoothing contract structural | M | Medium (device-verify graph + route colours) | **done** — `28d1e44` |
-| 8 | Move `format*` out of `data/geo` into a presentation module (with `formatBytes`) | ARCH-1 | Medium: layering matches `POST-WORK.md`; one home for units | S | Low | next |
+| 8 | ~~Move `format*` out of `data/geo` into a presentation module (with `formatBytes`)~~ | ARCH-1 | Medium: layering matches `POST-WORK.md`; one home for units | S | Low | **done** — `c93e98b` |
 | 9 | `boundsForTrail` = `boundsForPoints` + margin; one `LngLatBounds` | DUP-1 | Medium | S | Low (both tested) | next |
 | 10 | Retire `controlsText`/`primary`/`overlayScrim`; delete `isValidCapabilities`; gate on or drop `caps.offline`; bridge `followUserMode` explicitly | DUP-5, DEAD-1..3, ARCH-3, ARCH-4 | Low-medium: fewer traps for the next token/provider change | S | Low | later |
 

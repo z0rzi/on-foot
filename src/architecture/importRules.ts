@@ -16,6 +16,12 @@ export const IMPORT_RULES: ImportRule[] = [
     rationale:
       'Elevation smoothing is a display control for slope-band legibility. The gain/loss written to the database is computed with the fixed window in data/geo/elevationFilter and must never depend on a user setting.',
   },
+  {
+    within: 'src/data/',
+    mustNotImport: 'format/units',
+    rationale:
+      'The data layer computes and persists; turning a value into a string for the screen is presentation. Formatters living in data/geo is what ARCH-1 was, and this rule is what stops it coming back.',
+  },
 ]
 
 export interface ImportRuleViolation {
