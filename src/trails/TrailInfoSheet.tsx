@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import type { BottomSheetModal } from '@gorhom/bottom-sheet'
 import { Trail } from '../data/trails/types'
 import { formatDistance, formatElevation } from '../format/units'
-import { formatMetricsSummary } from './format'
+import { formatTrailSummary } from './format'
 import { useTheme } from '../theme/useTheme'
 import { EnumBadge } from '../components/EnumBadge'
 import { difficultyField } from './difficulty'
@@ -137,7 +137,7 @@ export function TrailInfoSheet({
         <View style={styles.summaryRow}>
           <EnumBadge field={difficultyField} value={trail.difficulty} />
           <Text style={[styles.summary, { color: c.onSurfaceVariant }]}>
-            {formatMetricsSummary(trail.metrics)}
+            {formatTrailSummary(trail.metrics)}
           </Text>
         </View>
       )}
