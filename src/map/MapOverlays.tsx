@@ -6,6 +6,7 @@ import { MapTokens } from '../theme/tokens'
 import { segmentLines, connectorLines, overallEndpoints } from './geo'
 import type { GpxPoint } from '../data/trails/types'
 import type { TrackPoint } from '../data/activities/types'
+import type { RouteSource } from '../elevation/routeDisplay'
 
 const trailArrow = require('../assets/trail-arrow.png')
 
@@ -13,17 +14,19 @@ export type OverlayRoute = { segments: GpxPoint[][]; kind: 'trail' | 'activity' 
 
 // The map's data overlays in a fixed painter's order: the route (trail or activity) beneath, the
 // live recording track above it. The z-order lives here so the "recording line above the trail
-// line" invariant is structural — callers choose what to show, not how the layers stack.
+// line" invariant is structural — callers choose what to show, not how the layers stack. The
+// colouring follows the route it was derived from: it lands on the route overlay or the live
+// overlay depending on which one `colouring.kind` names, never both.
 export function MapOverlays({
   route,
   liveSegments,
   showLiveTrack,
-  colouredLines,
+  colouring,
 }: {
   route: OverlayRoute | null
   liveSegments: TrackPoint[][]
   showLiveTrack: boolean
-  colouredLines?: ColouredLine[]
+  colouring?: { kind: RouteSource; lines: ColouredLine[] }
 }) {
   const { components } = useMapProvider()
   const c = useTheme()
@@ -52,7 +55,7 @@ export function MapOverlays({
           connectorDashArray={[...MapTokens.connectorDashArray]}
           color={isActivity ? c.activityLine : c.trailLine}
           lineWidth={MapTokens.trailLineWidth}
-          colouredLines={colouredLines}
+          colouredLines={colouring?.kind === routeKind ? colouring.lines : undefined}
           casing
           {...arrowProps}
           endpoints={{
@@ -71,6 +74,7 @@ export function MapOverlays({
           connectorDashArray={[...MapTokens.connectorDashArray]}
           color={c.recordingLine}
           lineWidth={MapTokens.recordingLineWidth}
+          colouredLines={colouring?.kind === 'live' ? colouring.lines : undefined}
         />
       )}
     </>

@@ -75,7 +75,8 @@ export function MapCanvas({
     : hasTrail
       ? { segments, kind: 'trail' }
       : null
-  const colouredLines = useRouteColouring(route ? display : null)
+  const colouredLines = useRouteColouring(display)
+  const colouring = display && colouredLines ? { kind: display.kind, lines: colouredLines } : undefined
 
   // Frame the entity (trail or activity) a user tap requested, once that entity's own geometry
   // has loaded. select() sets pendingFit; the loaded trail/activity prop lags it (data resolves
@@ -134,7 +135,7 @@ export function MapCanvas({
         route={route}
         liveSegments={liveSegments}
         showLiveTrack={showLiveTrack}
-        colouredLines={colouredLines}
+        colouring={colouring}
       />
       <ScrubMarkerLayer />
     </MapView>
