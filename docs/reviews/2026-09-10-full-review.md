@@ -232,15 +232,18 @@ recording line its own colour`): the live line is not a route being analysed, it
 where you are now, and it keeps its own colour so it reads as the live one — this was a reading of
 the finding that the owner corrected, not a defect that was fixed. Colouring has two homes: the
 elevation graph, and whichever trail/activity overlay is being displayed; the live track is never
-slope-coloured, with or without a trail followed. Device-verified on the 11:2x build (`0a3b831`)
-across all five modes: trail and activity overlays render slope-coloured with casing and the graph
-coloured; recording with no trail and recording with a trail followed both draw the live line as
-plain `recordingLine` with no casing — confirmed by pixel sampling rather than by eye (165 and 139
-pixels of `#FF5722`, zero dark casing pixels in a padded box around each); free mode draws no route
-overlay and no live line. The graph's own colouring is untouched by this diff and was seen coloured
-in trail, activity and recording-with-trail; recording-with-no-trail used a degenerate stationary
-drift fixture (20 m, 0 m elevation gain), so there was nothing meaningful to see on the graph in that
-one mode.
+slope-coloured, with or without a trail followed. Device-verified (`0a3b831`) across all five modes:
+trail and activity overlays render slope-coloured with casing and the graph coloured; recording with
+no trail and recording with a trail followed both draw the live line as plain `recordingLine` with no
+casing — confirmed by pixel sampling rather than by eye (165 and 139 pixels of `#FF5722`, zero dark
+casing pixels in a padded box around each); free mode draws no route overlay and no live line. The
+graph's own colouring is untouched by this diff and was seen coloured in trail, activity and
+recording-with-trail; recording-with-no-trail used a degenerate stationary drift fixture (20 m, 0 m
+elevation gain), so there was nothing meaningful to see on the graph in that one mode. Known
+limitation, unrelated to this closure: the colour path (`src/elevation/routeColouring.ts`) draws from
+the profile's samples, which exclude null-elevation points (`src/elevation/profile.ts`), so a run of
+altitude-less points is short-cut by a straight line while the dashed connectors still follow the real
+segments — true today for the trail and activity overlays, the only places colouring now lives.
 
 **DUP-10 — "Which route is on screen" is decided by two functions in two files** ·
 `src/map/profileSource.ts:7-17` (`profileSegmentsFor`, feeding `useRouteDisplay` at
