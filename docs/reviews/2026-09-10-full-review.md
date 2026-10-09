@@ -528,7 +528,10 @@ records the permission as "belt-and-suspenders". The comment states the opposite
 rewrite the comment to match the spec, or drop the permission after a device check on the OEMs the
 spec names. · **minor, S**. · **Already fixed** (`dd7ffff`, the location-seam change): the comment now
 says the receiver restores registered tasks after a reboot or app update, with no claim about a
-persisted job. The permission itself still ships.
+persisted job. The permission itself still ships. The `expo-task-manager` patch changes only
+`JobInfo.Builder.setPersisted` and leaves the `BOOT_COMPLETED` receiver untouched, so the
+permission's justification stands; verified on device 2026-10-08
+(`expo.modules.taskManager.TaskBroadcastReceiver` is registered in the installed APK).
 
 **DOC-3 — Stale adapter comment** · `src/map/providers/mapbox/adapter.tsx:30-33` "The one
 imperative affordance is resetNorth" — `fitBounds` has been the second one since the recenter
