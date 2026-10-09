@@ -120,7 +120,7 @@ Two deliberate choices:
   half-configured; separate, `endpoints` without `endpointRadius` would compile.
 
 `casing` is a semantic flag, not a Mapbox concept: "draw an outline under the line". The route
-overlay passes it, the live track does not — exactly as they render today.
+overlay always passes it; the live track passes it only when it is slope-coloured.
 
 ## What changes on screen
 
@@ -130,6 +130,11 @@ so it agrees with the graph above it. That is the defect DUP-9 describes.
 Everything else is intended to be pixel-identical: the trail and activity overlays keep their casing,
 arrows, endpoints and colours; the live track keeps `recordingLine` as its colour whenever it is not
 the display source or has no elevation; layer ids and z-order are unchanged.
+
+**One more change, added once the first build was on a device:** the live track also gains a casing
+whenever it is slope-coloured. Without one, the palette's near-white flat band was indistinguishable
+from the light basemap, so the casing the route already had turned out to be load-bearing for the
+live track too.
 
 ## Deliberately not done
 
