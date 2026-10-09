@@ -52,9 +52,7 @@ export interface RouteOverlayProps {
   // carries its own colour; the adapter draws them with a data-driven line colour). Stays
   // provider- and slope-agnostic: shared code maps slope band → colour before it reaches here.
   colouredLines?: ColouredLine[]
-  // An outline drawn under the line to lift it off the map. The route always carries one; the
-  // live track only when slope-coloured, since the palette's near-white bands vanish against a
-  // light basemap otherwise.
+  // An outline drawn under the line to lift it off the map. Only the route overlay passes it.
   casing?: boolean
   // Directional arrows are optional: omit arrowImage to render a plain line (used for recorded
   // activity tracks, where arrows on noisy GPS look cluttered, and for the live track).
