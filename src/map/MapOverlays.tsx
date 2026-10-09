@@ -39,6 +39,7 @@ export function MapOverlays({
   const routeEndpoints = useMemo(() => (routeSegments ? overallEndpoints(routeSegments) : null), [routeSegments])
   const liveLines = useMemo(() => segmentLines(liveSegments), [liveSegments])
   const liveConnectors = useMemo(() => connectorLines(liveSegments), [liveSegments])
+  const liveColouring = colouring?.kind === 'live' ? colouring.lines : undefined
 
   const isActivity = routeKind === 'activity'
   const arrowProps = isActivity
@@ -74,7 +75,11 @@ export function MapOverlays({
           connectorDashArray={[...MapTokens.connectorDashArray]}
           color={c.recordingLine}
           lineWidth={MapTokens.recordingLineWidth}
-          colouredLines={colouring?.kind === 'live' ? colouring.lines : undefined}
+          colouredLines={liveColouring}
+          // The slope palette has near-white bands that vanish on a light basemap without an
+          // outline; the solid recording colour is already legible, so only the coloured case
+          // needs one.
+          casing={liveColouring != null}
         />
       )}
     </>
