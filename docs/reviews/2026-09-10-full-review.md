@@ -183,7 +183,11 @@ one shade (`#000000` vs `#1C1B1F`). The previous report (§9) identified `contro
 plausible-sounding token that shipped black-on-blue. · Fix: use `controlContent` at :129 and delete
 `controlsText`. · **minor, S**. · **Done** (`9d3b382`): the 2D/3D label now uses `controlContent`,
 like its sibling icons; `controlsText` is deleted from `theme/colors.ts`. The light-theme colour
-this produces at that one label (`#000000` → `#1C1B1F`) has not been seen on a device.
+this produces at that one label was verified on a device: a screenshot of the map in light theme,
+cropped to the 2D/3D control and to a sibling icon, decoded to raw RGB with `ffmpeg` and its darkest
+pixels tallied — the label's 40 darkest pixels are all `rgb(28,27,31)` = `#1C1B1F`, with no
+`#000000` pixel anywhere in the crop, and the sibling layers icon samples identically (40/40 at
+`#1C1B1F`).
 
 **DUP-6 — The last renamed copy of the trail/activity pair** · `src/store/trailsStore.ts` and
 `src/store/activitiesStore.ts` are the same load / mutate-then-reload store modulo names. At
@@ -218,30 +222,25 @@ profile derivations (2026-10-07); fixing it is a port change plus a second copy 
 colour path, which is the duplication that item 7 exists to remove, so it was deliberately left out
 of a pure refactor. · Fix: give the colour path one owner at the port — either `colouredLines` on
 `RouteLineProps` with the adapter's colour branch extracted and shared, or render the live track
-through `TrailOverlay` with endpoints and arrows omitted. Then decide separately whether the live
-track should also be coloured while following a trail, which would need its own profile derived from
-`livePoints` on every fix batch. · **minor, S-M**. · **Done** (`c2812a1`, `0b82257`, `67c5f5f`):
-`c2812a1` merged the port's `TrailOverlay` and `RouteLine` into one `RouteOverlay` carrying the colour
-path for both; `0b82257` routes the colouring to whichever overlay the elevation graph is currently
-showing. Device-verified: recording with **no trail** now shows a slope-coloured live track that
-agrees with the graph; this finding's defect is fixed. Recording **with a trail followed**, the
-colouring goes to the trail and the live track reverts to plain, deliberately: the display is derived
-from the trail then, and the finding's own deferred question (whether the live track should also be
-coloured while following a trail) remains open, the owner's call, not settled by this closure. A
-regression was found on this same device pass: the first cut left the live overlay without a casing,
-and on the Default (light) basemap the slope-flat colour (`#EEEEEE`) was nearly invisible against the
-near-white map, where before it was a clearly legible `#FF5722`; it read fine on satellite, which is
-why only a light-basemap check caught it. Fixed in `67c5f5f`, which gives the live overlay a casing
-only when it carries colouring, so the plain case stays pixel-identical. `67c5f5f` was itself
-device-verified on the Default (light) basemap, the one the regression appeared on: the live track
-is clearly legible, white slope colour over the dark casing, and the plain-track case (recording with
-a trail followed) still shows no casing. Frame times during a trail-less recording at ~18 min / ~1100
-live points with colouring active — measured on the pre-casing build, before `67c5f5f`: 50th 15 ms,
-99th 18 ms, no stalls; the per-fix colouring cost is still O(n) in track length, so this is a
-measurement at 18 minutes, not a guarantee at several hours. Known limitation: when the live track
-is coloured, the adapter draws from the profile's samples, which exclude null-elevation fixes, so a
-run of altitude-less fixes is short-cut by a straight line while the dashed connectors still follow
-the live segments — pre-existing for trails, but new exposure now that the live track can be coloured.
+through `TrailOverlay` with endpoints and arrows omitted. · **minor, S-M**. · **Closed** (`c2812a1`,
+`0b82257`, `67c5f5f`, `0a3b831`): the duplication half is closed — `c2812a1` merged the port's
+`TrailOverlay` and `RouteLine` into one `RouteOverlay` carrying the colour path for both, so the port
+has a single route-line component rather than two. `0b82257` (plus the casing fix `67c5f5f`) then
+read the "visible consequence" above as asking for the live track to be coloured too, so the map
+would agree with the graph. The owner corrected that reading (`0a3b831`, `fix(map): keep the live
+recording line its own colour`): the live line is not a route being analysed, it is the line showing
+where you are now, and it keeps its own colour so it reads as the live one — this was a reading of
+the finding that the owner corrected, not a defect that was fixed. Colouring has two homes: the
+elevation graph, and whichever trail/activity overlay is being displayed; the live track is never
+slope-coloured, with or without a trail followed. Device-verified on the 11:2x build (`0a3b831`)
+across all five modes: trail and activity overlays render slope-coloured with casing and the graph
+coloured; recording with no trail and recording with a trail followed both draw the live line as
+plain `recordingLine` with no casing — confirmed by pixel sampling rather than by eye (165 and 139
+pixels of `#FF5722`, zero dark casing pixels in a padded box around each); free mode draws no route
+overlay and no live line. The graph's own colouring is untouched by this diff and was seen coloured
+in trail, activity and recording-with-trail; recording-with-no-trail used a degenerate stationary
+drift fixture (20 m, 0 m elevation gain), so there was nothing meaningful to see on the graph in that
+one mode.
 
 **DUP-10 — "Which route is on screen" is decided by two functions in two files** ·
 `src/map/profileSource.ts:7-17` (`profileSegmentsFor`, feeding `useRouteDisplay` at
