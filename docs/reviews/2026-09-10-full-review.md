@@ -360,7 +360,7 @@ not mean the codebase has no unhandled rejections — see ERR-6, found in this s
 deliberately left open.
 
 **ERR-4 — Silent no-ops** · `app/(tabs)/activities.tsx:23` returns without feedback when an
-activity is tapped during a recording (deliberate rule, invisible to the user); `app/_layout.tsx:31`
+activity is tapped during a recording (deliberate rule, invisible to the user); `app/_layout.tsx:41`
 `init(controller).catch(() => {})` leaves the offline registry empty with no indication, and
 `OfflineMapsList` (`OfflineMapsList.tsx:24-28`) reloads trails on focus but never re-`init`s packs,
 so after one failed init the settings list says "No offline maps yet" until the app restarts. · Fix:
