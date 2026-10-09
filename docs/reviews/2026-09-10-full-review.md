@@ -232,10 +232,16 @@ regression was found on this same device pass: the first cut left the live overl
 and on the Default (light) basemap the slope-flat colour (`#EEEEEE`) was nearly invisible against the
 near-white map, where before it was a clearly legible `#FF5722`; it read fine on satellite, which is
 why only a light-basemap check caught it. Fixed in `67c5f5f`, which gives the live overlay a casing
-only when it carries colouring, so the plain case stays pixel-identical. Frame times during a
-trail-less recording at ~18 min / ~1100 live points with colouring active: 50th 15 ms, 99th 18 ms, no
-stalls; the per-fix colouring cost is still O(n) in track length, so this is a measurement at 18
-minutes, not a guarantee at several hours.
+only when it carries colouring, so the plain case stays pixel-identical. `67c5f5f` was itself
+device-verified on the Default (light) basemap, the one the regression appeared on: the live track
+is clearly legible, white slope colour over the dark casing, and the plain-track case (recording with
+a trail followed) still shows no casing. Frame times during a trail-less recording at ~18 min / ~1100
+live points with colouring active — measured on the pre-casing build, before `67c5f5f`: 50th 15 ms,
+99th 18 ms, no stalls; the per-fix colouring cost is still O(n) in track length, so this is a
+measurement at 18 minutes, not a guarantee at several hours. Known limitation: when the live track
+is coloured, the adapter draws from the profile's samples, which exclude null-elevation fixes, so a
+run of altitude-less fixes is short-cut by a straight line while the dashed connectors still follow
+the live segments — pre-existing for trails, but new exposure now that the live track can be coloured.
 
 **DUP-10 — "Which route is on screen" is decided by two functions in two files** ·
 `src/map/profileSource.ts:7-17` (`profileSegmentsFor`, feeding `useRouteDisplay` at
