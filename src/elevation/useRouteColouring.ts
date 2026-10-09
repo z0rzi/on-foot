@@ -14,7 +14,9 @@ export function useRouteColouring(display: RouteDisplay | null): ColouredLine[] 
 
   return useMemo(() => {
     if (!display) return undefined
-    return buildSlopeRuns(display.profile, display.bands).map((r) => ({
+    const runs = buildSlopeRuns(display.profile, display.bands)
+    if (!runs.length) return undefined
+    return runs.map((r) => ({
       coordinates: r.coordinates,
       color: slopeBandColour(r.band, c),
     }))
