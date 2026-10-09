@@ -38,36 +38,36 @@ export interface ColouredLine {
   color: string
 }
 
-export interface TrailOverlayProps {
+export interface RouteOverlayProps {
+  // Layer-id prefix, so two overlays can coexist on one map.
+  idPrefix: string
   // Track segments as a MultiLineString: each entry is one segment's [lng, lat] pairs, in order.
   lines: [number, number][][]
   // Dashed connectors bridging consecutive segment endpoints; carry no distance.
   connectors: [number, number][][]
   connectorDashArray: number[]
-  // [start, end] as [lng, lat]; drawn as dot markers.
-  endpoints: [number, number][]
   color: string
   lineWidth: number
   // When set, per-slope coloured polylines drawn instead of the single-colour `lines` (each
   // carries its own colour; the adapter draws them with a data-driven line colour). Stays
   // provider- and slope-agnostic: shared code maps slope band → colour before it reaches here.
   colouredLines?: ColouredLine[]
-  // Directional arrows are optional: omit arrowImage to render a plain trail line + endpoints
-  // (used for recorded activity tracks, where arrows on noisy GPS look cluttered).
+  // An outline drawn under the line to lift it off the map. The route carries one; the live
+  // track, which sits above the route, does not.
+  casing?: boolean
+  // Directional arrows are optional: omit arrowImage to render a plain line (used for recorded
+  // activity tracks, where arrows on noisy GPS look cluttered, and for the live track).
   arrowImage?: number
   arrowSpacing?: number
   arrowSize?: number
-  endpointRadius: number
-  endpointStrokeColor: string
-  endpointStrokeWidth: number
-}
-
-export interface RouteLineProps {
-  lines: [number, number][][]
-  connectors: [number, number][][]
-  connectorDashArray: number[]
-  color: string
-  lineWidth: number
+  // [start, end] as [lng, lat] drawn as dot markers, with their styling. One optional unit so the
+  // feature cannot be half-configured.
+  endpoints?: {
+    points: [number, number][]
+    radius: number
+    strokeColor: string
+    strokeWidth: number
+  }
 }
 
 export interface ScrubMarkerProps {
@@ -120,8 +120,7 @@ export interface MapComponents {
   Camera: React.ForwardRefExoticComponent<CameraProps & React.RefAttributes<CameraController>>
   Terrain: React.ComponentType<TerrainProps>
   UserPuck: React.ComponentType<UserPuckProps>
-  TrailOverlay: React.ComponentType<TrailOverlayProps>
-  RouteLine: React.ComponentType<RouteLineProps>
+  RouteOverlay: React.ComponentType<RouteOverlayProps>
   ScrubMarker: React.ComponentType<ScrubMarkerProps>
 }
 

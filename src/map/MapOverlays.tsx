@@ -27,7 +27,7 @@ export function MapOverlays({
 }) {
   const { components } = useMapProvider()
   const c = useTheme()
-  const { TrailOverlay, RouteLine } = components
+  const { RouteOverlay } = components
 
   const routeSegments = route?.segments ?? null
   const routeKind = route?.kind ?? null
@@ -45,22 +45,27 @@ export function MapOverlays({
   return (
     <>
       {routeLines && routeConnectors && routeEndpoints && routeLines.length > 0 && (
-        <TrailOverlay
+        <RouteOverlay
+          idPrefix="trail"
           lines={routeLines}
           connectors={routeConnectors}
           connectorDashArray={[...MapTokens.connectorDashArray]}
-          endpoints={routeEndpoints}
           color={isActivity ? c.activityLine : c.trailLine}
           lineWidth={MapTokens.trailLineWidth}
           colouredLines={colouredLines}
+          casing
           {...arrowProps}
-          endpointRadius={MapTokens.endpointRadius}
-          endpointStrokeColor={c.trailEndpointStroke}
-          endpointStrokeWidth={MapTokens.endpointStrokeWidth}
+          endpoints={{
+            points: routeEndpoints,
+            radius: MapTokens.endpointRadius,
+            strokeColor: c.trailEndpointStroke,
+            strokeWidth: MapTokens.endpointStrokeWidth,
+          }}
         />
       )}
       {showLiveTrack && (
-        <RouteLine
+        <RouteOverlay
+          idPrefix="route"
           lines={liveLines}
           connectors={liveConnectors}
           connectorDashArray={[...MapTokens.connectorDashArray]}
