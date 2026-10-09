@@ -65,8 +65,9 @@ recording colour never needed an outline. The port's `casing` comment returns to
 
 With the live track never coloured, `useRouteColouring` no longer runs during a recording with no
 trail — `route` is null there, so the argument is null. The per-GPS-fix colouring cost that the last
-branch measured and flagged as O(n) in track length simply stops existing in that mode. The owner
-accepted that cost; this removes it instead.
+branch measured and flagged as O(n) in track length simply stops existing in that mode. That cost
+shipped as a recorded limitation, bounded to the device pass that measured it rather than guaranteed
+for an arbitrarily long recording; this removes it instead of having to stand behind that guarantee.
 
 ## Testing
 
