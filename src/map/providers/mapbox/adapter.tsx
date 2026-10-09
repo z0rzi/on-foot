@@ -1,8 +1,8 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react'
 import Mapbox, { type MapState } from '@rnmapbox/maps'
 import type {
-  MapProvider, MapViewProps, CameraProps, TerrainProps, CameraController, TrailOverlayProps,
-  RouteLineProps, ScrubMarkerProps, UserPuckProps,
+  MapProvider, MapViewProps, CameraProps, TerrainProps, CameraController, RouteOverlayProps,
+  ScrubMarkerProps, UserPuckProps,
 } from '../../provider/types'
 import { mapboxCapabilities } from './capabilities'
 import { mapboxOfflineController } from './offline'
@@ -94,23 +94,15 @@ const multiLine = (lines: [number, number][][]) => ({
   properties: {},
 })
 
-const TrailOverlay = ({
-  lines, connectors, connectorDashArray, endpoints, color, lineWidth, colouredLines, arrowImage, arrowSpacing, arrowSize,
-  endpointRadius, endpointStrokeColor, endpointStrokeWidth,
-}: TrailOverlayProps) => {
-  const endpointShape = {
-    type: 'FeatureCollection' as const,
-    features: endpoints.map((coord) => ({
-      type: 'Feature' as const,
-      geometry: { type: 'Point' as const, coordinates: coord },
-      properties: {},
-    })),
-  }
+const RouteOverlay = ({
+  idPrefix, lines, connectors, connectorDashArray, color, lineWidth, colouredLines, casing,
+  arrowImage, arrowSpacing, arrowSize, endpoints,
+}: RouteOverlayProps) => {
   const arrowsLayer =
     arrowImage != null ? (
       <Mapbox.SymbolLayer
         key="arrows"
-        id="trail-arrows"
+        id={`${idPrefix}-arrows`}
         style={{
           symbolPlacement: 'line',
           symbolSpacing: arrowSpacing,
@@ -134,83 +126,78 @@ const TrailOverlay = ({
     <>
       {arrowImage != null && <Mapbox.Images images={{ 'trail-arrow': arrowImage }} />}
       {useColoured ? (
-        <Mapbox.ShapeSource id="trail-slope-source" shape={slopeShape}>
+        <Mapbox.ShapeSource id={`${idPrefix}-slope-source`} shape={slopeShape}>
           {[
-            <Mapbox.LineLayer
-              key="slope-casing"
-              id="trail-slope-casing"
-              style={{ lineColor: TRAIL_CASING, lineWidth: lineWidth + 3, lineCap: 'round', lineJoin: 'round' }}
-            />,
+            casing && (
+              <Mapbox.LineLayer
+                key="slope-casing"
+                id={`${idPrefix}-slope-casing`}
+                style={{ lineColor: TRAIL_CASING, lineWidth: lineWidth + 3, lineCap: 'round', lineJoin: 'round' }}
+              />
+            ),
             <Mapbox.LineLayer
               key="slope-line"
-              id="trail-slope-line"
+              id={`${idPrefix}-slope-line`}
               style={{ lineColor: ['get', 'color'], lineWidth, lineCap: 'round', lineJoin: 'round' }}
             />,
             arrowsLayer,
-          ].filter((el): el is React.ReactElement => el != null)}
+          ].filter((el): el is React.ReactElement => !!el)}
         </Mapbox.ShapeSource>
       ) : (
         lines.length > 0 && (
-          <Mapbox.ShapeSource id="trail-line-source" shape={multiLine(lines)}>
+          <Mapbox.ShapeSource id={`${idPrefix}-line-source`} shape={multiLine(lines)}>
             {[
-              <Mapbox.LineLayer
-                key="casing"
-                id="trail-line-casing"
-                style={{ lineColor: TRAIL_CASING, lineWidth: lineWidth + 3, lineCap: 'round', lineJoin: 'round' }}
-              />,
+              casing && (
+                <Mapbox.LineLayer
+                  key="casing"
+                  id={`${idPrefix}-line-casing`}
+                  style={{ lineColor: TRAIL_CASING, lineWidth: lineWidth + 3, lineCap: 'round', lineJoin: 'round' }}
+                />
+              ),
               <Mapbox.LineLayer
                 key="line"
-                id="trail-line"
+                id={`${idPrefix}-line`}
                 style={{ lineColor: color, lineWidth, lineCap: 'round', lineJoin: 'round' }}
               />,
               arrowsLayer,
-            ].filter((el): el is React.ReactElement => el != null)}
+            ].filter((el): el is React.ReactElement => !!el)}
           </Mapbox.ShapeSource>
         )
       )}
       {connectors.length > 0 && (
-        <Mapbox.ShapeSource id="trail-connector-source" shape={multiLine(connectors)}>
+        <Mapbox.ShapeSource id={`${idPrefix}-connector-source`} shape={multiLine(connectors)}>
           <Mapbox.LineLayer
-            id="trail-connector"
+            id={`${idPrefix}-connector`}
             style={{ lineColor: color, lineWidth, lineDasharray: connectorDashArray, lineCap: 'round' }}
           />
         </Mapbox.ShapeSource>
       )}
-      <Mapbox.ShapeSource id="trail-endpoints-source" shape={endpointShape}>
-        <Mapbox.CircleLayer
-          id="trail-endpoints"
-          style={{
-            circleColor: color,
-            circleRadius: endpointRadius,
-            circleStrokeColor: endpointStrokeColor,
-            circleStrokeWidth: endpointStrokeWidth,
+      {endpoints && (
+        <Mapbox.ShapeSource
+          id={`${idPrefix}-endpoints-source`}
+          shape={{
+            type: 'FeatureCollection' as const,
+            features: endpoints.points.map((coord) => ({
+              type: 'Feature' as const,
+              geometry: { type: 'Point' as const, coordinates: coord },
+              properties: {},
+            })),
           }}
-        />
-      </Mapbox.ShapeSource>
+        >
+          <Mapbox.CircleLayer
+            id={`${idPrefix}-endpoints`}
+            style={{
+              circleColor: color,
+              circleRadius: endpoints.radius,
+              circleStrokeColor: endpoints.strokeColor,
+              circleStrokeWidth: endpoints.strokeWidth,
+            }}
+          />
+        </Mapbox.ShapeSource>
+      )}
     </>
   )
 }
-
-const RouteLine = ({ lines, connectors, connectorDashArray, color, lineWidth }: RouteLineProps) => (
-  <>
-    {lines.length > 0 && (
-      <Mapbox.ShapeSource id="route-line-source" shape={multiLine(lines)}>
-        <Mapbox.LineLayer
-          id="route-line"
-          style={{ lineColor: color, lineWidth, lineCap: 'round', lineJoin: 'round' }}
-        />
-      </Mapbox.ShapeSource>
-    )}
-    {connectors.length > 0 && (
-      <Mapbox.ShapeSource id="route-connector-source" shape={multiLine(connectors)}>
-        <Mapbox.LineLayer
-          id="route-connector"
-          style={{ lineColor: color, lineWidth, lineDasharray: connectorDashArray, lineCap: 'round' }}
-        />
-      </Mapbox.ShapeSource>
-    )}
-  </>
-)
 
 const ScrubMarker = ({ coordinate, color, radius, strokeColor, strokeWidth }: ScrubMarkerProps) => (
   <Mapbox.ShapeSource
@@ -226,6 +213,6 @@ const ScrubMarker = ({ coordinate, color, radius, strokeColor, strokeWidth }: Sc
 
 export const mapboxProvider: MapProvider = {
   capabilities: mapboxCapabilities,
-  components: { View, Camera, Terrain, UserPuck, TrailOverlay, RouteLine, ScrubMarker },
+  components: { View, Camera, Terrain, UserPuck, RouteOverlay, ScrubMarker },
   offline: mapboxOfflineController,
 }

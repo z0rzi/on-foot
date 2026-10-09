@@ -48,7 +48,7 @@ this table is corrected in the same commit rather than left to drift.
 | Dimension | Status | Summary | Findings (must / should / minor) |
 |---|---|---|---|
 | Architecture & seams | 🟢 | Seams intact; a native module outside the scanner; one unjustified double cast at the map seam | 0 / 0 / 3 |
-| Duplication & drift | 🟢 | Two route-line components where the thinner cannot show slope; which route is on screen is decided twice | 0 / 0 / 3 |
+| Duplication & drift | 🟢 | The last renamed trail/activity store pair, accepted until a third entity store appears | 0 / 0 / 1 |
 | Dead code | 🟢 | No leftovers; a dead validator + three unread capability flags; two unread theme tokens | 0 / 0 / 4 |
 | Error & failure handling | 🟠 | `metricsForSegments` runs outside the parse `try` (spinner never exits on a metrics failure); a deleted trail leaves a dangling `linked_trail_id`; two silent no-op/unhandled-rejection paths (activity tap during a recording, offline-registry init, the picker and focus reload) | 0 / 2 / 2 |
 | Test coverage of pure logic | 🟢 | Decision logic is tested and tests assert behaviour; `packDescriptor` and a pure `downloadDecision` are the remaining gap | 0 / 0 / 1 |
@@ -220,7 +220,28 @@ of a pure refactor. · Fix: give the colour path one owner at the port — eithe
 `RouteLineProps` with the adapter's colour branch extracted and shared, or render the live track
 through `TrailOverlay` with endpoints and arrows omitted. Then decide separately whether the live
 track should also be coloured while following a trail, which would need its own profile derived from
-`livePoints` on every fix batch. · **minor, S-M**.
+`livePoints` on every fix batch. · **minor, S-M**. · **Done** (`c2812a1`, `0b82257`, `67c5f5f`):
+`c2812a1` merged the port's `TrailOverlay` and `RouteLine` into one `RouteOverlay` carrying the colour
+path for both; `0b82257` routes the colouring to whichever overlay the elevation graph is currently
+showing. Device-verified: recording with **no trail** now shows a slope-coloured live track that
+agrees with the graph; this finding's defect is fixed. Recording **with a trail followed**, the
+colouring goes to the trail and the live track reverts to plain, deliberately: the display is derived
+from the trail then, and the finding's own deferred question (whether the live track should also be
+coloured while following a trail) remains open, the owner's call, not settled by this closure. A
+regression was found on this same device pass: the first cut left the live overlay without a casing,
+and on the Default (light) basemap the slope-flat colour (`#EEEEEE`) was nearly invisible against the
+near-white map, where before it was a clearly legible `#FF5722`; it read fine on satellite, which is
+why only a light-basemap check caught it. Fixed in `67c5f5f`, which gives the live overlay a casing
+only when it carries colouring, so the plain case stays pixel-identical. `67c5f5f` was itself
+device-verified on the Default (light) basemap, the one the regression appeared on: the live track
+is clearly legible, white slope colour over the dark casing, and the plain-track case (recording with
+a trail followed) still shows no casing. Frame times during a trail-less recording at ~18 min / ~1100
+live points with colouring active — measured on the pre-casing build, before `67c5f5f`: 50th 15 ms,
+99th 18 ms, no stalls; the per-fix colouring cost is still O(n) in track length, so this is a
+measurement at 18 minutes, not a guarantee at several hours. Known limitation: when the live track
+is coloured, the adapter draws from the profile's samples, which exclude null-elevation fixes, so a
+run of altitude-less fixes is short-cut by a straight line while the dashed connectors still follow
+the live segments — pre-existing for trails, but new exposure now that the live track can be coloured.
 
 **DUP-10 — "Which route is on screen" is decided by two functions in two files** ·
 `src/map/profileSource.ts:7-17` (`profileSegmentsFor`, feeding `useRouteDisplay` at
@@ -237,7 +258,11 @@ current branch, not a guarantee. · Fix: give `RouteDisplay` a source discrimina
 'trail' | 'activity' | 'live'`) so `MapCanvas` reads what to render from the same value
 `useRouteDisplay` already derives, instead of a second, parallel decision — a bigger change than
 this refactor's scope (a pure derive-once pass), so left for the owner to decide rather than folded
-in silently. · **minor, S-M**.
+in silently. · **minor, S-M**. · **Done** (`18f11bf`): `RouteDisplay` now carries a
+`kind: 'trail' | 'activity' | 'live'` discriminator naming which route it was derived from
+(`profileSegmentsFor` became `profileSourceFor`, returning the tagged pair); `MapCanvas` reads that
+discriminator instead of running its own `hasTrail`/`hasActivity`/`route` decision a second time. The
+two decisions are now one.
 
 **DUP-11 — The trails/activities formatter mirror already diverges** · `src/trails/format.ts` and
 `src/activities/format.ts` are declared mirrors — the design spec for the formatter move pairs them
@@ -250,8 +275,8 @@ rename would have broken that branch's "pure relocation" guarantee, and the sepa
 device check. · **minor, S**. · **Done** (`91fc683`): `formatMetricsSummary` is renamed
 `formatTrailSummary`, naming its domain like the sibling pair `difficulty.ts`/`effort.ts`; the
 separator is now `·` (U+00B7) in both formatters. The reasoning for `·` is that it already ships in
-the identical `EntityListItem` component via `formatActivitySummary` — strong evidence, not
-verification; the rendered separator has not been looked at on a device.
+the identical `EntityListItem` component via `formatActivitySummary`. Device-verified since: the
+trail sheet reads `15.4 km · 1062 m gain` and renders cleanly.
 
 ### 3.3 Dead code
 

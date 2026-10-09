@@ -1,4 +1,4 @@
-import { profileSegmentsFor } from '../profileSource'
+import { profileSourceFor } from '../profileSource'
 import type { Trail } from '../../data/trails/types'
 import type { Activity, LiveTrackPoint } from '../../data/activities/types'
 
@@ -18,46 +18,66 @@ const activityWith = (segments: Activity['geometry']['segments']): Activity => (
 
 const livePoint = (segment: number, lng: number): LiveTrackPoint => ({ lat: 0, lng, ele: 100, t: 0, segment })
 
-describe('profileSegmentsFor', () => {
+describe('profileSourceFor', () => {
   it('returns null in free mode', () => {
-    expect(profileSegmentsFor('free', null, null, [])).toBeNull()
+    expect(profileSourceFor('free', null, null, [])).toBeNull()
   })
 
   it('returns the trail segments in trail mode', () => {
     const trail = trailWith([[{ lat: 0, lng: 0, ele: 1 }]])
-    expect(profileSegmentsFor('trail', trail, null, [])).toBe(trail.geometry.segments)
+    expect(profileSourceFor('trail', trail, null, [])).toEqual({
+      kind: 'trail',
+      segments: trail.geometry.segments,
+    })
   })
 
   it('returns null in trail mode without a trail', () => {
-    expect(profileSegmentsFor('trail', null, null, [])).toBeNull()
+    expect(profileSourceFor('trail', null, null, [])).toBeNull()
   })
 
   it('returns the activity segments in activity mode', () => {
     const activity = activityWith([[{ lat: 0, lng: 0, ele: 1, t: 0 }]])
-    expect(profileSegmentsFor('activity', null, activity, [])).toBe(activity.geometry.segments)
+    expect(profileSourceFor('activity', null, activity, [])).toEqual({
+      kind: 'activity',
+      segments: activity.geometry.segments,
+    })
   })
 
   it('returns null in activity mode without an activity', () => {
-    expect(profileSegmentsFor('activity', null, null, [])).toBeNull()
+    expect(profileSourceFor('activity', null, null, [])).toBeNull()
   })
 
   it('prefers the followed trail over live points in recording mode', () => {
     const trail = trailWith([[{ lat: 0, lng: 0, ele: 1 }]])
     const livePoints = [livePoint(0, 1)]
-    expect(profileSegmentsFor('recording', trail, null, livePoints)).toBe(trail.geometry.segments)
+    expect(profileSourceFor('recording', trail, null, livePoints)).toEqual({
+      kind: 'trail',
+      segments: trail.geometry.segments,
+    })
   })
 
   it('groups live points by segment, in segment order, when recording without a trail', () => {
     const livePoints = [livePoint(1, 10), livePoint(0, 20), livePoint(1, 11), livePoint(0, 21)]
-    expect(profileSegmentsFor('recording', null, null, livePoints)).toEqual([
-      [
-        { lat: 0, lng: 20, ele: 100, t: 0 },
-        { lat: 0, lng: 21, ele: 100, t: 0 },
+    expect(profileSourceFor('recording', null, null, livePoints)).toEqual({
+      kind: 'live',
+      segments: [
+        [
+          { lat: 0, lng: 20, ele: 100, t: 0 },
+          { lat: 0, lng: 21, ele: 100, t: 0 },
+        ],
+        [
+          { lat: 0, lng: 10, ele: 100, t: 0 },
+          { lat: 0, lng: 11, ele: 100, t: 0 },
+        ],
       ],
-      [
-        { lat: 0, lng: 10, ele: 100, t: 0 },
-        { lat: 0, lng: 11, ele: 100, t: 0 },
-      ],
-    ])
+    })
+  })
+
+  it('returns the followed trail segments by reference, so the display memo holds across fixes', () => {
+    const trail = trailWith([[{ lat: 0, lng: 0, ele: 1 }]])
+    const first = profileSourceFor('recording', trail, null, [livePoint(0, 1)])
+    const second = profileSourceFor('recording', trail, null, [livePoint(0, 1), livePoint(0, 2)])
+    expect(first?.segments).toBe(trail.geometry.segments)
+    expect(second?.segments).toBe(first?.segments)
   })
 })
