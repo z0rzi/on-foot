@@ -1,5 +1,8 @@
 # One decision about which route is on screen, and one way to draw it
 
+Reversed the same day for the live track: `2026-10-09-live-line-plain-design.md` takes the colouring
+and casing this spec gives the live track back off it.
+
 Closes **DUP-10** and **DUP-9**, in that order, because the first is what makes the second honest.
 
 ## The two findings, and why they are one change
