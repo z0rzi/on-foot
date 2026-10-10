@@ -6,8 +6,8 @@ export type RouteSource = 'trail' | 'activity' | 'live'
 // The elevation view of one route: what is plotted, and where its colour bands fall. The raw
 // profile carries the coordinates and the plotted line; the smoothed one exists only so the band
 // boundaries and the scrubbed grade read from the same series the smoothing preference produced.
-// kind names which route this view describes, so callers deciding what to colour on screen can
-// match the view to the right overlay instead of re-deriving the choice themselves.
+// kind names which route this view describes, so callers can tell whether the route drawn on screen
+// is the one it was derived from instead of re-deriving that choice themselves.
 export interface RouteDisplay {
   kind: RouteSource
   profile: ElevationProfile
