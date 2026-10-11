@@ -43,7 +43,9 @@ report: clearly improving; no regressions found.
 ## 2. Health dashboard
 
 Counts are *open* findings (must / should / minor); a closed finding is ticked in place in §3, and
-this table is corrected in the same commit rather than left to drift.
+this table is corrected in the same commit rather than left to drift. A finding is ticked **Done**
+when the work fixed it, **Already fixed** when earlier work had, and **Closed** when a decision
+settled it rather than a change.
 
 | Dimension | Status | Summary | Findings (must / should / minor) |
 |---|---|---|---|
@@ -239,7 +241,9 @@ casing — confirmed by pixel sampling rather than by eye (165 and 139 pixels of
 casing pixels in a padded box around each); free mode draws no route overlay and no live line. The
 graph's own colouring is untouched by this diff and was seen coloured in trail, activity and
 recording-with-trail; recording-with-no-trail used a degenerate stationary drift fixture (20 m, 0 m
-elevation gain), so there was nothing meaningful to see on the graph in that one mode. Known
+elevation gain), so there was nothing meaningful to see on the graph in that one mode — though an
+earlier pass in that mode did show the graph rendering and agreeing with the track it profiled, on
+an equally flat fixture. Known
 limitation, unrelated to this closure: the colour path (`src/elevation/routeColouring.ts`) draws from
 the profile's samples, which exclude null-elevation points (`src/elevation/profile.ts`), so a run of
 altitude-less points is short-cut by a straight line while the dashed connectors still follow the real
@@ -326,7 +330,11 @@ a controller `finishRecording(sessionId, input)` that stops the stream before `s
 route file stops touching recording state directly. Add the two failure-path tests beside the
 existing ones. · **should-fix, S** (device-verify the notification disappears). · **Done** (`331e00b`):
 `resumeIfActive` stops an orphaned stream when no session is active, and the save goes through
-`finishRecording`, which stops the stream before `saveActivity`.
+`finishRecording`, which stops the stream before `saveActivity`. Device-verified 2026-10-10 on the
+paths that occur: before a recording ends, `dumpsys` reports `isForeground=true` and a "Recording
+your activity" notification record; after a save, and again after a discard, neither remains. The
+`'already-active'` route itself could not be triggered from the UI and looks unreachable — see
+`docs/reviews/open-work.md`, pending device checks.
 
 **ERR-2 — An empty or non-GPX file becomes a saveable empty trail, silently** ·
 `app/trail/new.tsx:31-37` never checks `parsed.segments.length`; `src/data/trails/gpx/parse.ts:69-75`
@@ -341,7 +349,12 @@ route") before going back, for both the empty and the throw case. Add the empty 
 `parse.test.ts` (TEST-2). · **should-fix, S**. · **Done** (`f03deb3`, `fe40716`, `b8e51a0`; merged
 `50785dc`): `parseGpx` throws a `GpxError` carrying a `format` or `empty` reason, a segment needs two
 points to count, and `new.tsx` tells the user which of the two happened instead of going back in
-silence.
+silence. Device-checked 2026-10-10: a non-GPX file and a zero-byte file both raise "Not a GPX file /
+This file could not be read as GPX." and leave the trails list untouched, so the silent empty trail
+is gone. An unreadable `content://` URI raises that same alert while the debug log carries the real
+cause (`SecurityException`, permission denial) — which answers §7's question: the user is told, but
+the message names the file's format rather than the read failure. The `empty` reason's own message
+is still unexercised.
 
 **ERR-3 — `void load().then(...)` chains with no failure outcome** ·
 `src/map/useSelectedEntity.ts:22`, `src/map/ActivityInfoSheet.tsx:37`,
@@ -738,11 +751,11 @@ PERF-1 are adjacent to §4/§5/§6 and were not visible from those sections' sco
 - **Plausible, unmeasured:** PERF-1 and PERF-2. The magnitude is inferred from the previous report's
   own cost estimate and from which memos are keyed on the trail reference; a profiler run on a
   3000-sample trail while switching tabs would confirm or deflate it.
-- **Needs a device or runtime check:** ERR-1 (does the foreground notification survive a save
-  reached via `'already-active'`? does `stopLocationUpdatesAsync` ever fail in practice?); ERR-2's
-  behaviour for a `content://` URI that `expo-file-system`'s `File` cannot read (the catch at
-  `new.tsx:38` covers it, but with no message); whether `expo-system-ui` is in fact required for
-  `userInterfaceStyle: "automatic"` on this SDK before pruning (DEP-1 deliberately keeps it).
+- **Needs a device or runtime check:** whether `expo-system-ui` is in fact required for
+  `userInterfaceStyle: "automatic"` on this SDK before pruning (DEP-1 deliberately keeps it). ERR-1
+  and ERR-2 were checked on 2026-10-10 and the results are in their own notes; what stayed
+  unobserved — ERR-1's `'already-active'` route and a failing `stopLocationUpdatesAsync`, ERR-2's
+  `empty` message — is listed in `docs/reviews/open-work.md` under pending device checks.
 - **Hunches without an anchor** (kept out of §3): the Telegram → "Add trail" loop in `tasks.md`
   (a second share while `/trail/new` is open pushes a second instance; `useIncomingShare.ts:12`
   always `push`es) is consistent with the code but was not reproduced; `ActionsMenu`'s

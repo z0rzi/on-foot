@@ -1,5 +1,8 @@
 # Route Source Discriminator Implementation Plan
 
+> The live-track colouring this plan builds was reversed the same day, on the owner's decision —
+> see `docs/design/specs/2026-10-09-live-line-plain-design.md`.
+
 **Goal:** Close DUP-10 (two functions decide which route is on screen) and DUP-9 (the port's two route-line components, only one of which can show slope).
 
 **Architecture:** `RouteDisplay` gains a `kind` discriminator naming what it was derived from, so the colouring can be routed to the matching overlay instead of re-deciding. The port's `TrailOverlay` and `RouteLine` then collapse into one `RouteOverlay`, since the second is a feature subset of the first.
