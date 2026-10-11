@@ -61,8 +61,11 @@ the three happened instead of calling every non-`empty` failure "unreadable file
 ## Testing
 
 The mapper is pure logic, so it is TDD'd like its sibling: one case per outcome plus the unknown
-fallback. `readGpxFile` stays a thin wrapper over `expo-file-system` and is not unit-tested; the
-wrapping is type-level and covered by the mapper's `GpxReadError` case.
+fallback. `readGpxFile` stays a thin wrapper over `expo-file-system` and is not unit-tested. The
+classifier (`classifyGpxFailure`) and the copy map (`gpxImportAlert`) are unit-tested; the log
+line in `app/trail/new.tsx` is not, since this repo does not unit-test component effects (no React
+Testing Library, consistent with other `logEvent` call sites in components) — that line's
+cause-preservation is exercised only by reading the code, not by a test.
 
 No device check is needed to *land* this — the failure is an alert, not native rendering — but the
 `content://` case from 2026-10-10 is worth re-running to see the new wording, and ERR-2's
