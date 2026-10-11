@@ -9,8 +9,8 @@ workspace files (`.serena/`, `run-app.sh`, `.claude/agents/`) — tooling noise,
 
 **Progress.** Backlog items 1 (PERF-1, DUP-8), 2 (ERR-2, TEST-2) and 3 (ERR-1) are done — `085d4da`,
 the `fix/gpx-no-route-guard` branch merged at `50785dc`, and `331e00b`; designs in
-`docs/superpowers/specs/2026-09-10-onfoot-rn-selection-revalidation-design.md` and
-`docs/superpowers/specs/2026-09-10-onfoot-rn-gpx-no-route-guard-design.md`. Everything below is
+`docs/design/specs/2026-09-10-onfoot-rn-selection-revalidation-design.md` and
+`docs/design/specs/2026-09-10-onfoot-rn-gpx-no-route-guard-design.md`. Everything below is
 the report as written against `9833610`; resolved findings are marked in place.
 
 **Method.** Every production `.ts`/`.tsx` file under `src/`, `app/` and `modules/share-intent` was
@@ -522,7 +522,7 @@ directory map, and migration generation.
 `app.config.ts:15-17`: "expo-task-manager delivers background location batches via a persisted
 JobScheduler job (survives reboot), which the OS only allows with RECEIVE_BOOT_COMPLETED". The patch
 `patches/expo-task-manager+57.0.12.patch` sets `setPersisted(false)` precisely so the job is *not*
-persisted; the spec (`docs/superpowers/specs/2026-08-22-onfoot-rn-record-activity-design.md:309-318`)
+persisted; the spec (`docs/design/specs/2026-08-22-onfoot-rn-record-activity-design.md:309-318`)
 records the permission as "belt-and-suspenders". The comment states the opposite of what ships
 (`git log`: permission added in `43bd5c0`, patch in `70f6284`, comment never revisited). · Fix:
 rewrite the comment to match the spec, or drop the permission after a device check on the OEMs the
@@ -732,7 +732,7 @@ PERF-1 are adjacent to §4/§5/§6 and were not visible from those sections' sco
 - **Read only through the contract:** `modules/share-intent/android/.../ShareIntentModule.kt` was
   read for the payload shape (`{ uri }`) and matches `index.ts`; its correctness on device (SEND
   intents, `clipData` vs `EXTRA_STREAM`) is not judged here.
-- **Sampled, not read in full:** the 25 specs and 24 plans under `docs/superpowers/` (only the
+- **Sampled, not read in full:** the 25 specs and 24 plans under `docs/design/` (only the
   record-activity spec's patch section was read to anchor DOC-2); the test files other than the six
   named in §3.5; `src/data/db/migrations/meta/*.json` snapshots.
 - **Plausible, unmeasured:** PERF-1 and PERF-2. The magnitude is inferred from the previous report's

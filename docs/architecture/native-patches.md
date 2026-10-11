@@ -66,7 +66,7 @@ Expo registers the background-location delivery as a persisted `JobScheduler` jo
 requires `RECEIVE_BOOT_COMPLETED`, and on some OEMs the persisted job crashed background location
 outright. The only capability lost is a recording surviving a device reboot, which the app does not
 promise. Designed in
-`docs/superpowers/specs/2026-08-22-onfoot-rn-record-activity-design.md` (§ the permission's
+`docs/design/specs/2026-08-22-onfoot-rn-record-activity-design.md` (§ the permission's
 "belt-and-suspenders" note).
 
 **If dropped:** background location may crash on affected OEMs, and the `RECEIVE_BOOT_COMPLETED`

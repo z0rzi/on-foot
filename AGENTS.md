@@ -38,7 +38,8 @@ uphold the original design, do not let it erode one expedient change at a time.
   decompose, not to keep piling on.
 - **Pure logic is TDD'd; native rendering is device-verified.** State machines, resolution
   helpers, theme/capability logic → Jest tests written first (`src/**/__tests__/`). Map
-  rendering, gestures, and camera behaviour are verified on-device, not unit-tested.
+  rendering, gestures, and camera behaviour are verified on-device, not unit-tested. Device
+  verification is the user's step and is never claimed on their behalf.
 - **Persist the minimum.** Only state that must survive a restart is persisted (Zustand
   `partialize`); session/UI state stays in-memory.
 - **Hold the type and quality line.** No new `any`/`as any`/`@ts-ignore`/`eslint-disable`
@@ -62,7 +63,7 @@ uphold the original design, do not let it erode one expedient change at a time.
   redundant. Prove a fix with a test that fails before it and passes after. Fixing a hot path
   or extracting a helper is not a licence to stop reading the surrounding code, and never
   codify accidental drift into a shared API.
-- **Features go through brainstorm → spec → plan** (`docs/superpowers/`), not
+- **Features go through brainstorm → spec → plan** (`docs/design/`), not
   straight-to-code. Small changes still get a design thought through before implementation.
   Every spec carries an **`## Existing shape`** section: the closest existing feature of the
   same shape (or "none"), what will be reused from it, and what is extracted to be shared.
@@ -78,6 +79,24 @@ The app keeps its own log in SQLite, readable and shareable from Settings → De
 `logEvent(level, area, message, detail?)` from `src/log` — fire-and-forget, never awaited. It
 **never records coordinates**: a position is logged as an accuracy and a distance, never a latitude
 or longitude. See `docs/architecture/debug-log.md`.
+
+# Agent skills
+
+## Issue tracker
+
+In-repo markdown, in one place: the standing worklist at `docs/reviews/open-work.md`, with specs
+and plans under `docs/design/`. GitHub Issues is reserved for reports from **outside** the
+development process and holds nothing today; internal findings never go there.
+See `docs/agents/issue-tracker.md`.
+
+## Triage labels
+
+The five canonical roles, each label string equal to its name. See `docs/agents/triage-labels.md`.
+
+## Domain docs
+
+Single-context: one root `GLOSSARY.md` and one `docs/adr/`, neither created yet.
+See `docs/agents/domain.md`.
 
 # About comments
 
