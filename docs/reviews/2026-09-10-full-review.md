@@ -358,10 +358,13 @@ route") before going back, for both the empty and the throw case. Add the empty 
 points to count, and `new.tsx` tells the user which of the two happened instead of going back in
 silence. Device-checked 2026-10-10: a non-GPX file and a zero-byte file both raise "Not a GPX file /
 This file could not be read as GPX." and leave the trails list untouched, so the silent empty trail
-is gone. An unreadable `content://` URI raises that same alert while the debug log carries the real
-cause (`SecurityException`, permission denial) — which answers §7's question: the user is told, but
-the message names the file's format rather than the read failure. The `empty` reason's own message
-is still unexercised.
+is gone. An unreadable `content://` URI raised that same alert while the debug log carried the real
+cause (`SecurityException`, permission denial) — which answered §7's question: the user was told,
+but the message named the file's format for a file that was never read. Fixed (`34b420f`,
+`cdb7ce3`): `readGpxFile` wraps a read failure as a `GpxReadError`, and one `classifyGpxFailure`
+feeds both the alert and the log phrase, so "Could not open the file" is now distinct from "Not a
+GPX file" and cannot drift from what the log says. The underlying error is kept as the `cause` and
+still reaches the log. The `empty` reason's own message is still unexercised.
 
 **ERR-3 — `void load().then(...)` chains with no failure outcome** ·
 `src/map/useSelectedEntity.ts:22`, `src/map/ActivityInfoSheet.tsx:37`,
