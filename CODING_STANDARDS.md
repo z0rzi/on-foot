@@ -82,8 +82,8 @@ mechanical; this rule covers the helper that is not named `format*`.
 ## Sibling functions make the same choices
 
 **What.** Functions that play the same role in two features make the same cache-update,
-error-handling, import-style and naming choices: one does not memoize while the other does not,
-one does not derive during render while the other sets state in an effect.
+error-handling, import-style and naming choices. A fork is one sibling memoizing while the other
+does not, or one deriving during render while the other sets state in an effect.
 **Why.** A fork between siblings is a pattern being born twice; the next agent copies whichever
 it opens first.
 **Fix.** Align the newer sibling on the older one, or change both deliberately and say so in the

@@ -29,7 +29,8 @@ the end of this file.
   there.
 - **Specs and plans** — `docs/design/specs/YYYY-MM-DD-<slug>-design.md` and
   `docs/design/plans/YYYY-MM-DD-<slug>.md`. `AGENTS.md` requires features to go
-  brainstorm → spec → plan; every spec carries an `## Existing shape` section.
+  brainstorm → spec → plan; every spec carries an `## Existing shape` and a `## Failure modes`
+  section.
 
 Those three are the only homes. Do not create a fourth, and do not create `.scratch/`.
 

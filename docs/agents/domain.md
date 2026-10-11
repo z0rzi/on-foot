@@ -22,7 +22,7 @@ creating it upfront. The `/domain-modeling` skill (reached via `/grill-with-docs
 /
 ├── GLOSSARY.md                        ← not yet created
 ├── docs/
-│   ├── adr/                           ← exists: 0001 review by standards and spec
+│   ├── adr/                           ← exists
 │   ├── architecture/                  ← exists: seams, debug log, native patches
 │   ├── design/                        ← every feature's spec and plan
 │   └── reviews/                       ← review reports and open-work.md

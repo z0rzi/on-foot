@@ -24,9 +24,9 @@ Run `npm run verify` in the background now, so it finishes while the review runs
 On a feature branch the fixed point is `master`. When the work landed directly on `master`, it
 is the first commit of this iteration (`HEAD~<n>`). State which one you chose and why.
 
-Say whether there are uncommitted changes. If there are, the diff `/code-review` must read is
-the working tree against the fixed point (`git diff <fixed-point>`), not `<fixed-point>...HEAD`;
-pass that explicitly.
+Say whether there are uncommitted changes. `/code-review` reads `<fixed-point>...HEAD`, so it
+sees committed work only: commit the work first, or say in the relay that the uncommitted part
+was not reviewed.
 
 ## 3. Find the spec
 
