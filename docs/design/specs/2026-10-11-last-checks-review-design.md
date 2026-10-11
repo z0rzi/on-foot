@@ -48,6 +48,9 @@ rather than introducing a spec template file.
   must-fix. The review is not aborted.
 - **Fixed point missing or diff empty**: `/code-review` refuses before spawning sub-agents. The
   command relays that refusal and stops.
+- **Work uncommitted**: `/code-review` diffs `<fixed-point>...HEAD`, so it sees committed work
+  only. The command says so and either commits the work first or states in the relay that the
+  uncommitted part was not reviewed. Never a silent partial review.
 - **Spec found but stale** (behaviour changed in conversation after the spec was written): the Spec
   axis reports a false mismatch. The owner's answer is to amend the spec, never to add an
   exemption list to the command.
@@ -100,8 +103,10 @@ rather than introducing a spec template file.
 ## Implementation Decisions
 
 - **Standards file.** A root `CODING_STANDARDS.md`, which `/code-review` picks up by name. Its
-  first lines point at the "Architecture principles" in `AGENTS.md` as the base standard that it
-  does not repeat. It then states the review-time rules as what / why / fix, one rule each:
+  first lines point at the "Architecture principles" in `AGENTS.md` as the base standard, naming
+  the four principles it restates in review form (sibling naming, justified escapes, icon-only
+  labels, comment style) and repeating none of the others. It then states the review-time rules
+  as what / why / fix, one rule each:
   barrel-versus-leaf imports at the data seam; a wrapped native module's TypeScript types are not
   ground truth for runtime payloads; derived or cached state has one owner; risky render paths
   degrade rather than rely on the root error boundary; every new file names its sibling and says

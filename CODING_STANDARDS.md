@@ -2,9 +2,11 @@
 
 Read at review time, by `/_last-checks` through `/code-review`. The base standard is the
 **Architecture principles** section of `AGENTS.md` (seams, no quick-fixes, existing patterns,
-small units, TDD for pure logic, persist the minimum); it is not repeated here. The decisions a
-change is allowed to make live in its spec under `docs/design/specs/`, written before the code,
-so a reviewer judges against that spec and never against an after-the-fact list.
+small units, TDD for pure logic, persist the minimum). Four of those principles are restated
+below in review form, as what / why / fix, so a finding can cite them: naming the sibling,
+justified escapes, icon-only labels and comment style. The rest are not repeated. The decisions
+a change is allowed to make live in its spec under `docs/design/specs/`, written before the
+code, so a reviewer judges against that spec and never against an after-the-fact list.
 
 Everything `npm run verify` enforces is omitted on purpose: types, tests, the seam registry,
 verbatim duplication, import cycles, import and export rules, secrets, floating promises, lint.
