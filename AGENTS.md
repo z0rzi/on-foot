@@ -67,7 +67,14 @@ uphold the original design, do not let it erode one expedient change at a time.
   straight-to-code. Small changes still get a design thought through before implementation.
   Every spec carries an **`## Existing shape`** section: the closest existing feature of the
   same shape (or "none"), what will be reused from it, and what is extracted to be shared.
-  "Nothing to share" is an acceptable answer only with the reason.
+  "Nothing to share" is an acceptable answer only with the reason. Every spec also carries a
+  **`## Failure modes`** section: each degraded mode the feature can hit (offline or network
+  drop, permission denied, empty or malformed input, cancel mid-operation, render-time throw)
+  with its visible and recoverable outcome; "none" is acceptable only with the reason.
+- **Review is by standards and by spec.** `/_last-checks` runs after every unit of work:
+  `npm run verify`, then `/code-review` against `CODING_STANDARDS.md` (the review-time
+  judgement calls, with the principles above as their base) and against the feature's spec.
+  Why there is no post-work checklist: `docs/adr/0001-review-by-standards-and-spec.md`.
 
 When a request tempts you toward a shortcut that violates the above, surface the tension
 instead of silently taking the shortcut.
@@ -95,8 +102,8 @@ The five canonical roles, each label string equal to its name. See `docs/agents/
 
 ## Domain docs
 
-Single-context: one root `GLOSSARY.md` and one `docs/adr/`, neither created yet.
-See `docs/agents/domain.md`.
+Single-context: one root `GLOSSARY.md` (not created yet) and one `docs/adr/` (first entry
+ADR-0001). See `docs/agents/domain.md`.
 
 # About comments
 

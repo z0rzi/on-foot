@@ -121,13 +121,6 @@ anywhere in the repo.
 
 ## Proposed work — not from the review
 
-- **Replace the post-work checklist with a standards-and-spec review** · proposed by the owner
-  2026-10-11 · `ready-for-agent` · size M. `/retro-quality` and `POST-WORK.md` give way to
-  `/_last-checks`, a thin command over `/code-review`; review-time rules move to a root
-  `CODING_STANDARDS.md`, degraded modes become a mandatory `## Failure modes` spec section, and the
-  owner's five most-used commands take a leading underscore. Spec:
-  `docs/design/specs/2026-10-11-last-checks-review-design.md`. Decision: ADR-0001.
-
 - **Progressive route rendering** · proposed by the owner 2026-10-07, after measuring a 13.3 km
   trail selection at 657 ms of frame activity. Show the trace on the map immediately as a plain
   line, then let the profile, the slope colours and the elevation graph arrive a beat later. It

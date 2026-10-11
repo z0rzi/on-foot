@@ -14,7 +14,7 @@ export const EXPORT_RULES: ExportRule[] = [
     within: 'src/data/',
     mustNotExport: /^format[A-Z]/,
     rationale:
-      'Presentation logic (formatters, view helpers) does not belong in the data layer (POST-WORK.md). ARCH-1 was three formatters defined in data/geo; the import rule next door stops this directory reaching for one, and this rule stops it growing its own. The name is a proxy for "returns a string for the screen", which cannot be checked mechanically.',
+      'Presentation logic (formatters, view helpers) does not belong in the data layer (CODING_STANDARDS.md). ARCH-1 was three formatters defined in data/geo; the import rule next door stops this directory reaching for one, and this rule stops it growing its own. The name is a proxy for "returns a string for the screen", which cannot be checked mechanically.',
   },
 ]
 

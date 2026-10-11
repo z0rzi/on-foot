@@ -4,9 +4,9 @@ description: Whole-codebase health check — triggered, scoped, and closed out b
 
 # Health-Check — whole-codebase review
 
-A whole-repo pass, not tied to one feature. It exists because the per-iteration checks
-(`/retro-quality`, `POST-WORK.md`) are scoped to a diff and cannot see a copy of a file they
-never opened. Run it on a trigger, keep it small, and end it by turning findings into gates.
+A whole-repo pass, not tied to one feature. It exists because the per-iteration review
+(`/_last-checks`, against `CODING_STANDARDS.md` and the spec) is scoped to a diff and cannot see
+a copy of a file it never opened. Run it on a trigger, keep it small, and end it by turning findings into gates.
 
 ## When to run
 
@@ -23,8 +23,8 @@ Run when **any** of these is true — do not wait for "a while":
 1. Read `AGENTS.md` and the **latest** `docs/architecture/health-check-*.md` in full, including
    its "Gates added" and "recorded-not-done" items. Do not re-derive what it already settled.
 2. Run `npm run verify` and record the baseline (suites, tests, lint counts).
-3. List specs merged since the last check and confirm each has an `## Existing shape` section.
-   A missing one is a finding in its own right.
+3. List specs merged since the last check and confirm each has an `## Existing shape` and a
+   `## Failure modes` section. A missing one is a finding in its own right.
 
 ## What to read
 
@@ -74,9 +74,9 @@ of these it became:
 
 - a **mechanical gate** — a `SEAMS` entry, an `IMPORT_RULES` entry, a `DUPLICATION_EXEMPT`
   entry with rationale, a new architecture test, or a unit test;
-- a **process step** — a one-line addition to `AGENTS.md` or `POST-WORK.md` (rarely; every
-  added line dilutes the rest);
+- a **process step** — a judgement-call rule added to `CODING_STANDARDS.md`, or (rarely; every
+  added line dilutes the rest) a one-line addition to `AGENTS.md`;
 - **recorded-not-done**, with the reason and what would trigger doing it.
 
 A finding that became none of these is the next check's finding again. Then run
-`/retro-quality` on the check's own diff and `/if-from-zero` on any abstraction it introduced.
+`/_last-checks` on the check's own diff and `/_if-from-zero` on any abstraction it introduced.
