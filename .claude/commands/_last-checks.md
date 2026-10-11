@@ -37,8 +37,8 @@ axis runs alone. That is a normal outcome for a small fix, not an error.
 
 ## 4. Review
 
-Call the Skill tool with `code-review`, giving it the fixed point, the diff command from step 2
-and the spec path or its absence. `/code-review` refuses when the fixed point does not resolve
+Call the Skill tool with `code-review`, giving it the fixed point from step 2 and the spec path
+or its absence. `/code-review` refuses when the fixed point does not resolve
 or the diff is empty; relay that refusal and stop.
 
 ## 5. Relay and take a position

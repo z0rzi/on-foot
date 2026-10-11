@@ -4,8 +4,8 @@ import { SourceFile } from './sourceScan'
 // lines do not count) of at least DUPLICATION_WINDOW, across files or within one. Identifiers
 // are not normalised on purpose: a copy that renames every symbol (trail -> activity) is
 // invisible here and is caught by the spec's "Existing shape" step and the "names its
-// sibling" standard in CODING_STANDARDS.md instead. Window calibration: 8 reports nothing on the post-health-check tree and five
-// of the 2026-09-07 findings on the tree before it.
+// sibling" standard in CODING_STANDARDS.md instead. Window calibration: 8 reports nothing on
+// the post-health-check tree and five of the 2026-09-07 findings on the tree before it.
 export const DUPLICATION_WINDOW = 8
 
 export interface DuplicateExemption {
