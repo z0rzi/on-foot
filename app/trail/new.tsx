@@ -42,7 +42,11 @@ export default function NewTrailScreen() {
             : err instanceof GpxError && err.reason === 'empty'
               ? 'no route in the file'
               : 'not recognised as GPX'
-        logEvent('error', 'error', `gpx import failed, ${reason}`, { error: String(err) })
+        // The wrapper's own message says nothing a reader can act on; the cause is the permission
+        // or missing-file error worth having in the log.
+        logEvent('error', 'error', `gpx import failed, ${reason}`, {
+          error: String(err instanceof GpxReadError ? err.cause : err),
+        })
         const alert = gpxImportAlert(err)
         Alert.alert(alert.title, alert.message)
         leave()
