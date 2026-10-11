@@ -333,8 +333,15 @@ existing ones. · **should-fix, S** (device-verify the notification disappears).
 `finishRecording`, which stops the stream before `saveActivity`. Device-verified 2026-10-10 on the
 paths that occur: before a recording ends, `dumpsys` reports `isForeground=true` and a "Recording
 your activity" notification record; after a save, and again after a discard, neither remains. The
-`'already-active'` route itself could not be triggered from the UI and looks unreachable — see
-`docs/reviews/open-work.md`, pending device checks.
+`'already-active'` route could not be triggered by hand, but it is **not** dead, and the reason is
+worth keeping: `resumeIfActive` settles `resumeSettled` in a `finally`, so a launch whose
+reconciliation *throws* still marks itself settled with the store unhydrated. `useResumeRecording`
+catches that rejection by design ("the durable session persists, so the next launch retries"), which
+leaves the phase `idle` over a live row; `RecordButton` passes its `resumeSettled` guard and offers
+Start, and `startRecording` queries the database rather than the store, finds the session, and
+returns `'already-active'`. `recordingController.test.ts` already pins both halves — the settle on
+failure, and the start that reports it. Deleting the branch would make that tap silently do nothing:
+the queued start would find the session, report `'started'`, and create none.
 
 **ERR-2 — An empty or non-GPX file becomes a saveable empty trail, silently** ·
 `app/trail/new.tsx:31-37` never checks `parsed.segments.length`; `src/data/trails/gpx/parse.ts:69-75`
@@ -351,10 +358,13 @@ route") before going back, for both the empty and the throw case. Add the empty 
 points to count, and `new.tsx` tells the user which of the two happened instead of going back in
 silence. Device-checked 2026-10-10: a non-GPX file and a zero-byte file both raise "Not a GPX file /
 This file could not be read as GPX." and leave the trails list untouched, so the silent empty trail
-is gone. An unreadable `content://` URI raises that same alert while the debug log carries the real
-cause (`SecurityException`, permission denial) — which answers §7's question: the user is told, but
-the message names the file's format rather than the read failure. The `empty` reason's own message
-is still unexercised.
+is gone. An unreadable `content://` URI raised that same alert while the debug log carried the real
+cause (`SecurityException`, permission denial) — which answered §7's question: the user was told,
+but the message named the file's format for a file that was never read. Fixed (`34b420f`,
+`cdb7ce3`): `readGpxFile` wraps a read failure as a `GpxReadError`, and one `classifyGpxFailure`
+feeds both the alert and the log phrase, so "Could not open the file" is now distinct from "Not a
+GPX file" and cannot drift from what the log says. The underlying error is kept as the `cause` and
+still reaches the log. The `empty` reason's own message is still unexercised.
 
 **ERR-3 — `void load().then(...)` chains with no failure outcome** ·
 `src/map/useSelectedEntity.ts:22`, `src/map/ActivityInfoSheet.tsx:37`,

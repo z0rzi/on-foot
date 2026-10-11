@@ -109,9 +109,6 @@ surface it. This section is the one place that lists such a claim.
 **ERR-1 and ERR-2 were checked on a device on 2026-10-10**; the evidence sits in their own notes in
 the authoritative document. Three fragments stayed unobserved rather than verified:
 
-- **ERR-1** · the `'already-active'` save route could not be triggered from the UI. The record
-  button reconciles through `resumeIfActive` before it can render idle over a live session, so the
-  branch looks unreachable — worth deciding whether it is defensive or dead.
 - **ERR-1** · whether `stopLocationUpdatesAsync` ever fails in practice. It has not been seen to.
 - **ERR-2** · the distinct "no route" message, which needs a valid `<gpx>` root carrying zero
   points; both files tested failed earlier, at the root element.
