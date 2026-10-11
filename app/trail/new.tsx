@@ -2,16 +2,22 @@ import { useEffect, useState } from 'react'
 import { Alert } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
 import { GpxReadError, readGpxFile } from '../../src/data/trails/gpx/readFile'
-import { GpxError, GpxParseResult, parseGpx } from '../../src/data/trails/gpx/parse'
+import { GpxParseResult, parseGpx } from '../../src/data/trails/gpx/parse'
 import { metricsForSegments } from '../../src/data/geo/metrics'
 import { useTrailsStore } from '../../src/store/trailsStore'
 import { TrailGeometry, TrailMetrics } from '../../src/data/trails/types'
 import { TrailForm } from '../../src/trails/TrailForm'
-import { gpxImportAlert } from '../../src/trails/importAlerts'
+import { classifyGpxFailure, GpxImportFailure, gpxImportAlert } from '../../src/trails/importAlerts'
 import { useGoBackOrHome } from '../../src/components/useGoBackOrHome'
 import { ScreenHeader } from '../../src/components/ScreenHeader'
 import { LoadingScreen } from '../../src/components/LoadingScreen'
 import { logEvent } from '../../src/log'
+
+const IMPORT_FAILURE_LOG_PHRASE: Record<GpxImportFailure, string> = {
+  read: 'file could not be read',
+  empty: 'no route in the file',
+  format: 'not recognised as GPX',
+}
 
 export default function NewTrailScreen() {
   const params = useLocalSearchParams<{ uri?: string; name?: string }>()
@@ -36,18 +42,13 @@ export default function NewTrailScreen() {
         parsed = parseGpx(xml, params.name ?? null)
       } catch (err) {
         if (cancelled) return
-        const reason =
-          err instanceof GpxReadError
-            ? 'file could not be read'
-            : err instanceof GpxError && err.reason === 'empty'
-              ? 'no route in the file'
-              : 'not recognised as GPX'
+        const failure = classifyGpxFailure(err)
         // The wrapper's own message says nothing a reader can act on; the cause is the permission
         // or missing-file error worth having in the log.
-        logEvent('error', 'error', `gpx import failed, ${reason}`, {
+        logEvent('error', 'error', `gpx import failed, ${IMPORT_FAILURE_LOG_PHRASE[failure]}`, {
           error: String(err instanceof GpxReadError ? err.cause : err),
         })
-        const alert = gpxImportAlert(err)
+        const alert = gpxImportAlert(failure)
         Alert.alert(alert.title, alert.message)
         leave()
         return
