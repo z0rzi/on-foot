@@ -333,8 +333,15 @@ existing ones. · **should-fix, S** (device-verify the notification disappears).
 `finishRecording`, which stops the stream before `saveActivity`. Device-verified 2026-10-10 on the
 paths that occur: before a recording ends, `dumpsys` reports `isForeground=true` and a "Recording
 your activity" notification record; after a save, and again after a discard, neither remains. The
-`'already-active'` route itself could not be triggered from the UI and looks unreachable — see
-`docs/reviews/open-work.md`, pending device checks.
+`'already-active'` route could not be triggered by hand, but it is **not** dead, and the reason is
+worth keeping: `resumeIfActive` settles `resumeSettled` in a `finally`, so a launch whose
+reconciliation *throws* still marks itself settled with the store unhydrated. `useResumeRecording`
+catches that rejection by design ("the durable session persists, so the next launch retries"), which
+leaves the phase `idle` over a live row; `RecordButton` passes its `resumeSettled` guard and offers
+Start, and `startRecording` queries the database rather than the store, finds the session, and
+returns `'already-active'`. `recordingController.test.ts` already pins both halves — the settle on
+failure, and the start that reports it. Deleting the branch would make that tap silently do nothing:
+the queued start would find the session, report `'started'`, and create none.
 
 **ERR-2 — An empty or non-GPX file becomes a saveable empty trail, silently** ·
 `app/trail/new.tsx:31-37` never checks `parsed.segments.length`; `src/data/trails/gpx/parse.ts:69-75`
