@@ -102,7 +102,7 @@ The five canonical roles, each label string equal to its name. See `docs/agents/
 
 ## Domain docs
 
-Single-context: one root `GLOSSARY.md` (not created yet) and one `docs/adr/`.
+Single-context: one root `GLOSSARY.md` and one `docs/adr/`.
 See `docs/agents/domain.md`.
 
 # About comments

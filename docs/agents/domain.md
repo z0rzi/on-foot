@@ -11,16 +11,16 @@ codebase. This is a single-context repo: one glossary and one ADR directory, bot
   `native-patches.md` and friends. Read the ones touching your area; `src/architecture/seams.ts` is
   the enforced seam registry those documents explain.
 
-`docs/adr/` exists; `GLOSSARY.md` does not yet. If a file isn't there, **proceed silently**. Don't
-flag its absence; don't suggest creating it upfront. The `/domain-modeling` skill (reached via
-`/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or
-decisions actually get resolved.
+Both exist, and both are grown lazily: the `/domain-modeling` skill (reached via `/grill-with-docs`
+and `/improve-codebase-architecture`) adds a term or an ADR only when one actually gets resolved. If
+a term or decision you need isn't there, **proceed silently** — don't flag its absence, don't
+suggest filling it in upfront.
 
 ## File structure
 
 ```
 /
-├── GLOSSARY.md                        ← not yet created
+├── GLOSSARY.md                        ← exists: map, offline vocabulary
 ├── docs/
 │   ├── adr/                           ← exists
 │   ├── architecture/                  ← exists: seams, debug log, native patches
