@@ -10,16 +10,18 @@ and PERF-3) is not open work and is not listed here; its ruling lives in the rep
 
 ## At a glance
 
-16 open findings · 5 bundled into backlog row 10 (below) · 11 outside it, of which 4 are error
-handling, 3 are field findings, and 4 are everything else.
+16 open findings · 6 bundled into backlog row 10 (below) · 10 outside it, of which 4 are error
+handling, 3 are field findings, and 3 are everything else · plus 1 item proposed outside the review.
 
 ## The ranked backlog — row 10
 
-The only backlog row not yet done (rows 1-9 are closed in the authoritative document).
+The only backlog row not yet done (rows 1-9 are closed in the authoritative document). **Unblocked
+and spec'd 2026-10-11**: `docs/design/specs/2026-10-11-provider-cleanup-design.md`, with the
+decision that unblocked it in `docs/adr/0002-offline-is-a-provider-requirement.md`.
 
 | # | Work | Findings | Size | Risk |
 | --- | --- | --- | --- | --- |
-| 10 | Retire `primary`/`overlayScrim`; delete `isValidCapabilities`; gate on or drop `caps.offline`; bridge `followUserMode` explicitly | DEAD-1..3, ARCH-3, ARCH-4 | S | Low |
+| 10 | Retire `primary`/`overlayScrim`; delete `isValidCapabilities` and the three unread capability flags including `offline`; `estimatePackSize` returns bytes; bridge `followUserMode` explicitly | DEAD-1..3, ARCH-3, ARCH-4, DOC-5 | S | Low |
 
 ## Field findings
 
@@ -80,20 +82,23 @@ until the app restarts, because `OfflineMapsList` reloads trails on focus but ne
 - **ARCH-3** · minor, S (row 10). Unjustified double cast at the map seam:
   `adapter.tsx:52` casts `followUserMode as unknown as Mapbox.UserTrackingMode`. Fix: an explicit
   `Record<FollowUserMode, Mapbox.UserTrackingMode>` map.
-- **ARCH-4** · minor, S (row 10). `MapCapabilities.offline` promises a gate nothing reads;
-  `TrailInfoSheet` and `OfflineMapsList` render the offline UI unconditionally. Two mutually
-  exclusive fixes, the owner's call: gate the offline entry points on `caps.offline`, or delete the
-  flag as dead per DEAD-1.
-- **DOC-5** · minor, S. The `offline` capability comment describes the same gate ARCH-4 is missing
-  — same two mutually exclusive resolutions, same owner's call. Paired with ARCH-4 in row 10.
+- **ARCH-4 + DOC-5** · minor, S (row 10). **Decided 2026-10-11: delete the flag** —
+  `docs/adr/0002-offline-is-a-provider-requirement.md`. The owner will only ever pick providers that
+  do offline, so `offline` is an invariant, not a capability; it is already enforced by the required
+  `MapProvider.offline` member, and the boolean was a weaker restatement. A spec to wire the gate was
+  drafted first and reversed the same day — the ADR records why, so the gate is not proposed again.
+  Evidence worth keeping from that detour: a gate would have had **five** surfaces, not two (the
+  settings row the review named, plus four inside `TrailInfoSheet`: badge `:111-119`, progress block
+  `:127-135`, `offlineMenuItems` `:103`, chooser `:159`); and a suspected per-trail-row badge surface
+  was **ruled out** — `offlineStateForTrail`'s only production consumer is `TrailInfoSheet.tsx:55`.
 - **DEAD-1** · minor, S (row 10). `isValidCapabilities` has no production consumer; `requiresToken`,
   `supportsDataDrivenLayers`, `offline` are set and read by nothing. Fix: delete the validator and
-  its tests; keep `offline` only if ARCH-4 wires it; drop the other two until a second provider
-  needs them.
+  its tests, and **all three flags** — `offline` included, per ARCH-4's resolution.
 - **DEAD-2** · minor, S (row 10). `primary` and `overlayScrim` theme tokens have no consumer. Fix:
   delete.
-- **DEAD-3** · minor, S (row 10, folds into DEAD-1's cleanup). `SizeEstimate.tileCount` is produced
-  and never read outside its own test.
+- **DEAD-3** · minor, S (row 10). `SizeEstimate.tileCount` is produced and never read outside its own
+  test. Dropping it leaves a one-field wrapper whose only consumer reads `.bytes`, so
+  `estimatePackSize` returns a `number` and `SizeEstimate` goes with it.
 - **DEAD-4** · minor, S. `src/net/netinfo.ts`'s `NetInfoState` re-export is consumed only by its
   own test; harmless, the test can import the type from the package directly.
 - **TEST-1** · minor, S, partly closed (`4157735`). `formatBytes` is tested and moved to
@@ -121,6 +126,12 @@ the authoritative document. Three fragments stayed unobserved rather than verifi
   all.
 
 ## Proposed work — not from the review
+
+- **`OfflineBadgeState` is misnamed** · minor, S, proposed by the owner 2026-10-11. The type drives
+  the badge, the downloading progress block *and* the ⋮ menu in `TrailInfoSheet`; "badge" names one
+  of three. Rename to `TrailOfflineStatus`, `offlineStateForTrail` → `offlineStatusForTrail`,
+  `badge.ts` → `status.ts`. Touches `offline/types.ts`, `badge.ts`, `menu.ts`, `TrailInfoSheet.tsx`
+  and two tests; no behaviour. Deliberately kept out of row 10, which is deletions.
 
 - **Progressive route rendering** · proposed by the owner 2026-10-07, after measuring a 13.3 km
   trail selection at 657 ms of frame activity. Show the trace on the map immediately as a plain
