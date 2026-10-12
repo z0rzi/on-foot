@@ -27,6 +27,14 @@ const View = ({ styleURL, onCameraChanged, style, children }: MapViewProps) => (
   </Mapbox.MapView>
 )
 
+// The port's follow-mode literals, declared against the provider's tracking enum. Exhaustive by
+// type: a fourth port literal without an entry is a compile error.
+const TRACKING_MODE: Record<NonNullable<CameraProps['followUserMode']>, Mapbox.UserTrackingMode> = {
+  normal: Mapbox.UserTrackingMode.Follow,
+  compass: Mapbox.UserTrackingMode.FollowWithHeading,
+  course: Mapbox.UserTrackingMode.FollowWithCourse,
+}
+
 // The camera is driven declaratively (follow props / pitch) — see MapCanvas. Two imperative
 // affordances remain, both only ever called when follow is off, so the rnmapbox "imperative move is
 // a no-op while following" trap does not apply: resetNorth, a one-shot rotate to bearing 0, and
@@ -50,7 +58,7 @@ const Camera = forwardRef<CameraController, CameraProps>(
       <Mapbox.Camera
         ref={inner}
         {...rest}
-        followUserMode={followUserMode as unknown as Mapbox.UserTrackingMode | undefined}
+        followUserMode={followUserMode && TRACKING_MODE[followUserMode]}
         onUserTrackingModeChange={
           onUserTrackingModeChange
             ? (e) => onUserTrackingModeChange(!!e?.nativeEvent?.payload?.followUserLocation)
