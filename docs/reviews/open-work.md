@@ -10,7 +10,7 @@ and PERF-3) is not open work and is not listed here; its ruling lives in the rep
 
 ## At a glance
 
-16 open findings · 6 bundled into backlog row 10 (below) · 10 outside it, of which 4 are error
+11 open findings · 1 bundled into backlog row 10 (below) · 10 outside it, of which 4 are error
 handling, 3 are field findings, and 3 are everything else · plus 1 item proposed outside the review.
 
 ## The ranked backlog — row 10
@@ -21,7 +21,42 @@ decision that unblocked it in `docs/adr/0002-offline-is-a-provider-requirement.m
 
 | # | Work | Findings | Size | Risk |
 | --- | --- | --- | --- | --- |
-| 10 | Retire `primary`/`overlayScrim`; delete `isValidCapabilities` and the three unread capability flags including `offline`; `estimatePackSize` returns bytes; bridge `followUserMode` explicitly | DEAD-1..3, ARCH-3, ARCH-4, DOC-5 | S | Low |
+| 10 | ~~Retire `primary`/`overlayScrim`; delete `isValidCapabilities` and the three unread capability flags including `offline`; `estimatePackSize` returns bytes~~ (**done** — `2f7bbb2`); bridge `followUserMode` explicitly | DEAD-1..3, ARCH-3, ARCH-4, DOC-5 | S | Low |
+
+### Tickets — sliced 2026-10-12
+
+Two tickets, neither blocked by the other. **Ticket 1 landed 2026-10-12 (`2f7bbb2`)**; ticket 2 is
+`ready-for-agent` and tagged on its entry below. Each lands green on `npm run verify`, removes its
+own entries from this file and ticks its own rows in the authoritative document.
+**Whichever lands second also closes the row** — so ticket 2 now does: it deletes
+this section and the table above, strikes row 10 in the authoritative document's backlog table with
+both commit hashes, and rewrites `## At a glance` by enumeration.
+
+- **Ticket 1 — the deletions** · DEAD-1, ARCH-4, DOC-5, DEAD-2, DEAD-3 · **done** (`2f7bbb2`).
+  What to build: a tree with nothing the spec names as unread. The capability type holds only its
+  id, the terrain flag and the style list; the capability validator and its test are gone, and the
+  provider's capabilities test keeps only the terrain assertion. The offline-controller comment on
+  the port says offline is required on every provider, enforced by the required member, and points
+  at ADR 0002 for why. The theme has no `primary` or `overlayScrim` token in its type or either
+  palette. The pack-size estimate returns a byte count, its one-field wrapper type is gone, the
+  layer chooser holds the bytes directly, and the two estimate tests assert the number against the
+  tile-count building block times the per-tile constant.
+  - [x] No reference to the removed flags, validator, tokens or wrapper type remains in `src/` or
+        `app/`
+  - [x] The port comment states the invariant and cites the ADR; it no longer describes a gate
+  - [x] `npm run verify` green; the `seams` test is untouched
+  - [x] The five entries leave this file and their rows are ticked in the authoritative document
+- **Ticket 2 — follow mode translated at the seam** · ARCH-3 · blocked by: none.
+  What to build: the map adapter maps each port follow-mode literal to the provider's tracking
+  enum through an explicit `Record` keyed by the port union, so a fourth literal without an entry
+  fails to compile. The double cast is gone, and an undefined follow mode still passes through as
+  undefined. No unit test: the `Record` is exhaustive by type. The spec's one device check (follow
+  mode in `normal`, `compass` and `course` behaves as before; leaving follow mode still clears it)
+  is the owner's and is recorded, not claimed.
+  - [ ] The adapter has no `as unknown as` on the follow-mode prop and no other cast replaces it
+  - [ ] `npm run verify` green
+  - [ ] The ARCH-3 entry leaves this file, its row is ticked, and the device check is listed under
+        `## Pending device checks` until the owner confirms it
 
 ## Field findings
 
@@ -79,26 +114,9 @@ until the app restarts, because `OfflineMapsList` reloads trails on focus but ne
   `requireNativeModule` directly and nothing stops a second call or a direct `expo-modules-core`
   import in `src/`. Fix: add `modules` to the scan roots and a seam entry, or record the exemption
   in `seams.md`.
-- **ARCH-3** · minor, S (row 10). Unjustified double cast at the map seam:
-  `adapter.tsx:52` casts `followUserMode as unknown as Mapbox.UserTrackingMode`. Fix: an explicit
-  `Record<FollowUserMode, Mapbox.UserTrackingMode>` map.
-- **ARCH-4 + DOC-5** · minor, S (row 10). **Decided 2026-10-11: delete the flag** —
-  `docs/adr/0002-offline-is-a-provider-requirement.md`. The owner will only ever pick providers that
-  do offline, so `offline` is an invariant, not a capability; it is already enforced by the required
-  `MapProvider.offline` member, and the boolean was a weaker restatement. A spec to wire the gate was
-  drafted first and reversed the same day — the ADR records why, so the gate is not proposed again.
-  Evidence worth keeping from that detour: a gate would have had **five** surfaces, not two (the
-  settings row the review named, plus four inside `TrailInfoSheet`: badge `:111-119`, progress block
-  `:127-135`, `offlineMenuItems` `:103`, chooser `:159`); and a suspected per-trail-row badge surface
-  was **ruled out** — `offlineStateForTrail`'s only production consumer is `TrailInfoSheet.tsx:55`.
-- **DEAD-1** · minor, S (row 10). `isValidCapabilities` has no production consumer; `requiresToken`,
-  `supportsDataDrivenLayers`, `offline` are set and read by nothing. Fix: delete the validator and
-  its tests, and **all three flags** — `offline` included, per ARCH-4's resolution.
-- **DEAD-2** · minor, S (row 10). `primary` and `overlayScrim` theme tokens have no consumer. Fix:
-  delete.
-- **DEAD-3** · minor, S (row 10). `SizeEstimate.tileCount` is produced and never read outside its own
-  test. Dropping it leaves a one-field wrapper whose only consumer reads `.bytes`, so
-  `estimatePackSize` returns a `number` and `SizeEstimate` goes with it.
+- **ARCH-3** · minor, S, ready-for-agent (row 10, ticket 2). Unjustified double cast at the map
+  seam: `adapter.tsx:52` casts `followUserMode as unknown as Mapbox.UserTrackingMode`. Fix: an
+  explicit `Record<FollowUserMode, Mapbox.UserTrackingMode>` map.
 - **DEAD-4** · minor, S. `src/net/netinfo.ts`'s `NetInfoState` re-export is consumed only by its
   own test; harmless, the test can import the type from the package directly.
 - **TEST-1** · minor, S, partly closed (`4157735`). `formatBytes` is tested and moved to

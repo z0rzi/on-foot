@@ -98,7 +98,13 @@ of suppression the previous report removed at the persistence seam (§7). · Fix
 reads `caps.offline`; `TrailInfoSheet` renders the offline menu and `OfflineMapsList` the registry
 unconditionally. The MapLibre escape hatch `AGENTS.md` wants kept reachable would ship a broken
 offline menu. · Fix: gate the offline entry points on `caps.offline` (one `if` in `TrailInfoSheet`
-and `settings.tsx`), or delete the flag (see DEAD-1). · **minor, S**.
+and `settings.tsx`), or delete the flag (see DEAD-1). · **minor, S**. · **Done** (`2f7bbb2`): the
+flag is deleted, not wired. The owner will only ever pick providers that do offline, so offline is
+an invariant rather than a capability, and it is already enforced structurally by the required
+`MapProvider.offline` member — a provider without it does not compile. The gate was fully specified
+and reversed the same day; `docs/adr/0002-offline-is-a-provider-requirement.md` records why, so it
+is not proposed again. Worth keeping from that detour: the gate would have had **five** surfaces,
+not the two named here.
 
 **ARCH-5 — The ARCH-1 gate covers the import, not the shape** · `src/architecture/importRules.ts:19-24`
 · `IMPORT_RULES` forbids `src/data/` *importing* `format/units`, but ARCH-1 was formatters *defined*
@@ -293,14 +299,21 @@ trail sheet reads `15.4 km · 1062 m gain` and renders cleanly.
 `capabilities.ts:7-10` and read by nothing — only `supportsTerrain` (`MapCanvas.tsx:122`,
 `MapControls.tsx:123`) and `styles` are consumed. · Fix: delete the validator and its tests; keep
 `offline` only if ARCH-4 wires it; drop the other two until a second provider needs them. ·
-**minor, S**.
+**minor, S**. · **Done** (`2f7bbb2`): the validator and its test are deleted, and all three flags
+go — `offline` included, per ARCH-4's resolution in `docs/adr/0002-offline-is-a-provider-requirement.md`.
+`MapCapabilities` is now exactly what is read: `id`, `supportsTerrain`, `styles`.
 
 **DEAD-2 — Unread theme tokens** · `primary` (`src/theme/colors.ts:4,35,66`) and `overlayScrim`
-(`colors.ts:16,47,78`) have no consumer. · Fix: delete. · **minor, S**.
+(`colors.ts:16,47,78`) have no consumer. · Fix: delete. · **minor, S**. · **Done** (`2f7bbb2`):
+both tokens are gone from `AppColors` and from both palettes.
 
 **DEAD-3 — `SizeEstimate.tileCount`** · `src/map/offline/types.ts:5`, produced at `estimate.ts:35`,
 read only by `estimate.test.ts`; consumers use `.bytes` (`OfflineLayerChooser.tsx:77,144,146`). ·
-Trivial; fold into DEAD-1's cleanup. · **minor, S**.
+Trivial; fold into DEAD-1's cleanup. · **minor, S**. · **Done** (`2f7bbb2`): dropping `tileCount`
+left a one-field wrapper, so `estimatePackSize` returns a `number` and `SizeEstimate` goes with it;
+the chooser holds `estimateBytes` directly. `tileCountForBounds` stays exported as the tested
+building block, and the two estimate tests now assert the byte count against it times the per-tile
+constant instead of against the dropped field.
 
 **DEAD-4 — `NetInfoState` re-export** · `src/net/netinfo.ts:4` is consumed only by its own test
 (`netinfo.test.ts:1`). Harmless; the test can import the type from the package. · **minor, S**.
@@ -571,7 +584,9 @@ attributes `immutability` to `RecordButton` only and names each disable's subjec
 facts-without-escape, which omitted the duplication and import-rule gates.
 
 **DOC-5 — The `offline` capability comment** · see ARCH-4 (`types.ts:147-149` describes a gate
-that nothing implements). · **minor, S**.
+that nothing implements). · **minor, S**. · **Done** (`2f7bbb2`): the `OfflineController` comment
+now states the invariant — offline is required on every provider, enforced by the required `offline`
+member — and cites ADR 0002. It no longer describes a gate.
 
 Clean: `AGENTS.md` and `POST-WORK.md` match the gates (`verify` = `tsc` + `jest` incl. seams /
 secrets / cycles / duplication / import rules + `expo lint`); `seams.md`'s candidate list matches the
