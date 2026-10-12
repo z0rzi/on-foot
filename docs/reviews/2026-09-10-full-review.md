@@ -49,14 +49,14 @@ settled it rather than a change.
 
 | Dimension | Status | Summary | Findings (must / should / minor) |
 |---|---|---|---|
-| Architecture & seams | 🟢 | Seams intact; a native module outside the scanner; one unjustified double cast at the map seam | 0 / 0 / 3 |
+| Architecture & seams | 🟢 | Seams intact; the follow-mode cast is now an explicit map (ARCH-3, `d08668c`); a native module outside the scanner remains | 0 / 0 / 1 |
 | Duplication & drift | 🟢 | The last renamed trail/activity store pair, accepted until a third entity store appears | 0 / 0 / 1 |
-| Dead code | 🟢 | No leftovers; a dead validator + three unread capability flags; two unread theme tokens | 0 / 0 / 4 |
+| Dead code | 🟢 | The validator, the three capability flags and the two theme tokens are gone (`2f7bbb2`); a `NetInfoState` re-export read only by its test remains | 0 / 0 / 1 |
 | Error & failure handling | 🟠 | `metricsForSegments` runs outside the parse `try` (spinner never exits on a metrics failure); a deleted trail leaves a dangling `linked_trail_id`; two silent no-op/unhandled-rejection paths (activity tap during a recording, offline-registry init, the picker and focus reload) | 0 / 2 / 2 |
 | Test coverage of pure logic | 🟢 | Decision logic is tested and tests assert behaviour; `packDescriptor` and a pure `downloadDecision` are the remaining gap | 0 / 0 / 1 |
 | Performance hot spots | 🟢 | Progress ticks re-render the trail info sheet on every tick (bounded by the SDK's tick rate) | 0 / 0 / 1 |
 | Dependency & config hygiene | 🟢 | All four findings closed (`4c41b17`): six unused deps pruned, `@types/jest` pinned, and `tsc`/eslint/jest now agree on gate scope | 0 / 0 / 0 |
-| Documentation freshness | 🟢 | The `offline` capability comment still describes a gate nothing implements (DOC-5; see ARCH-4) | 0 / 0 / 1 |
+| Documentation freshness | 🟢 | All findings closed: the `offline` capability comment states the invariant and cites ADR 0002 (DOC-5, `2f7bbb2`) | 0 / 0 / 0 |
 
 ## 3. Findings by dimension
 
@@ -91,7 +91,13 @@ app-owned module with a single consumer is exempt. · **minor, S**.
 `'normal' | 'compass' | 'course'` happens to equal rnmapbox's enum values today; the cast asserts
 that rather than bridging it, so a rename in the SDK compiles and fails on device — the same class
 of suppression the previous report removed at the persistence seam (§7). · Fix: an explicit
-`Record<FollowUserMode, Mapbox.UserTrackingMode>` map in the adapter. · **minor, S**.
+`Record<FollowUserMode, Mapbox.UserTrackingMode>` map in the adapter. · **minor, S**. ·
+**Done** (`d08668c`): `TRACKING_MODE` in the adapter maps each port literal to its tracking enum
+member, and the prop reads `followUserMode && TRACKING_MODE[followUserMode]` — no cast, `undefined`
+still passed through. The correspondence is now declared rather than asserted, and the `Record` is
+exhaustive by type: a missing key is a compile error (`TS2741`), not a runtime fall-through, so a
+fourth port literal cannot reach the SDK untranslated. The camera is native rendering, so the behaviour
+claim is the owner's device check and is listed in `open-work.md`.
 
 **ARCH-4 — `MapCapabilities.offline` promises a gate that does not exist** · `src/map/provider/types.ts:147-149`
 ("The capability flag `offline` gates whether it is meaningful for a given provider") · No consumer
@@ -625,7 +631,7 @@ import rule in `POST-WORK.md` is followed (only the stores and the two selection
 | 7 | ~~One owner for profile + slope banding (derive once, pass bands down)~~ | DUP-2, PERF-2 | Medium: three derivations → one; makes the smoothing contract structural | M | Medium (device-verify graph + route colours) | **done** — `28d1e44` |
 | 8 | ~~Move `format*` out of `data/geo` into a presentation module (with `formatBytes`)~~ | ARCH-1 | Medium: layering matches `POST-WORK.md`; one home for units | S | Low | **done** — `4157735`, `c8b781d`, `c93e98b` |
 | 9 | ~~`boundsForTrail` = `boundsForPoints` + margin; one `LngLatBounds`~~ | DUP-1 | Medium | S | Low (both tested) | **done** — `b2a7794` |
-| 10 | ~~Retire `controlsText`~~ (**done** — `9d3b382`); retire `primary`/`overlayScrim`; delete `isValidCapabilities`; gate on or drop `caps.offline`; bridge `followUserMode` explicitly | DEAD-1..3, ARCH-3, ARCH-4 | Low-medium: fewer traps for the next token/provider change | S | Low | later |
+| 10 | ~~Retire `controlsText`; retire `primary`/`overlayScrim`; delete `isValidCapabilities`; gate on or drop `caps.offline`; bridge `followUserMode` explicitly~~ | DEAD-1..3, ARCH-3, ARCH-4 | Low-medium: fewer traps for the next token/provider change | S | Low | **done** — `9d3b382`, `2f7bbb2`, `d08668c` |
 
 **Top three, in one sentence each.** (1) The revalidation key is the single change with the best
 ratio: a few lines in `useSelectedEntity`/`trailsStore` remove a whole-track re-read and re-render

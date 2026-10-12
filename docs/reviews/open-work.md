@@ -1,7 +1,7 @@
 # Open work
 
 A clean index of what is left. Started 2026-10-06, rewritten 2026-10-09 to drop finished work.
-**Update it as items close** — remove the item and correct the count in the same commit.
+**Update it as items close** — remove the item and update `## At a glance` in the same commit.
 
 **`docs/reviews/2026-09-10-full-review.md` stays authoritative** for the findings themselves; its
 rows are ticked in place and carry the evidence. This file only indexes what is still open there,
@@ -10,53 +10,17 @@ and PERF-3) is not open work and is not listed here; its ruling lives in the rep
 
 ## At a glance
 
-11 open findings · 1 bundled into backlog row 10 (below) · 10 outside it, of which 4 are error
-handling, 3 are field findings, and 3 are everything else · plus 1 item proposed outside the review.
+Open findings, by section below:
 
-## The ranked backlog — row 10
+- **Field findings** — FIELD-1, FIELD-3, FIELD-5.
+- **Error handling** — ERR-4, ERR-5, ERR-6, ERR-7.
+- **Everything else** — ARCH-2, DEAD-4, TEST-1.
 
-The only backlog row not yet done (rows 1-9 are closed in the authoritative document). **Unblocked
-and spec'd 2026-10-11**: `docs/design/specs/2026-10-11-provider-cleanup-design.md`, with the
-decision that unblocked it in `docs/adr/0002-offline-is-a-provider-requirement.md`.
+The ranked backlog is finished: **row 10 closed 2026-10-12** (`2f7bbb2`, `d08668c`), the last of the
+ten. Nothing from the review's backlog is open, so there is no backlog section here any more.
 
-| # | Work | Findings | Size | Risk |
-| --- | --- | --- | --- | --- |
-| 10 | ~~Retire `primary`/`overlayScrim`; delete `isValidCapabilities` and the three unread capability flags including `offline`; `estimatePackSize` returns bytes~~ (**done** — `2f7bbb2`); bridge `followUserMode` explicitly | DEAD-1..3, ARCH-3, ARCH-4, DOC-5 | S | Low |
-
-### Tickets — sliced 2026-10-12
-
-Two tickets, neither blocked by the other. **Ticket 1 landed 2026-10-12 (`2f7bbb2`)**; ticket 2 is
-`ready-for-agent` and tagged on its entry below. Each lands green on `npm run verify`, removes its
-own entries from this file and ticks its own rows in the authoritative document.
-**Whichever lands second also closes the row** — so ticket 2 now does: it deletes
-this section and the table above, strikes row 10 in the authoritative document's backlog table with
-both commit hashes, and rewrites `## At a glance` by enumeration.
-
-- **Ticket 1 — the deletions** · DEAD-1, ARCH-4, DOC-5, DEAD-2, DEAD-3 · **done** (`2f7bbb2`).
-  What to build: a tree with nothing the spec names as unread. The capability type holds only its
-  id, the terrain flag and the style list; the capability validator and its test are gone, and the
-  provider's capabilities test keeps only the terrain assertion. The offline-controller comment on
-  the port says offline is required on every provider, enforced by the required member, and points
-  at ADR 0002 for why. The theme has no `primary` or `overlayScrim` token in its type or either
-  palette. The pack-size estimate returns a byte count, its one-field wrapper type is gone, the
-  layer chooser holds the bytes directly, and the two estimate tests assert the number against the
-  tile-count building block times the per-tile constant.
-  - [x] No reference to the removed flags, validator, tokens or wrapper type remains in `src/` or
-        `app/`
-  - [x] The port comment states the invariant and cites the ADR; it no longer describes a gate
-  - [x] `npm run verify` green; the `seams` test is untouched
-  - [x] The five entries leave this file and their rows are ticked in the authoritative document
-- **Ticket 2 — follow mode translated at the seam** · ARCH-3 · blocked by: none.
-  What to build: the map adapter maps each port follow-mode literal to the provider's tracking
-  enum through an explicit `Record` keyed by the port union, so a fourth literal without an entry
-  fails to compile. The double cast is gone, and an undefined follow mode still passes through as
-  undefined. No unit test: the `Record` is exhaustive by type. The spec's one device check (follow
-  mode in `normal`, `compass` and `course` behaves as before; leaving follow mode still clears it)
-  is the owner's and is recorded, not claimed.
-  - [ ] The adapter has no `as unknown as` on the follow-mode prop and no other cast replaces it
-  - [ ] `npm run verify` green
-  - [ ] The ARCH-3 entry leaves this file, its row is ticked, and the device check is listed under
-        `## Pending device checks` until the owner confirms it
+Proposed outside the review, each needing its own spec: the `OfflineBadgeState` rename, the
+unnamed follow-mode union, and progressive route rendering — all at the end of this file.
 
 ## Field findings
 
@@ -114,9 +78,6 @@ until the app restarts, because `OfflineMapsList` reloads trails on focus but ne
   `requireNativeModule` directly and nothing stops a second call or a direct `expo-modules-core`
   import in `src/`. Fix: add `modules` to the scan roots and a seam entry, or record the exemption
   in `seams.md`.
-- **ARCH-3** · minor, S, ready-for-agent (row 10, ticket 2). Unjustified double cast at the map
-  seam: `adapter.tsx:52` casts `followUserMode as unknown as Mapbox.UserTrackingMode`. Fix: an
-  explicit `Record<FollowUserMode, Mapbox.UserTrackingMode>` map.
 - **DEAD-4** · minor, S. `src/net/netinfo.ts`'s `NetInfoState` re-export is consumed only by its
   own test; harmless, the test can import the type from the package directly.
 - **TEST-1** · minor, S, partly closed (`4157735`). `formatBytes` is tested and moved to
@@ -129,12 +90,17 @@ A finding can be closed on the code while still carrying a visual or runtime cla
 confirmed; that caveat then lives inside the closed finding's own note, where the lists above never
 surface it. This section is the one place that lists such a claim.
 
-**ERR-1 and ERR-2 were checked on a device on 2026-10-10**; the evidence sits in their own notes in
-the authoritative document. Three fragments stayed unobserved rather than verified:
-
-- **ERR-1** · whether `stopLocationUpdatesAsync` ever fails in practice. It has not been seen to.
-- **ERR-2** · the distinct "no route" message, which needs a valid `<gpx>` root carrying zero
-  points; both files tested failed earlier, at the root element.
+- **ERR-1 and ERR-2** were checked on a device on 2026-10-10; the evidence sits in their own notes
+  in the authoritative document. Two fragments stayed unobserved rather than verified: whether
+  `stopLocationUpdatesAsync` ever fails in practice (it has not been seen to), and the distinct
+  "no route" message, which needs a valid `<gpx>` root carrying zero points — both files tested
+  failed earlier, at the root element.
+- **ARCH-3** (row 10, ticket 2, `d08668c`) — the follow-mode bridge. The `Record` makes the port
+  literal → tracking enum correspondence explicit and the compiler proves it exhaustive, and the
+  three strings it emits were read off both native sources (Android `UserTrackingMode.fromString`,
+  iOS's `UserTrackingMode`), so they are the same strings the cast produced. But the camera is
+  native rendering: that follow mode in `normal`, `compass` and `course` behaves as before, and
+  that leaving follow mode still clears it, is unconfirmed until the owner checks it on a device.
 
 ## Decisions parked for a human
 
@@ -150,6 +116,21 @@ the authoritative document. Three fragments stayed unobserved rather than verifi
   of three. Rename to `TrailOfflineStatus`, `offlineStateForTrail` → `offlineStatusForTrail`,
   `badge.ts` → `status.ts`. Touches `offline/types.ts`, `badge.ts`, `menu.ts`, `TrailInfoSheet.tsx`
   and two tests; no behaviour. Deliberately kept out of row 10, which is deletions.
+
+- **The follow mode union has no name, and speaks Mapbox's words** · minor, S, surfaced by ticket
+  2's code review 2026-10-12. Three observations about one union, all out of ticket 2's scope:
+  (a) `'normal' | 'compass' | 'course'` is spelled out twice — `map/provider/types.ts:24` and
+  `store/mapStore.ts:72` — while the spec and the review both call it `FollowUserMode`, a name the
+  code never got; extracting it on the port would collapse the duplicate and give `TRACKING_MODE`
+  an honest key instead of `NonNullable<CameraProps['followUserMode']>`. (b) Nothing produces
+  `'course'`: `followCameraProps` emits only `'normal'` and `'compass'`, so the port declares a
+  literal no caller uses. (c) The three literals *are* Mapbox's enum values, so the port's
+  vocabulary is the current provider's — the shape AGENTS.md means by "provider-specific concepts
+  … never leaked as literals into shared code", and what makes a MapLibre provider implement a
+  port written in Mapbox's words. (a) and (b) are safe today: the `{...follow}` spread in
+  `MapCanvas.tsx` makes a divergent store literal a compile error. Needs one decision — rename the
+  port's literals to the app's own vocabulary, or accept the coincidence and say why — so it gets
+  a spec rather than a quick edit.
 
 - **Progressive route rendering** · proposed by the owner 2026-10-07, after measuring a 13.3 km
   trail selection at 657 ms of frame activity. Show the trace on the map immediately as a plain
