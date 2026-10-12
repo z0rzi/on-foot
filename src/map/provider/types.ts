@@ -14,10 +14,7 @@ export interface StyleDescriptor {
 
 export interface MapCapabilities {
   id: string
-  requiresToken: boolean
   supportsTerrain: boolean
-  supportsDataDrivenLayers: boolean
-  offline: boolean
   styles: StyleDescriptor[]
 }
 
@@ -144,8 +141,10 @@ export interface OfflinePackInfo {
 }
 
 // The offline seam: download/manage per-region tile packs. Implemented only by the
-// map adapter; shared code talks to this interface. The capability flag `offline`
-// gates whether it is meaningful for a given provider.
+// map adapter; shared code talks to this interface. Offline is a requirement on every
+// provider, not a capability: the required `offline` member on `MapProvider` below is the
+// enforcement, and a provider without it does not compile. There is no capability flag
+// to check — see docs/adr/0002-offline-is-a-provider-requirement.md.
 export interface OfflineController {
   downloadPack(descriptor: OfflinePackDescriptor): Promise<void>
   deletePack(id: string): Promise<void>
@@ -163,18 +162,4 @@ export interface MapProvider {
   capabilities: MapCapabilities
   components: MapComponents
   offline: OfflineController
-}
-
-export function isValidCapabilities(c: unknown): boolean {
-  if (typeof c !== 'object' || c === null) return false
-  const o = c as Record<string, unknown>
-  return (
-    typeof o.id === 'string' &&
-    typeof o.requiresToken === 'boolean' &&
-    typeof o.supportsTerrain === 'boolean' &&
-    typeof o.supportsDataDrivenLayers === 'boolean' &&
-    typeof o.offline === 'boolean' &&
-    Array.isArray(o.styles) &&
-    o.styles.length > 0
-  )
 }

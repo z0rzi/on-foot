@@ -1,10 +1,5 @@
 export type LayerKind = 'vector' | 'raster'
 
-export interface SizeEstimate {
-  bytes: number
-  tileCount: number
-}
-
 export interface OfflineLayerRow {
   styleId: string
   sizeBytes: number

@@ -1,5 +1,4 @@
 import { MAPBOX_STYLES, mapboxCapabilities } from '../capabilities'
-import { isValidCapabilities } from '../../../provider/types'
 
 test('exposes the three ported styles with correct URLs', () => {
   const byId = Object.fromEntries(MAPBOX_STYLES.map((s) => [s.id, s.url]))
@@ -8,7 +7,6 @@ test('exposes the three ported styles with correct URLs', () => {
   expect(byId.outdoors).toBe('mapbox://styles/mapbox/outdoors-v12')
 })
 
-test('mapbox capabilities are valid and terrain-capable', () => {
-  expect(isValidCapabilities(mapboxCapabilities)).toBe(true)
+test('mapbox capabilities are terrain-capable', () => {
   expect(mapboxCapabilities.supportsTerrain).toBe(true)
 })

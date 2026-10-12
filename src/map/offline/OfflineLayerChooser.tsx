@@ -59,22 +59,22 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
       setEdit({ seedKey, selected: next })
     }
 
-    // Memoized so the per-style tile-count estimate loops only recompute when the trail bounds,
+    // Memoized so the per-style tile-counting loops only recompute when the trail bounds,
     // downloaded set, or pack sizes change — not on unrelated re-renders.
     const rows = useMemo(
       () =>
         caps.styles.map((s) => {
           const kind = layerKindForStyle(s.satellite)
-          const estimate = bounds ? estimatePackSize(bounds, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM, kind) : null
+          const estimateBytes = bounds ? estimatePackSize(bounds, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM, kind) : null
           const downloaded = downloadedIds.includes(s.id)
           const actualBytes = packs.find((p) => p.id === packId(trail.id, s.id))?.sizeBytes ?? null
-          return { style: s, kind, estimate, downloaded, actualBytes }
+          return { style: s, kind, estimateBytes, downloaded, actualBytes }
         }),
       [caps.styles, bounds, downloadedIds, packs, trail.id],
     )
 
     const plan = planOfflineChanges(
-      rows.map((r) => ({ styleId: r.style.id, downloaded: r.downloaded, estimateBytes: r.estimate?.bytes ?? null })),
+      rows.map((r) => ({ styleId: r.style.id, downloaded: r.downloaded, estimateBytes: r.estimateBytes })),
       selected,
     )
 
@@ -141,9 +141,9 @@ export const OfflineLayerChooser = forwardRef<BottomSheetModal, { trail: Trail }
                   <Text style={[styles.name, { color: c.panelContent }]}>{r.style.label}</Text>
                   <Text style={{ fontSize: 11, color: r.downloaded ? c.controlAccent : r.kind === 'raster' ? c.warning : c.onSurfaceVariant }}>
                     {r.downloaded
-                      ? `✓ Downloaded · ${formatBytes(r.actualBytes ?? r.estimate?.bytes ?? 0)}`
-                      : r.estimate
-                        ? `~${formatBytes(r.estimate.bytes)}`
+                      ? `✓ Downloaded · ${formatBytes(r.actualBytes ?? r.estimateBytes ?? 0)}`
+                      : r.estimateBytes !== null
+                        ? `~${formatBytes(r.estimateBytes)}`
                         : 'unavailable'}
                   </Text>
                 </View>

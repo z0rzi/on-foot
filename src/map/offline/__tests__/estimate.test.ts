@@ -28,15 +28,16 @@ describe('slippy-map tile math', () => {
 })
 
 describe('estimatePackSize', () => {
-  test('bytes = tileCount × per-tile constant for the layer kind', () => {
-    const vector = estimatePackSize(tiny, 10, 16, 'vector')
-    expect(vector.bytes).toBe(vector.tileCount * VECTOR_BYTES_PER_TILE)
+  test('bytes = tile count × per-tile constant for the layer kind', () => {
+    expect(estimatePackSize(tiny, 10, 16, 'vector')).toBe(
+      tileCountForBounds(tiny, 10, 16) * VECTOR_BYTES_PER_TILE,
+    )
   })
   test('raster (satellite) estimates larger than vector for the same area', () => {
     const v = estimatePackSize(tiny, 10, 16, 'vector')
     const r = estimatePackSize(tiny, 10, 16, 'raster')
-    expect(r.bytes).toBeGreaterThan(v.bytes)
-    expect(r.bytes).toBe(r.tileCount * RASTER_BYTES_PER_TILE)
+    expect(r).toBeGreaterThan(v)
+    expect(r).toBe(tileCountForBounds(tiny, 10, 16) * RASTER_BYTES_PER_TILE)
   })
 })
 

@@ -1,4 +1,4 @@
-import { LayerKind, SizeEstimate } from './types'
+import { LayerKind } from './types'
 import { LngLatBounds } from '../geo'
 import { RASTER_BYTES_PER_TILE, VECTOR_BYTES_PER_TILE } from './constants'
 
@@ -29,10 +29,9 @@ export function estimatePackSize(
   minZoom: number,
   maxZoom: number,
   layerKind: LayerKind,
-): SizeEstimate {
-  const tileCount = tileCountForBounds(bounds, minZoom, maxZoom)
+): number {
   const bytesPerTile = layerKind === 'raster' ? RASTER_BYTES_PER_TILE : VECTOR_BYTES_PER_TILE
-  return { tileCount, bytes: tileCount * bytesPerTile }
+  return tileCountForBounds(bounds, minZoom, maxZoom) * bytesPerTile
 }
 
 export function layerKindForStyle(satellite?: boolean): LayerKind {

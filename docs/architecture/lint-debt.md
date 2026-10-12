@@ -28,7 +28,8 @@ heuristics and have no discretionary escape. See the "A check enforces a respons
   seeded ticks the same way, keyed by a value string, which also removed the last unjustified
   `eslint-disable` in the codebase.
 - **`no-explicit-any` / `no-unused-expressions`** — real fixes where a proper type or statement was
-  clearer (`provider/types.ts` `isValidCapabilities` → `unknown`, `MapViewProps.style` →
+  clearer (`provider/types.ts` `isValidCapabilities` → `unknown`, since superseded — the validator
+  was deleted as dead code in row 10; `provider/types.ts` `MapViewProps.style` →
   `StyleProp<ViewStyle>`; `LayersSheet` ref cast; `OfflineLayerChooser` ternary → `if/else`).
 
 ## Standing inline exceptions (justified disables)
