@@ -96,8 +96,12 @@ of suppression the previous report removed at the persistence seam (§7). · Fix
 member, and the prop reads `followUserMode && TRACKING_MODE[followUserMode]` — no cast, `undefined`
 still passed through. The correspondence is now declared rather than asserted, and the `Record` is
 exhaustive by type: a missing key is a compile error (`TS2741`), not a runtime fall-through, so a
-fourth port literal cannot reach the SDK untranslated. The camera is native rendering, so the behaviour
-claim is the owner's device check and is listed in `open-work.md`.
+fourth port literal cannot reach the SDK untranslated. **Checked on the device 2026-10-12**:
+`normal` holds north-up and flat, `compass` tilts and rotates heading-up with Mapbox's
+`LocationCompassEngine` registering the rotation-vector sensor on entry and unregistering on exit,
+and a manual pan still clears follow; no `UserTrackingMode` error in logcat. `course` stays
+unexercised because nothing produces it — recorded in `open-work.md` with the port-literal question
+it belongs to.
 
 **ARCH-4 — `MapCapabilities.offline` promises a gate that does not exist** · `src/map/provider/types.ts:147-149`
 ("The capability flag `offline` gates whether it is meaningful for a given provider") · No consumer

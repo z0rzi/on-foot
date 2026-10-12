@@ -19,8 +19,8 @@ Open findings, by section below:
 The ranked backlog is finished: **row 10 closed 2026-10-12** (`2f7bbb2`, `d08668c`), the last of the
 ten. Nothing from the review's backlog is open, so there is no backlog section here any more.
 
-Proposed outside the review, each needing its own spec: the `OfflineBadgeState` rename, the
-unnamed follow-mode union, and progressive route rendering — all at the end of this file.
+Proposed outside the review, at the end of this file: the `OfflineBadgeState` rename, the unnamed
+follow-mode union, the puck's unset image slots, and progressive route rendering.
 
 ## Field findings
 
@@ -88,19 +88,24 @@ until the app restarts, because `OfflineMapsList` reloads trails on focus but ne
 
 A finding can be closed on the code while still carrying a visual or runtime claim no device has
 confirmed; that caveat then lives inside the closed finding's own note, where the lists above never
-surface it. This section is the one place that lists such a claim.
+surface it. This section is the one place that lists such a claim — both the ones still waiting and
+the residue a completed check could not reach.
 
 - **ERR-1 and ERR-2** were checked on a device on 2026-10-10; the evidence sits in their own notes
   in the authoritative document. Two fragments stayed unobserved rather than verified: whether
   `stopLocationUpdatesAsync` ever fails in practice (it has not been seen to), and the distinct
   "no route" message, which needs a valid `<gpx>` root carrying zero points — both files tested
   failed earlier, at the root element.
-- **ARCH-3** (row 10, ticket 2, `d08668c`) — the follow-mode bridge. The `Record` makes the port
-  literal → tracking enum correspondence explicit and the compiler proves it exhaustive, and the
-  three strings it emits were read off both native sources (Android `UserTrackingMode.fromString`,
-  iOS's `UserTrackingMode`), so they are the same strings the cast produced. But the camera is
-  native rendering: that follow mode in `normal`, `compass` and `course` behaves as before, and
-  that leaving follow mode still clears it, is unconfirmed until the owner checks it on a device.
+- **ARCH-3** (row 10, ticket 2, `d08668c`) was checked on the device on 2026-10-12. `normal` is
+  north-up and flat with the puck centred; `compass` tilts and rotates heading-up while holding the
+  puck at the same screen point, and Mapbox's `LocationCompassEngine` registers the rotation-vector
+  sensor on entry and unregisters it on exit — `FollowWithHeading` reaching the native layer. A
+  manual pan clears follow. No `UserTrackingMode` error in logcat. **One fragment is permanently
+  unobservable**: `course` has no producer, so no UI path exercises it; the `TRACKING_MODE` entry is
+  correct by the native sources but will stay unexercised until the port's literals are decided (see
+  the follow-mode union item below). Also unobservable: the 2D/3D `content-desc` cannot be read
+  while compass-follow animates — `uiautomator dump` returns `could not get idle state` and can
+  serve a stale file, so that label is evidence only in a screenshot.
 
 ## Decisions parked for a human
 
@@ -131,6 +136,16 @@ surface it. This section is the one place that lists such a claim.
   `MapCanvas.tsx` makes a divergent store literal a compile error. Needs one decision — rename the
   port's literals to the app's own vocabulary, or accept the coincidence and say why — so it gets
   a spec rather than a quick edit.
+
+- **The custom puck leaves Mapbox's top and shadow image slots unset** · minor, S, observed on
+  the device 2026-10-12 during the ARCH-3 check. logcat repeats
+  `E Mapbox: [maps-android\LocationPuck2D]: No image holder data for mapbox-location-top-icon!` and
+  the same for `-shadow-icon`, once per puck re-render. `UserPuck` in the mapbox adapter supplies
+  only `bearingImage`, so the default top and shadow images are never registered. The puck renders
+  correctly, so this is log noise rather than a visual defect — but it is per-frame noise in the
+  platform log, the same class of repeating-benign-entry problem ERR-7 describes for the debug log.
+  Cause is inferred from the adapter, not confirmed; worth one look at whether `LocationPuck` wants
+  `topImage`/`shadowImage` alongside a custom `bearingImage`.
 
 - **Progressive route rendering** · proposed by the owner 2026-10-07, after measuring a 13.3 km
   trail selection at 657 ms of frame activity. Show the trace on the map immediately as a plain
