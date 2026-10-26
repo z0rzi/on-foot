@@ -1,4 +1,4 @@
-import { RefreshFailure } from '../components/refreshOnFocus'
+import { RefreshFailure } from '../components/refreshReportingFailure'
 
 export const TRAILS_REFRESH_FAILURE: RefreshFailure = {
   logMessage: 'refreshing the trails list failed',
