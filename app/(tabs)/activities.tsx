@@ -8,6 +8,7 @@ import { ActivityListItem } from '../../src/activities/ActivityListItem'
 import { ListScreen } from '../../src/components/ListScreen'
 import { ActivitySummary } from '../../src/data/activities/types'
 import { logEvent } from '../../src/log'
+import { showToast } from '../../src/components/toast'
 
 export default function ActivitiesScreen() {
   const router = useRouter()
@@ -20,7 +21,10 @@ export default function ActivitiesScreen() {
 
   const onSelect = useCallback(
     (id: number) => {
-      if (recordingPhase(useRecordingStore.getState().session) !== 'idle') return
+      if (recordingPhase(useRecordingStore.getState().session) !== 'idle') {
+        showToast('Finish the recording to open an activity')
+        return
+      }
       select('activity', id)
       router.navigate('/')
     },

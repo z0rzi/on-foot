@@ -10,6 +10,7 @@ import { groupPacksByTrail, totalOfflineBytes } from './grouping'
 import { formatBytes } from '../../format/units'
 import { packId } from './packId'
 import { showToast } from '../../components/toast'
+import { logEvent } from '../../log'
 
 export function OfflineMapsList() {
   const c = useTheme()
@@ -17,6 +18,7 @@ export function OfflineMapsList() {
   const controller = useOfflineController()
   const labelFor = (styleId: string) => caps.styles.find((s) => s.id === styleId)?.label ?? styleId
   const packs = useOfflineStore((s) => s.packs)
+  const init = useOfflineStore((s) => s.init)
   const remove = useOfflineStore((s) => s.remove)
   const trails = useTrailsStore((s) => s.trails)
   const loadTrails = useTrailsStore((s) => s.loadTrails)
@@ -24,7 +26,10 @@ export function OfflineMapsList() {
   useFocusEffect(
     useCallback(() => {
       void loadTrails()
-    }, [loadTrails]),
+      init(controller).catch((error) =>
+        logEvent('warn', 'error', 'reloading offline packs failed', { error: String(error) }),
+      )
+    }, [loadTrails, init, controller]),
   )
 
   const groups = groupPacksByTrail(packs, trails)
