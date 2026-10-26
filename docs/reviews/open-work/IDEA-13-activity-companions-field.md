@@ -6,6 +6,6 @@ triage: needs-triage
 source: "owner, tasks.md (moved 2026-10-26)"
 blocked_by: []
 ---
-# PROP-15: an edit button on activities
+# IDEA-13: a persons field on the activity save screen
 
-Owner idea. Rename an activity and change its effort.
+Owner idea. Record who you hiked with, with autocomplete.

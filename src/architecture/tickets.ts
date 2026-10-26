@@ -12,7 +12,7 @@ export interface TicketViolation {
   problem: string
 }
 
-const PREFIXES = ['FIELD', 'ERR', 'ARCH', 'DEAD', 'DOC', 'DUP', 'TEST', 'PERF', 'PROP']
+const PREFIXES = ['FIELD', 'ERR', 'ARCH', 'DEAD', 'DOC', 'DUP', 'TEST', 'PERF', 'PROP', 'IDEA']
 const FILE_NAME = new RegExp(`^((?:${PREFIXES.join('|')})-\\d+)-[a-z0-9]+(?:-[a-z0-9]+)*\\.md$`)
 const FRONTMATTER = /^---\n([\s\S]*?)\n---\n/
 const WIKILINK = /^\[\[([^\]]+)\]\]$/
@@ -87,6 +87,8 @@ export function findTicketViolations(files: TicketFile[]): TicketViolation[] {
     }
     if ('source' in fields && (typeof fields.source !== 'string' || fields.source.trim() === '')) {
       report('source must be a non-empty string')
+    } else if (id?.startsWith('IDEA-') && !String(fields.source).startsWith('owner')) {
+      report('an IDEA ticket is the owner\'s own proposal: source must start with "owner"')
     }
     if ('blocked_by' in fields) {
       const blockers = fields.blocked_by

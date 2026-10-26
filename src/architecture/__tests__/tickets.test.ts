@@ -124,6 +124,16 @@ describe('worklist ticket conventions', () => {
     expect(problems(files)).toContainEqual(expect.stringContaining('blocked_by'))
   })
 
+  test('accepts an IDEA ticket proposed by the owner', () => {
+    expect(problems([ticket('IDEA-43-a.md', { source: '"owner, 2026-10-26"' })])).toEqual([])
+  })
+
+  test('flags an IDEA ticket whose source is not the owner', () => {
+    expect(problems([ticket('IDEA-43-a.md', { source: '"device check, 2026-10-26"' })])).toContainEqual(
+      expect.stringContaining('IDEA'),
+    )
+  })
+
   test('flags a heading that does not start with the ID', () => {
     expect(problems([ticket('ERR-7-a.md', {}, '# ERR-8: wrong id')])).toContainEqual(
       expect.stringContaining('heading'),

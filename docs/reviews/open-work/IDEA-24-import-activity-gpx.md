@@ -6,6 +6,6 @@ triage: needs-triage
 source: "owner, tasks.md (moved 2026-10-26)"
 blocked_by: []
 ---
-# PROP-27: pictures on trails
+# IDEA-24: import an activity from GPX
 
 Owner idea.

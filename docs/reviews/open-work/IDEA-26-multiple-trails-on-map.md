@@ -6,6 +6,6 @@ triage: needs-triage
 source: "owner, tasks.md (moved 2026-10-26)"
 blocked_by: []
 ---
-# PROP-20: create a trail on the map
+# IDEA-26: show several trails at once on the map
 
-Owner idea.
+Owner idea. Figure out the UX first.

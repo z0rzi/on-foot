@@ -6,6 +6,6 @@ triage: needs-triage
 source: "owner, tasks.md (moved 2026-10-26)"
 blocked_by: []
 ---
-# PROP-25: 3D offline
+# IDEA-12: name an activity from its trail
 
-Owner idea.
+Owner idea. Close to `IDEA-30` (default activity title); decide them together.

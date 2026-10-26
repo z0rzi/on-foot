@@ -2,7 +2,7 @@
 
 What is left lives in `open-work/`, one file per ticket, named `<ID>-<slug>.md`. A file that exists
 is open; closing an item deletes its file in the same commit that closes it. `open-work.base` lists
-them in Obsidian, by severity, by kind, and ready for an agent. Conventions are in
+them in Obsidian, by severity, by kind, the owner's ideas (`IDEA-n`), and ready for an agent. Conventions are in
 `docs/agents/issue-tracker.md`.
 
 **`docs/reviews/2026-09-10-full-review.md` stays authoritative** for the findings it raised: its

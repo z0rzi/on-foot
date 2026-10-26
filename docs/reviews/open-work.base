@@ -59,8 +59,25 @@ views:
       - blocked_by
       - source
     sort:
+      - property: category
+        direction: ASC
       - property: formula.rank
         direction: ASC
+      - property: file.name
+        direction: ASC
+  - type: table
+    name: Owner ideas
+    filters:
+      and:
+        - formula.kind == "IDEA"
+    order:
+      - file.name
+      - category
+      - severity
+      - size
+      - triage
+      - blocked_by
+    sort:
       - property: file.name
         direction: ASC
   - type: table

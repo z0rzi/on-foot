@@ -15,7 +15,7 @@ ticket reads a list that no longer means what it says.
 A Jest test in `src/architecture/` checks what the base and the agents depend on mechanically:
 
 1. **File name** — `<PREFIX>-<n>-<slug>.md`, with `PREFIX` one of `FIELD`, `ERR`, `ARCH`, `DEAD`,
-   `DOC`, `DUP`, `TEST`, `PERF`, `PROP`, and a lowercase kebab slug. Every `.md` file in the folder
+   `DOC`, `DUP`, `TEST`, `PERF`, `PROP`, `IDEA`, and a lowercase kebab slug. Every `.md` file in the folder
    is a ticket, so a combined `tickets.md` fails here.
 2. **Unique ID** — no two files share `<PREFIX>-<n>`.
 3. **Frontmatter** — present, valid YAML, exactly the keys `severity`, `category`, `size`, `triage`,
@@ -25,7 +25,7 @@ A Jest test in `src/architecture/` checks what the base and the agents depend on
    - `size`: `S` | `M` | `L`, or empty;
    - `triage`: `needs-triage` | `needs-info` | `ready-for-agent` | `ready-for-human`, or empty.
      `wontfix` is refused: a ruled-out item is deleted, not kept;
-   - `source`: a non-empty string;
+   - `source`: a non-empty string, starting with `owner` on an `IDEA` ticket;
    - `blocked_by`: a list, each entry `[[<file name without .md>]]` naming a ticket in the folder.
 4. **Heading** — the first `# ` heading starts with `<ID>: `.
 

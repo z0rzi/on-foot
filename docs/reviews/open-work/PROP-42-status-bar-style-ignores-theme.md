@@ -20,7 +20,7 @@ under the clock:
 | New trail, Debug log, Offline maps, Edit trail, Save activity | unreadable (#FFFFFF header) | unreadable |
 
 Only the coloured notification icons stay visible. The pushed screens are white in both themes
-because of `PROP-35` (`ScreenHeader` leaves the native header on the default light theme); fixing
+because of `FIELD-35` (`ScreenHeader` leaves the native header on the default light theme); fixing
 that alone still leaves the light-theme tabs unreadable. The status bar style has to follow the
 surface under it, at least the scheme. Evidence: `.scratch/device-checks/2026-10-26/D/*-top.png`,
 `B/42-*`, `C/22-save-filled.png`.

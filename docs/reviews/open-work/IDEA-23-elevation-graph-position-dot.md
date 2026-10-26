@@ -6,7 +6,7 @@ triage: needs-triage
 source: "owner, tasks.md (moved 2026-10-26)"
 blocked_by: []
 ---
-# PROP-23: a you-are-here dot on the elevation graph
+# IDEA-23: a you-are-here dot on the elevation graph
 
 Owner idea, already sketched; recorded as Future Work in
 `docs/design/specs/2026-09-02-onfoot-rn-elevation-graph-design.md`. Its own brainstorm → spec → TDD

@@ -6,7 +6,7 @@ triage: needs-triage
 source: "owner, tasks.md (moved 2026-10-26)"
 blocked_by: []
 ---
-# PROP-14: explore a hiking UX without the constant nav bar
+# IDEA-14: explore a hiking UX without the constant nav bar
 
 Owner idea, UX exploration first.
 

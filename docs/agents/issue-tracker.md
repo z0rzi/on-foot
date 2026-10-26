@@ -20,7 +20,10 @@ the end of this file.
 
 - **The worklist** — `docs/reviews/open-work/`, one file per open ticket, `<ID>-<slug>.md`. The
   ID is `FIELD-n`, `ERR-n`, `ARCH-n`, `DEAD-n`, `DOC-n`, `DUP-n`, `TEST-n`, `PERF-n` for a finding
-  from a review, and `PROP-n` for work proposed outside one. `docs/reviews/open-work.md` explains
+  from a review, `IDEA-n` for a proposal the owner made themselves (a feature idea, a wish, a
+  field annoyance; its `source:` starts with `owner`), and `PROP-n` for work an agent proposed
+  outside a review (a device-check finding, a code-review follow-up). The prefix is how the owner's
+  ideas stay distinguishable from agent-raised work. `docs/reviews/open-work.md` explains
   the folder and holds the pending device checks; `docs/reviews/open-work.base` is the Obsidian
   view. A finding ruled `accept` or `none` is not open work and has no file; its ruling lives in
   the report that raised it.
@@ -42,8 +45,8 @@ not apply here, and wayfinder maps live under `docs/design/` (below).
 For internal work, first read every file in `docs/reviews/open-work/`: it is a short folder, and
 reading all of it is how you notice that a new finding is an existing ticket's defect class or
 duplicates one. Then create `docs/reviews/open-work/<ID>-<slug>.md`, taking the next free number in
-its prefix (`PROP-n` when it did not come from a review). A ticket batch is one file per ticket,
-never a combined file. For an outside report, see **Outside reports** below.
+its prefix (`IDEA-n` when the owner proposed it, `PROP-n` when an agent did outside a review). A
+ticket batch is one file per ticket, never a combined file. For an outside report, see **Outside reports** below.
 
 A ticket file is frontmatter, a `# <ID>: <title>` heading, then the evidence in prose — file and
 line citations, not a restatement of the title. Match the voice of the files already there.

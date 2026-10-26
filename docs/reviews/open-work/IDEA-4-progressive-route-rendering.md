@@ -6,7 +6,7 @@ triage: ready-for-agent
 source: owner, 2026-10-07
 blocked_by: []
 ---
-# PROP-4: progressive route rendering
+# IDEA-4: progressive route rendering
 
 Proposed after measuring a 13.3 km trail selection at 657 ms of frame activity. Show the trace on
 the map immediately as a plain line, then let the profile, the slope colours and the elevation

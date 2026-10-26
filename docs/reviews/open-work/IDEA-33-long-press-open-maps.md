@@ -6,6 +6,6 @@ triage: needs-triage
 source: "owner, tasks.md (moved 2026-10-26)"
 blocked_by: []
 ---
-# PROP-32: kcal burnt at the end of a hike
+# IDEA-33: long-press the map to open the location in Google Maps
 
-Owner idea.
+Owner idea, phrased as a question.
