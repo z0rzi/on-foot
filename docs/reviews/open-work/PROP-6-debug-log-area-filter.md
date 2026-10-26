@@ -14,9 +14,9 @@ Settings → Debug log (`src/settings/LogList.tsx`).
 
 ## Comments
 
-> *Commentaire rédigé par un agent IA.*
+> *Comment written by an AI agent.*
 
-Arbitrage utilisateur 26/10 → `ready-for-agent`. Un sélecteur de zones (puces multi-sélection), pas un simple interrupteur « masquer fix batch ».
+Owner ruling 26/10 → `ready-for-agent`. An area picker (multi-select chips), not a simple "hide fix batch" toggle.
 
 ## Agent Brief
 

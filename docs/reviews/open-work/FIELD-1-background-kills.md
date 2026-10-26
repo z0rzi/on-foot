@@ -31,6 +31,28 @@ Mapbox's tile cache is a decision for the owner.
 
 ## Comments
 
-> *Commentaire rédigé par un agent IA.*
+> *Comment written by an AI agent.*
 
-Arbitrage utilisateur 26/10 → `ready-for-human`. Reste humain pour une raison matérielle : le propriétaire branchera le téléphone pour une séance adb où un agent échantillonne `dumpsys meminfo` carte fermée (onglet Trails ou Settings) puis carte ouverte. La décision de borner le cache de tuiles Mapbox se prendra sur ces chiffres, pas avant. Pas de cache borné à l'aveugle.
+Owner ruling 26/10 → `ready-for-human`. Stays human for a hardware reason: the owner will plug in the phone for an adb session where an agent samples `dumpsys meminfo` with the map closed (Trails or Settings tab) and then open. Whether to bound the Mapbox tile cache is decided on those numbers, not before. No blind cache bound.
+
+> *Comment written by an AI agent.*
+
+adb session of 26/10 (release build of HEAD, phone still, not recording). `dumpsys meminfo`, in kB:
+
+| step | PSS | RSS | Native Heap | Graphics | Dalvik |
+|---|---|---|---|---|---|
+| Map, 60 s | 366773 | 495600 | 139100 | 98396 | 16684 |
+| Trails, 60 s | 373080 | 502232 | 141356 | 95280 | 22540 |
+| Settings, 60 s | 368138 | 497460 | 140012 | 95260 | 19750 |
+| Map, 60 s | 352729 | 481864 | 139660 | 102484 | 14908 |
+| Map after zoom + pan | 403194 | 532328 | 172584 | 111444 | 20946 |
+| Trails, 60 s | 390270 | 519388 | 173468 | 97452 | 21274 |
+| Background, 90 s | 350608 | 479708 | 152072 | 83936 | 16595 |
+
+Leaving the map tab frees almost nothing. The expo-router tabs have neither `unmountOnBlur` nor
+`freezeOnBlur` (`app/(tabs)/_layout.tsx`): the `MapView` is detached from the window, not destroyed,
+and keeps its native heap. Pan/zoom adds ~33 MB native that does not come back on Trails; only
+backgrounding returns part of it (−21 MB native, −14 MB graphics). No tile cache is bounded in the
+app: no `setMaximumAmbientCacheSize` and no tile store setting in `src/` or `app.config.ts`, so SDK
+defaults (`@rnmapbox/maps` 10.3.5). The numbers are lower than the 474 MB of 07/10: no tiles were
+loaded beyond the starting area. Evidence: `.scratch/device-checks/2026-10-26/A/mem-*.txt`.

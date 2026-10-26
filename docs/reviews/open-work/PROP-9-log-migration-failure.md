@@ -14,9 +14,9 @@ successful launch has no record of it.
 
 ## Comments
 
-> *Commentaire rédigé par un agent IA.*
+> *Comment written by an AI agent.*
 
-Arbitrage utilisateur 26/10 → `ready-for-agent`. Gardé. Le mécanisme (où écrire avant que la base existe, comment le rapatrier dans le journal) passe par brainstorm → spec → plan avant tout code.
+Owner ruling 26/10 → `ready-for-agent`. Kept. The mechanism (where to write before the database exists, how to bring it back into the log) goes through brainstorm → spec → plan before any code.
 
 ## Agent Brief
 

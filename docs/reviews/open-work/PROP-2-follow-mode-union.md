@@ -26,9 +26,9 @@ vocabulary, or accept the coincidence and say why — so it gets a spec rather t
 
 ## Comments
 
-> *Commentaire rédigé par un agent IA.*
+> *Comment written by an AI agent.*
 
-Arbitrage utilisateur 26/10 → `ready-for-agent`. Le port parle le vocabulaire de l'app : il réutilise `FollowMode` (`position` / `positionAndBearing`, `src/store/mapStore.ts`) ou un équivalent sémantique déclaré sur le port ; la traduction vers `'normal'`/`'compass'` vit dans l'adaptateur Mapbox ; `'course'` disparaît ; le doublon du littéral aussi. Spec courte d'abord (`## Existing shape`, `## Failure modes`), comme le ticket le demande.
+Owner ruling 26/10 → `ready-for-agent`. The port speaks the app's vocabulary: it reuses `FollowMode` (`position` / `positionAndBearing`, `src/store/mapStore.ts`) or a semantic equivalent declared on the port; the translation to `'normal'`/`'compass'` lives in the Mapbox adapter; `'course'` goes away, and so does the duplicated literal. Short spec first (`## Existing shape`, `## Failure modes`), as the ticket asks.
 
 ## Agent Brief
 

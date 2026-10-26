@@ -17,11 +17,10 @@ confirmed; that caveat then lives inside the closed finding's own note, where no
 it. This section is the one place that lists such a claim — both the ones still waiting and the
 residue a completed check could not reach.
 
-- **ERR-1 and ERR-2** were checked on a device on 2026-10-10; the evidence sits in their own notes
-  in the authoritative document. Two fragments stayed unobserved rather than verified: whether
-  `stopLocationUpdatesAsync` ever fails in practice (it has not been seen to), and the distinct
-  "no route" message, which needs a valid `<gpx>` root carrying zero points — both files tested
-  failed earlier, at the root element.
+- **ERR-1 and ERR-2** were checked on a device on 2026-10-10, and ERR-2's distinct "no route"
+  message on 2026-10-26; the evidence sits in their own notes in the authoritative document. One
+  fragment stays unobserved: whether `stopLocationUpdatesAsync` ever fails in practice (it has not
+  been seen to).
 - **ARCH-3** (row 10, ticket 2, `d08668c`) was checked on the device on 2026-10-12. `normal` is
   north-up and flat with the puck centred; `compass` tilts and rotates heading-up while holding the
   puck at the same screen point, and Mapbox's `LocationCompassEngine` registers the rotation-vector
@@ -32,24 +31,13 @@ residue a completed check could not reach.
   (`PROP-2`). Also unobservable: the 2D/3D `content-desc` cannot be read while compass-follow
   animates — `uiautomator dump` returns `could not get idle state` and can serve a stale file, so
   that label is evidence only in a screenshot.
-- **Not enough disk space for an offline download** is implemented but never checked on a device.
-  The refusal writes a debug-log entry with the needed and free bytes, so a field occurrence leaves
-  evidence.
-- **FIELD-3** (interruption toast after the map loads): kill the process mid-recording, relaunch, and
-  check that `No position between HH:MM and HH:MM` is seen over the map rather than behind the
-  splash; the `announced an interruption` debug-log entry now marks when the toast was actually shown.
-- **ERR-7** (`99cfff1`): migration 0008 has never run on a real database. After upgrading, open an
-  activity whose trail was deleted earlier: no `linked trail not found` warning in the debug log.
-  Then delete a linked trail and reopen its activity: still no warning.
-- **ERR-4** (`d01df26`, `11fd0fe`): tap an activity while recording, the toast shows and nothing
-  opens. A pack registered after a failed launch-time load appears once the offline maps list is
-  opened; this needs a forced load failure, so it may stay unobserved.
-- **ERR-5** (`1682d29`): a rejected file picker shows an alert. The picker rarely rejects, so this
-  may stay unobserved; a cancelled pick still does nothing.
-- **ERR-8**: the Trails and Activities tabs and the offline maps list still refresh on focus (import
-  or record elsewhere, switch back, the new row is there). The failure toast needs a forced read
-  failure, so it may stay unobserved.
-- **PROP-8** (sheet geometry read in one `runOnUISync`): background the app on the map, bring it
-  back, and check the debug log still shows an `app active` entry (area `map`) with `mode`,
-  `windowHeight`, `sheetTop`, `rootHeight` and `graphBottom`, values matching the screen, and no
-  Worklets error in logcat.
+- **Not enough disk space for an offline download** is implemented but never checked on a device:
+  it would mean filling the phone's storage. The refusal writes a debug-log entry with the needed
+  and free bytes, so a field occurrence leaves evidence.
+- **ERR-4, ERR-5, ERR-8** were checked on 2026-10-26 on every path a device reaches: the
+  recording-tap toast, a cancelled pick doing nothing, and the Trails and Activities tabs and the
+  offline maps list refreshing on focus. What needs a forced failure stays unobserved: ERR-4's pack
+  registered after a failed launch-time load, ERR-5's alert for a rejecting picker, ERR-8's failure
+  toast on a read error.
+- **Map twist** (the north button after a two-finger rotation): `adb` cannot inject multi-touch on
+  this phone (`sendevent` is refused by SELinux), so any rotation check is the owner's.

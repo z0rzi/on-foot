@@ -45,3 +45,12 @@ this ticket and stop.
 
 **Out of scope:**
 - Redesigning the puck.
+
+## Comments
+
+> *Comment written by an AI agent.*
+
+Checked 26/10: still present. Absent over 60 s of a still map (the puck does not redraw), but
+`E Mapbox: [maps-android\LocationPuck2D]: No image holder data for
+mapbox-location-top-icon!` then `…shadow-icon!` come back twice each on every app relaunch
+(`.scratch/device-checks/2026-10-26/C/logcat-*.txt`).

@@ -389,7 +389,10 @@ but the message named the file's format for a file that was never read. Fixed (`
 `cdb7ce3`): `readGpxFile` wraps a read failure as a `GpxReadError`, and one `classifyGpxFailure`
 feeds both the alert and the log phrase, so "Could not open the file" is now distinct from "Not a
 GPX file" and cannot drift from what the log says. The underlying error is kept as the `cause` and
-still reaches the log. The `empty` reason's own message is still unexercised.
+still reaches the log. The `empty` reason's own message was device-checked 2026-10-26 with a
+valid `<gpx>` root whose one `<trkseg>` is empty: "No route found / This GPX file has no route or
+track points to import.", the log reads `gpx import failed, no route in the file`, and no trail is
+created.
 
 **ERR-3 — `void load().then(...)` chains with no failure outcome** ·
 `src/map/useSelectedEntity.ts:22`, `src/map/ActivityInfoSheet.tsx:37`,
@@ -415,7 +418,10 @@ so after one failed init the settings list says "No offline maps yet" until the 
 `showToast('Finish the recording first')` for the first; for the second re-run `init` on focus of
 `OfflineMapsList` (cheap) or keep a `loadFailed` flag the list can show. · **minor, S**. · **Done**
 (`d01df26`, `11fd0fe`): the tap shows a toast; the offline list re-runs the pack `reload` on focus,
-and a failure is logged and toasted.
+and a failure is logged and toasted. Device-checked 2026-10-26: tapping an activity while recording
+shows "Finish the recording to open an activity", logs `refused opening an activity while
+recording`, and the map stays in `recording` mode. The pack registered after a failed launch-time
+load stays unobserved: it needs a forced load failure.
 
 **ERR-5 — Unhandled picker rejection** · `app/(tabs)/trails.tsx:68-77` `pickGpx` is an async
 `onPress`; `DocumentPicker.getDocumentAsync` can reject (the attribute exemption in
@@ -424,7 +430,8 @@ focus is the same shape — a rejected repository read has no failure outcome. �
 an Alert for `pickGpx`; a logged catch for the focus reload, which has no user action to retry. ·
 **minor, S**. · **Done** (`1682d29`): both are logged and shown (alert for the picker, toast for the
 refresh). The attribute exemption stays, now justified in `eslint.config.js`: every other async
-`onPress` it covers already catches its own failure.
+`onPress` it covers already catches its own failure. Device-checked 2026-10-26: a cancelled pick leaves no alert, no
+trail and no log entry. A rejecting picker cannot be forced, so the alert stays unobserved.
 
 **ERR-6 — `metricsForSegments` runs outside the surrounding `try`** · `app/trail/new.tsx:50` calls
 `metricsForSegments(parsed.segments)` after the `try`/`catch` at `new.tsx:33-47` has already closed,
@@ -447,6 +454,11 @@ degrades the debug log `AGENTS.md` makes the first place to look for a field bug
 column in `deleteTrail`, or add the FK with `ON DELETE SET NULL` so SQLite enforces it. ·
 **should-fix, S**. · **Done** (`99cfff1`): `deleteTrail` nulls the links in the delete's
 transaction; migration 0008 cleans existing ones. No FK (it would need a table rebuild).
+Device-checked 2026-10-26 after the upgrade that ran 0008 on the owner's database: opening 15 of
+16 activities, seven of them linked, wrote no `not found` entry. A trail linked to a fresh activity
+and then deleted withdraws the link, and the activity reopens with none and no warning. The delete
+itself still logs one `linked trail not found` while the activity is selected; that residue is
+`PROP-40`.
 
 Clean and defensible: the recording transitions (rollback, pause-before-stop, resume-before-commit)
 with their failure-path tests; `offlineStore.remove` best-effort semantics and orphan-subscription
@@ -710,6 +722,10 @@ splash screen still covers the map, and its start is the last stored point, so a
 shown minutes of interruption before the actual death (observed `14:45–14:49` for a kill at 14:49).
 · **minor, S**. · **Done** (`fb226ea`), device check pending: the range is kept but worded
 `No position between HH:MM and HH:MM`, and the toast waits for the map port's `onMapLoaded`.
+Device-checked 2026-10-26: after a force-stop mid-recording, with the app in the foreground and
+again from the background, the relaunch shows the splash, then the map, then the toast over it
+(`No position between 23:18 and 23:21`, `…23:22 and 23:24`). `announced an interruption` is the
+last launch entry each time, and the recording resumes with its foreground service.
 
 **FIELD-4 — expo-location crashes on a location delivery after the permission is revoked** ·
 `SecurityException` wrapped in `RuntimeExecutionException` at `LocationTaskConsumer.kt:89`: for a
@@ -800,8 +816,7 @@ PERF-1 are adjacent to §4/§5/§6 and were not visible from those sections' sco
 - **Needs a device or runtime check:** whether `expo-system-ui` is in fact required for
   `userInterfaceStyle: "automatic"` on this SDK before pruning (DEP-1 deliberately keeps it). ERR-1
   and ERR-2 were checked on 2026-10-10 and the results are in their own notes; what stayed
-  unobserved — ERR-1's `'already-active'` route and a failing `stopLocationUpdatesAsync`, ERR-2's
-  `empty` message — is listed in `docs/reviews/open-work.md` under pending device checks.
+  unobserved — ERR-1's `'already-active'` route and a failing `stopLocationUpdatesAsync` — is listed in `docs/reviews/open-work.md` under pending device checks.
 - **Hunches without an anchor** (kept out of §3): the Telegram → "Add trail" loop in `tasks.md`
   (a second share while `/trail/new` is open pushes a second instance; `useIncomingShare.ts:12`
   always `push`es) is consistent with the code but was not reproduced; `ActionsMenu`'s

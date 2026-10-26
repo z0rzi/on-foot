@@ -27,9 +27,9 @@ verification. Gets its own spec.
 
 ## Comments
 
-> *Commentaire rédigé par un agent IA.*
+> *Comment written by an AI agent.*
 
-Arbitrage utilisateur 26/10 → `ready-for-agent`. Étape 1 seulement : un agent inscrit dans le journal de débogage la durée du `JSON.parse` du tracé et celle du calcul profil/bandes, séparément. Le propriétaire sélectionnera ensuite un long sentier et lira le journal ; le ticket repasse alors `ready-for-human` pour décider s'il vaut une spec. Pas de `useDeferredValue` ni de spec avant le chiffre.
+Owner ruling 26/10 → `ready-for-agent`. Step 1 only: an agent writes to the debug log the duration of the track's `JSON.parse` and that of the profile/banding computation, separately. The owner will then select a long trail and read the log; the ticket then goes back to `ready-for-human` to decide whether it is worth a spec. No `useDeferredValue` and no spec before the number.
 
 ## Agent Brief
 
