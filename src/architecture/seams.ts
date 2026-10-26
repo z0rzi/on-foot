@@ -41,6 +41,13 @@ export const SEAMS: Seam[] = [
     rationale:
       'Only src/external hands a URL to another app; features ask it to open a destination and never reach for the linking SDK.',
   },
+  {
+    name: 'native-modules',
+    tokens: ['expo-modules-core'],
+    allow: ['modules/share-intent/'],
+    rationale:
+      'Only the local share-intent module binds a native module; app code calls its typed functions, never requireNativeModule.',
+  },
 ]
 
 const importPattern = (token: string): RegExp => {
