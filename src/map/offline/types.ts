@@ -12,7 +12,7 @@ export interface OfflineTrailGroup {
   totalBytes: number
 }
 
-export type OfflineBadgeState =
+export type TrailOfflineStatus =
   | { kind: 'none' }
   | { kind: 'downloading'; pct: number; styleIds: string[] }
   | { kind: 'available'; styleIds: string[] }

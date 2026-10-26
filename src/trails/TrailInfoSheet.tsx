@@ -13,7 +13,7 @@ import { ElevationGraph } from '../elevation/ElevationGraph'
 import type { RouteDisplay } from '../elevation/routeDisplay'
 import { useMapCapabilities, useOfflineController } from '../map/provider'
 import { useOfflineStore } from '../map/offline/offlineStore'
-import { offlineStateForTrail } from '../map/offline/badge'
+import { offlineStatusForTrail } from '../map/offline/status'
 import { offlineMenuItems, type OfflineMenuAction } from '../map/offline/menu'
 import { retryTargetsForTrail } from '../map/offline/operations'
 import { boundsForTrail } from '../map/offline/bounds'
@@ -52,7 +52,7 @@ export function TrailInfoSheet({
     dotsRef.current?.measureInWindow((x, y, width) => setMenuAnchor({ x: x + width, y }))
   }
 
-  const state = offlineStateForTrail(trail.id, packs, progress)
+  const state = offlineStatusForTrail(trail.id, packs, progress)
 
   const removeAll = () => {
     Alert.alert('Remove offline map', `Remove the offline map for "${trail.name}"?`, [

@@ -1,4 +1,4 @@
-import type { OfflineBadgeState } from './types'
+import type { TrailOfflineStatus } from './types'
 
 export type OfflineMenuAction = 'download' | 'edit' | 'remove' | 'retry' | 'cancel'
 
@@ -8,7 +8,7 @@ export interface OfflineMenuItem {
   danger?: boolean
 }
 
-export function offlineMenuItems(state: OfflineBadgeState): OfflineMenuItem[] {
+export function offlineMenuItems(state: TrailOfflineStatus): OfflineMenuItem[] {
   switch (state.kind) {
     case 'none':
       return [{ action: 'download', label: 'Download offline map' }]
