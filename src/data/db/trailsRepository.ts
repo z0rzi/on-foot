@@ -2,7 +2,7 @@ import { desc, eq } from 'drizzle-orm'
 import { TrailsRepository } from '../trails/repository'
 import { inputToInsertValues, rowToSummary, rowToTrail, updateToValues } from '../trails/mapping'
 import { db } from './client'
-import { trails } from './schema'
+import { activities, recordingSessions, trails } from './schema'
 
 export const sqliteTrailsRepository: TrailsRepository = {
   async listSummaries() {
@@ -24,6 +24,10 @@ export const sqliteTrailsRepository: TrailsRepository = {
     await db.update(trails).set(updateToValues(update, Date.now())).where(eq(trails.id, id))
   },
   async deleteTrail(id) {
-    await db.delete(trails).where(eq(trails.id, id))
+    await db.transaction((tx) => {
+      tx.update(activities).set({ linkedTrailId: null }).where(eq(activities.linkedTrailId, id)).run()
+      tx.update(recordingSessions).set({ linkedTrailId: null }).where(eq(recordingSessions.linkedTrailId, id)).run()
+      tx.delete(trails).where(eq(trails.id, id)).run()
+    })
   },
 }
