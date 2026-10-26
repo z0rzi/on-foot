@@ -36,6 +36,13 @@ describe('gpxImportAlert', () => {
     })
   })
 
+  it('reports a metrics failure without calling the file not GPX', () => {
+    expect(gpxImportAlert('metrics')).toEqual({
+      title: 'Could not measure the route',
+      message: 'The route was read, but its distance and elevation could not be computed.',
+    })
+  })
+
   it('reports an empty file as having no route', () => {
     expect(gpxImportAlert('empty')).toEqual({
       title: 'No route found',

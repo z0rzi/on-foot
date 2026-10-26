@@ -17,6 +17,7 @@ const IMPORT_FAILURE_LOG_PHRASE: Record<GpxImportFailure, string> = {
   read: 'file could not be read',
   empty: 'no route in the file',
   format: 'not recognised as GPX',
+  metrics: 'metrics could not be computed',
 }
 
 export default function NewTrailScreen() {
@@ -36,13 +37,7 @@ export default function NewTrailScreen() {
         leave()
         return
       }
-      let parsed: GpxParseResult
-      try {
-        const xml = await readGpxFile(params.uri)
-        parsed = parseGpx(xml, params.name ?? null)
-      } catch (err) {
-        if (cancelled) return
-        const failure = classifyGpxFailure(err)
+      const fail = (failure: GpxImportFailure, err: unknown) => {
         // The wrapper's own message says nothing a reader can act on; the cause is the permission
         // or missing-file error worth having in the log.
         logEvent('error', 'error', `gpx import failed, ${IMPORT_FAILURE_LOG_PHRASE[failure]}`, {
@@ -51,11 +46,25 @@ export default function NewTrailScreen() {
         const alert = gpxImportAlert(failure)
         Alert.alert(alert.title, alert.message)
         leave()
+      }
+      let parsed: GpxParseResult
+      try {
+        const xml = await readGpxFile(params.uri)
+        parsed = parseGpx(xml, params.name ?? null)
+      } catch (err) {
+        if (!cancelled) fail(classifyGpxFailure(err), err)
         return
       }
       if (cancelled) return
+      let parsedMetrics: TrailMetrics
+      try {
+        parsedMetrics = metricsForSegments(parsed.segments)
+      } catch (err) {
+        fail('metrics', err)
+        return
+      }
       setGeometry({ segments: parsed.segments, waypoints: parsed.waypoints })
-      setMetrics(metricsForSegments(parsed.segments))
+      setMetrics(parsedMetrics)
       setName(parsed.title ?? params.name ?? '')
       setLoading(false)
     }
