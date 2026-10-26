@@ -2,7 +2,7 @@
 severity: minor
 category: enhancement
 size: S
-triage: ready-for-human
+triage: ready-for-agent
 source: row 10 ticket 2 code review, 2026-10-12
 blocked_by: []
 ---
@@ -24,8 +24,31 @@ Three observations about one union, all out of ticket 2's scope:
 literal a compile error. Needs one decision — rename the port's literals to the app's own
 vocabulary, or accept the coincidence and say why — so it gets a spec rather than a quick edit.
 
-## Why a human
+## Comments
 
-Needs one design decision: rename the port's follow-mode literals into the app's own vocabulary, or
-accept that they match Mapbox's and record why. That decision then gets a spec (with
-`## Existing shape` and `## Failure modes`) before any code.
+> *Commentaire rédigé par un agent IA.*
+
+Arbitrage utilisateur 26/10 → `ready-for-agent`. Le port parle le vocabulaire de l'app : il réutilise `FollowMode` (`position` / `positionAndBearing`, `src/store/mapStore.ts`) ou un équivalent sémantique déclaré sur le port ; la traduction vers `'normal'`/`'compass'` vit dans l'adaptateur Mapbox ; `'course'` disparaît ; le doublon du littéral aussi. Spec courte d'abord (`## Existing shape`, `## Failure modes`), comme le ticket le demande.
+
+## Agent Brief
+
+**Category:** enhancement
+**Summary:** The map port's follow mode speaks the app's vocabulary; the Mapbox adapter translates.
+
+**Current behavior:**
+`CameraProps.followUserMode` (`src/map/provider/types.ts:24`) and `FollowCameraProps.followUserMode`
+(`src/store/mapStore.ts:72`) both spell Mapbox's `'normal' | 'compass' | 'course'`; `'course'` is never produced.
+
+**Desired behavior:**
+The port carries an app-owned follow-mode type (reuse `FollowMode` or a narrower semantic type
+on the port — decide in the spec, without creating a store→port or port→store cycle). Only
+`src/map/providers/mapbox/` knows `'normal'`/`'compass'`. No literal duplicated.
+
+**Acceptance criteria:**
+- [ ] Spec under `docs/design/specs/` with `## Existing shape` and `## Failure modes`.
+- [ ] No Mapbox follow literal outside `src/map/providers/mapbox/`.
+- [ ] `'course'` gone; mapping tested as a pure function.
+- [ ] `npm run verify` green; follow-mode device check re-listed for the owner.
+
+**Out of scope:**
+- Changing follow behaviour, zoom or pitch.

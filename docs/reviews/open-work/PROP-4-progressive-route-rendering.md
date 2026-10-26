@@ -2,7 +2,7 @@
 severity:
 category: enhancement
 size:
-triage: ready-for-human
+triage: ready-for-agent
 source: owner, 2026-10-07
 blocked_by: []
 ---
@@ -25,8 +25,30 @@ single place to instrument that.
 a flicker where today it is instant — probably wants a size threshold, which needs its own device
 verification. Gets its own spec.
 
-## Why a human
+## Comments
 
-Starts with a device measurement: how much of the 657 ms is `JSON.parse` and how much is the
-profile/banding arithmetic. The answer decides whether deferral is worth it and what size threshold
-to use, then it goes brainstorm → spec → plan.
+> *Commentaire rédigé par un agent IA.*
+
+Arbitrage utilisateur 26/10 → `ready-for-agent`. Étape 1 seulement : un agent inscrit dans le journal de débogage la durée du `JSON.parse` du tracé et celle du calcul profil/bandes, séparément. Le propriétaire sélectionnera ensuite un long sentier et lira le journal ; le ticket repasse alors `ready-for-human` pour décider s'il vaut une spec. Pas de `useDeferredValue` ni de spec avant le chiffre.
+
+## Agent Brief
+
+**Category:** enhancement
+**Summary:** Log how a trail selection's cost splits between parsing the track and deriving the profile.
+
+**Current behavior:**
+A 13.3 km trail selection measured 657 ms of frame activity; the split between the track's
+`JSON.parse` and `routeDisplay`'s profile/banding arithmetic (`src/map/useRouteDisplay.ts`) is unknown.
+
+**Desired behavior:**
+One `logEvent('info', …)` per selection carrying both durations in ms and the point count — never
+coordinates (`docs/architecture/debug-log.md`). Instrument where each cost actually runs; find
+where the track is parsed rather than assuming `useRouteDisplay`.
+
+**Acceptance criteria:**
+- [ ] Selecting a trail writes one entry with parse ms, derivation ms, point count.
+- [ ] No coordinate in the entry.
+- [ ] On completion set `triage: ready-for-human` with a comment: owner selects a long trail and reads the entry.
+
+**Out of scope:**
+- Any deferral, threshold or spec.

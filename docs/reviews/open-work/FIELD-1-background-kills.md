@@ -28,3 +28,9 @@ tile cache is bounded in this app's configuration.
 Device-only: the next step is `dumpsys meminfo` sampled with the map closed (Trails or Settings
 tab) and with it open, on the physical phone. An agent has no device. After that, whether to bound
 Mapbox's tile cache is a decision for the owner.
+
+## Comments
+
+> *Commentaire rédigé par un agent IA.*
+
+Arbitrage utilisateur 26/10 → `ready-for-human`. Reste humain pour une raison matérielle : le propriétaire branchera le téléphone pour une séance adb où un agent échantillonne `dumpsys meminfo` carte fermée (onglet Trails ou Settings) puis carte ouverte. La décision de borner le cache de tuiles Mapbox se prendra sur ces chiffres, pas avant. Pas de cache borné à l'aveugle.
