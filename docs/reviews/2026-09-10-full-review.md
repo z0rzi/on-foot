@@ -100,7 +100,7 @@ fourth port literal cannot reach the SDK untranslated. **Checked on the device 2
 `normal` holds north-up and flat, `compass` tilts and rotates heading-up with Mapbox's
 `LocationCompassEngine` registering the rotation-vector sensor on entry and unregistering on exit,
 and a manual pan still clears follow; no `UserTrackingMode` error in logcat. `course` stays
-unexercised because nothing produces it — recorded in `open-work.md` with the port-literal question
+unexercised because nothing produces it — recorded in `open-work/PROP-2-follow-mode-union.md`, the port-literal question
 it belongs to.
 
 **ARCH-4 — `MapCapabilities.offline` promises a gate that does not exist** · `src/map/provider/types.ts:147-149`

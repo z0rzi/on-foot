@@ -54,8 +54,11 @@ example
 # local expo module build outputs
 modules/**/build/
 
-# Brainstorming visual companion scratch
-.superpowers/
+# agent scratchpad: brainstorm output, notes, throwaway drafts
+.scratch/
+
+# Obsidian vault config (docs/ or .scratch/ opened as a vault)
+.obsidian/
 
 # agent tooling scratch
 .serena/

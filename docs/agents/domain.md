@@ -25,7 +25,7 @@ suggest filling it in upfront.
 │   ├── adr/                           ← exists
 │   ├── architecture/                  ← exists: seams, debug log, native patches
 │   ├── design/                        ← every feature's spec and plan
-│   └── reviews/                       ← review reports and open-work.md
+│   └── reviews/                       ← review reports and open-work/ tickets
 └── src/
 ```
 

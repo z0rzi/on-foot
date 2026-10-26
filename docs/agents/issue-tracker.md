@@ -4,7 +4,7 @@ Two trackers, split by **source** — never by author:
 
 - **Internal findings** — anything the development process produces: a review pass, a dead-code
   sweep, a refactor backlog row, a field observation the owner made themselves. They live in this
-  repo, in `docs/reviews/open-work.md`.
+  repo, one file per ticket in `docs/reviews/open-work/`.
 - **Outside reports** — a user's bug report, an outside feature request, anything with a reporter
   who needs a reply. They live in GitHub Issues on `z0rzi/on-foot`.
 
@@ -18,50 +18,74 @@ the end of this file.
 
 ## Where internal work lives
 
-- **The worklist** — `docs/reviews/open-work.md`. The single standing index of what is left.
-  Entries are prose, keyed by an ID (`FIELD-n`, `ERR-n`, `ARCH-n`, `DEAD-n`, `DOC-n`, `DUP-n`,
-  `TEST-n`, `PERF-n`), each carrying a severity (`should-fix` / `minor` / `investigate`), a size
-  (`S`/`M`/`L`), and its evidence inline. A finding ruled `accept` or `none` is not open work and
-  is not listed; its ruling lives in the report that raised it.
+- **The worklist** — `docs/reviews/open-work/`, one file per open ticket, `<ID>-<slug>.md`. The
+  ID is `FIELD-n`, `ERR-n`, `ARCH-n`, `DEAD-n`, `DOC-n`, `DUP-n`, `TEST-n`, `PERF-n` for a finding
+  from a review, and `PROP-n` for work proposed outside one. `docs/reviews/open-work.md` explains
+  the folder and holds the pending device checks; `docs/reviews/open-work.base` is the Obsidian
+  view. A finding ruled `accept` or `none` is not open work and has no file; its ruling lives in
+  the report that raised it.
 - **Review reports** — `docs/reviews/<date>-<name>.md`. Dated snapshots.
   `docs/reviews/2026-09-10-full-review.md` stays **authoritative** for the findings it raised: its
-  rows hold the evidence and are ticked in place, and the worklist only indexes what is still open
-  there.
+  rows hold the evidence and are ticked in place, and a ticket file from it links back with
+  `source: "[[2026-09-10-full-review]]"`.
 - **Specs and plans** — `docs/design/specs/YYYY-MM-DD-<slug>-design.md` and
   `docs/design/plans/YYYY-MM-DD-<slug>.md`. `AGENTS.md` requires features to go
   brainstorm → spec → plan; every spec carries an `## Existing shape` and a `## Failure modes`
   section.
 
-Those three are the only homes. Do not create a fourth, and do not create `.scratch/`.
+Those three are the only homes. Do not create a fourth. `.scratch/` is the gitignored agent
+scratchpad, not a tracker: the upstream skills' `.scratch/<feature>/` spec and ticket layout does
+not apply here, and wayfinder maps live under `docs/design/` (below).
 
 ## When a skill says "publish to the issue tracker"
 
-For internal work, append an entry to `docs/reviews/open-work.md` — under
-`## Proposed work — not from the review` when it did not come from a review. The worklist is
-explicitly the index for work proposed outside a review too, so a ticket batch belongs there rather
-than in a second list of its own. For an outside report, see **Outside reports** below.
+For internal work, first read every file in `docs/reviews/open-work/`: it is a short folder, and
+reading all of it is how you notice that a new finding is an existing ticket's defect class or
+duplicates one. Then create `docs/reviews/open-work/<ID>-<slug>.md`, taking the next free number in
+its prefix (`PROP-n` when it did not come from a review). A ticket batch is one file per ticket,
+never a combined file. For an outside report, see **Outside reports** below.
 
-An entry is: a bolded ID or title, a `·` separated severity and size, then the evidence in prose —
-file and line citations, not a restatement of the title. Match the voice of the entries already
-there.
+A ticket file is frontmatter, a `# <ID>: <title>` heading, then the evidence in prose — file and
+line citations, not a restatement of the title. Match the voice of the files already there.
 
-Correct the `## At a glance` count in the same edit, by enumeration. When an item closes, remove it
-and fix the count in the same commit.
+```markdown
+---
+severity: should-fix     # should-fix | minor | investigate, empty when unknown
+category: bug            # bug | enhancement
+size: S                  # S | M | L, empty when unknown
+triage:                  # a role from triage-labels.md except wontfix, empty until triaged
+source: "[[2026-09-10-full-review]]"   # or who proposed it and when: "owner, 2026-10-11"
+blocked_by: []           # wikilinks to other ticket files: ["[[ERR-3-...]]"]
+---
+# ERR-7: a deleted trail leaves a permanently dangling `linked_trail_id`
+```
+
+`src/architecture/__tests__/tickets.test.ts` enforces the file name, unique ID, these six keys
+and their values, `blocked_by` links resolving to open tickets, and the heading, so a ticket that
+drifts fails `npm run verify`. A new field is a convention change: make it here and in
+`src/architecture/tickets.ts` together. The per-triage sections below are not checked; their
+quality is a review matter.
+
+A file that exists is open. When an item closes, delete its file in the commit that closes it, and
+drop it from any other ticket's `blocked_by`. Its history is in git.
 
 A feature-sized request is not a worklist entry: it goes brainstorm → spec → plan under
 `docs/design/`, and the worklist entry, if any, just points at the spec.
 
 ## When a skill says "fetch the relevant ticket"
 
-Read the entry by its ID from `docs/reviews/open-work.md`. If it came from a review, also read that
+Read `docs/reviews/open-work/<ID>-*.md`. If it came from a review, also read that
 finding's row in the authoritative report for the full evidence. An outside report is read with
 `gh issue view <n> --comments`.
 
 ## Triage state
 
-The worklist has no label objects. Record a triage role as a trailing tag on the entry's severity
-line, using the strings in `triage-labels.md` — e.g. `**ERR-7** · should-fix, S, ready-for-agent`.
-On GitHub Issues the same strings are real labels.
+A ticket file records its triage role in the `triage:` frontmatter field and its category
+(`bug` / `enhancement`) in `category:`, using the strings in `triage-labels.md` — e.g.
+`triage: ready-for-agent`. A `ready-for-agent` ticket ends with an `## Agent Brief` section, a
+`ready-for-human` one with `## Why a human`, and a `needs-info` one with `## Triage Notes`; those
+sections are the contract an agent works from. On GitHub Issues the same strings are real
+labels.
 
 ## Wayfinding operations
 
@@ -97,9 +121,9 @@ repo from `git remote -v`.
   `gh issue create --title "..." --body-file -` with a heredoc body.
 - **Sub-issues** need `gh` 2.94+ for `--add-sub-issue`; on 2.63.0 use the REST `sub_issues`
   endpoint. **Blocking** uses GitHub's native issue dependencies. The full command set, including
-  both, is in the seed template `.claude/skills/setup-matt-pocock-skills/issue-tracker-github.md`.
+  both, is in the seed template `.agents/skills/setup-matt-pocock-skills/issue-tracker-github.md`.
 
-An outside report that becomes internal work gets a worklist entry that cites the issue by number,
+An outside report that becomes internal work gets a ticket file whose `source:` cites the issue by number,
 and the issue is closed with a comment when the work lands. Neither copies the other's evidence.
 
 ## Why the split
@@ -112,11 +136,12 @@ would also make internal hygiene work the repo's front door: a public activity f
 notification stream dominated by `DEAD-2` opening and closing, which is the first thing a future
 user would see.
 
-**One file resists duplication.** An agent adding to the worklist reads the whole file first and
-sees every open item at once, which is how it knows `ERR-6` is `ERR-3`'s defect class and that
-`DOC-5` pairs with `ARCH-4`. An issue board offers a paginated list of titles; knowing whether
-something is already filed means querying and reading. The single file is a feature for an
-AI-maintained list, not a limitation of it.
+**One folder, read end to end, resists duplication.** An agent adding to the worklist reads every
+open ticket first, which is how it knows `ERR-6` is `ERR-3`'s defect class and that `DOC-5` pairs
+with `ARCH-4`. An issue board offers a paginated list of titles; knowing whether something is
+already filed means querying and reading. The worklist was one file until 2026-10-26; it was split
+into a file per ticket so the owner can see and filter it as an Obsidian base, and the read-all
+rule above keeps the property the single file gave.
 
 **The repo is public, so the worklist is already public.** What the split controls is reach, not
 secrecy: a committed file is public but unbrowsed, while an issue board is syndicated through

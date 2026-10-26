@@ -61,7 +61,7 @@ entry with a rationale. Lint rules are heuristics and may instead be answered by
 | `src/architecture/` | The gates above, and `seams.ts`, which declares the boundaries |
 | `docs/architecture/` | Why the seams, the lint policy, and the debug log are the way they are |
 | `docs/design/` | Every feature's spec and plan; features go brainstorm → spec → plan, not straight to code |
-| `docs/reviews/` | Whole-codebase reviews, the field findings from device passes, and `open-work.md` — the standing index of what is left |
+| `docs/reviews/` | Whole-codebase reviews, the field findings from device passes, and `open-work/` — one file per ticket still open |
 
 ## Database changes
 

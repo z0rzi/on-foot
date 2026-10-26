@@ -15,7 +15,7 @@ module.exports = tseslint.config(
       // Agent scratch: a worktree checked out under .claude/ would otherwise be linted a second
       // time from the root, reporting every finding twice. jest and tsc exclude these too.
       '.claude/**',
-      '.superpowers/**',
+      '.scratch/**',
     ],
   },
   {

@@ -1,0 +1,80 @@
+filters:
+  and:
+    - file.folder.endsWith("reviews/open-work")
+    - file.ext == "md"
+formulas:
+  kind: file.name.split("-").slice(0, 1).join("")
+  rank: if(severity == "should-fix", 1, if(severity == "minor", 2, if(severity == "investigate", 3, 4)))
+properties:
+  file.name:
+    displayName: Ticket
+  formula.kind:
+    displayName: Kind
+  category:
+    displayName: Category
+  severity:
+    displayName: Severity
+  size:
+    displayName: Size
+  triage:
+    displayName: Triage
+  source:
+    displayName: Source
+  blocked_by:
+    displayName: Blocked by
+views:
+  - type: table
+    name: By severity
+    groupBy:
+      property: triage
+      direction: ASC
+    order:
+      - severity
+      - file.name
+      - category
+      - size
+      - triage
+      - blocked_by
+    sort:
+      - property: severity
+        direction: DESC
+      - property: formula.rank
+        direction: ASC
+      - property: file.name
+        direction: ASC
+    columnSize:
+      note.severity: 116
+      note.size: 63
+  - type: table
+    name: By kind
+    groupBy:
+      property: formula.kind
+      direction: ASC
+    order:
+      - file.name
+      - category
+      - severity
+      - size
+      - triage
+      - blocked_by
+      - source
+    sort:
+      - property: formula.rank
+        direction: ASC
+      - property: file.name
+        direction: ASC
+  - type: table
+    name: Ready for agent
+    filters:
+      and:
+        - triage == "ready-for-agent"
+        - blocked_by.isEmpty()
+    order:
+      - file.name
+      - category
+      - severity
+      - size
+      - source
+    sort:
+      - property: formula.rank
+        direction: ASC

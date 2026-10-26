@@ -91,10 +91,17 @@ or longitude. See `docs/architecture/debug-log.md`.
 
 ## Issue tracker
 
-In-repo markdown, in one place: the standing worklist at `docs/reviews/open-work.md`, with specs
-and plans under `docs/design/`. GitHub Issues is reserved for reports from **outside** the
-development process and holds nothing today; internal findings never go there.
-See `docs/agents/issue-tracker.md`.
+In-repo markdown: the worklist is one file per ticket in `docs/reviews/open-work/` (read them
+all before filing one), with specs and plans under `docs/design/`. GitHub Issues is reserved for
+reports from **outside** the development process and holds nothing today. The split is by
+**source**, not by user impact: a user-visible bug found by the owner or an agent is still an
+internal finding and goes in the worklist. Never run `gh issue create` for internal work. See `docs/agents/issue-tracker.md`.
+
+## Scratch space
+
+Throwaway agent output (brainstorm drafts, notes, device-check jottings) goes in `.scratch/`,
+which is gitignored. It is never a tracker: nothing there is open work until it lands in the
+worklist or `docs/design/`.
 
 ## Triage labels
 
