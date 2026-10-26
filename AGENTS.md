@@ -125,3 +125,8 @@ const d1 = new Date();
 const d2 = new Date(d1.getTime());
 ```
 No comments needed in that case, the code is self-documenting.
+
+# About communication with the dev
+
+When reporting information to the dev, be extremely concise and sacrifice grammar for sake of concision.
+
