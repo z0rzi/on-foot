@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { Alert } from 'react-native'
-import { useFocusEffect, useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
 import { useActivitiesStore } from '../../src/store/activitiesStore'
 import { useMapStore } from '../../src/store/mapStore'
 import { useRecordingStore, recordingPhase } from '../../src/recording/recordingStore'
@@ -9,6 +9,7 @@ import { ListScreen } from '../../src/components/ListScreen'
 import { ActivitySummary } from '../../src/data/activities/types'
 import { logEvent } from '../../src/log'
 import { showToast } from '../../src/components/toast'
+import { useRefreshOnFocus } from '../../src/components/useRefreshOnFocus'
 
 export default function ActivitiesScreen() {
   const router = useRouter()
@@ -17,7 +18,10 @@ export default function ActivitiesScreen() {
   const removeActivity = useActivitiesStore((s) => s.removeActivity)
   const select = useMapStore((s) => s.select)
 
-  useFocusEffect(useCallback(() => { void loadActivities() }, [loadActivities]))
+  useRefreshOnFocus(loadActivities, {
+    logMessage: 'refreshing the activities list failed',
+    toast: 'Could not refresh the activities',
+  })
 
   const onSelect = useCallback(
     (id: number) => {

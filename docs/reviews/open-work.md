@@ -46,3 +46,6 @@ residue a completed check could not reach.
   opened; this needs a forced load failure, so it may stay unobserved.
 - **ERR-5** (`1682d29`): a rejected file picker shows an alert. The picker rarely rejects, so this
   may stay unobserved; a cancelled pick still does nothing.
+- **ERR-8**: the Trails and Activities tabs and the offline maps list still refresh on focus (import
+  or record elsewhere, switch back, the new row is there). The failure toast needs a forced read
+  failure, so it may stay unobserved.

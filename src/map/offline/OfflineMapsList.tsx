@@ -1,17 +1,16 @@
 import { useCallback } from 'react'
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { useFocusEffect } from 'expo-router'
 import { useTheme } from '../../theme/useTheme'
 import { useMapCapabilities, useOfflineController } from '../provider'
 import { useOfflineStore } from './offlineStore'
 import { useTrailsStore } from '../../store/trailsStore'
-import { useRefreshTrailsOnFocus } from '../../trails/useRefreshTrailsOnFocus'
+import { useRefreshOnFocus } from '../../components/useRefreshOnFocus'
+import { TRAILS_REFRESH_FAILURE } from '../../trails/refreshFailure'
 import { groupPacksByTrail, totalOfflineBytes } from './grouping'
 import { formatBytes } from '../../format/units'
 import { packId } from './packId'
 import { showToast } from '../../components/toast'
-import { logEvent } from '../../log'
 
 export function OfflineMapsList() {
   const c = useTheme()
@@ -22,16 +21,14 @@ export function OfflineMapsList() {
   const reload = useOfflineStore((s) => s.reload)
   const remove = useOfflineStore((s) => s.remove)
   const trails = useTrailsStore((s) => s.trails)
+  const loadTrails = useTrailsStore((s) => s.loadTrails)
+  const reloadPacks = useCallback(() => reload(controller), [reload, controller])
 
-  useRefreshTrailsOnFocus()
-  useFocusEffect(
-    useCallback(() => {
-      reload(controller).catch((error) => {
-        logEvent('error', 'error', 'reloading offline packs failed', { error: String(error) })
-        showToast('Could not load the offline maps')
-      })
-    }, [reload, controller]),
-  )
+  useRefreshOnFocus(loadTrails, TRAILS_REFRESH_FAILURE)
+  useRefreshOnFocus(reloadPacks, {
+    logMessage: 'reloading offline packs failed',
+    toast: 'Could not load the offline maps',
+  })
 
   const groups = groupPacksByTrail(packs, trails)
   const total = totalOfflineBytes(packs)
