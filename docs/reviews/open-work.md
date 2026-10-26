@@ -32,3 +32,6 @@ residue a completed check could not reach.
   (`PROP-2`). Also unobservable: the 2D/3D `content-desc` cannot be read while compass-follow
   animates — `uiautomator dump` returns `could not get idle state` and can serve a stale file, so
   that label is evidence only in a screenshot.
+- **Not enough disk space for an offline download** is implemented but never checked on a device.
+  The refusal writes a debug-log entry with the needed and free bytes, so a field occurrence leaves
+  evidence.
