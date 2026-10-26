@@ -84,7 +84,8 @@ under any other name (e.g. `distanceLabel`) is not.
 native-SDK wrapper be registered in `seams.ts` in the same change; this one predates the registry
 and is not in `seams.md`'s candidates either. · Fix: either add `modules` to the scan roots and a
 seam `{ tokens: ['expo-modules-core'], allow: ['modules/'] }`, or record in `seams.md` why an
-app-owned module with a single consumer is exempt. · **minor, S**.
+app-owned module with a single consumer is exempt. · **minor, S**. · **Done**: `modules` is a scan
+root and the `native-modules` seam allows `expo-modules-core` only in `modules/share-intent/`.
 
 **ARCH-3 — Unjustified double cast at the map seam** · `src/map/providers/mapbox/adapter.tsx:52`
 (`followUserMode as unknown as Mapbox.UserTrackingMode | undefined`) · The port's
@@ -326,7 +327,8 @@ building block, and the two estimate tests now assert the byte count against it 
 constant instead of against the dropped field.
 
 **DEAD-4 — `NetInfoState` re-export** · `src/net/netinfo.ts:4` is consumed only by its own test
-(`netinfo.test.ts:1`). Harmless; the test can import the type from the package. · **minor, S**.
+(`netinfo.test.ts:1`). Harmless; the test can import the type from the package. · **minor, S**. · **Done**: the re-export is
+gone; the test imports the type from the package.
 
 Clean: no `TODO`/`FIXME`/`console.*`, no commented-out code, no `@ts-ignore`; the four
 `eslint-disable`s (`MapControls.tsx:70`, `RecordButton.tsx:69`, `parse.ts:36`,
@@ -461,7 +463,9 @@ a clamp (`Math.max(1, …)`) and appears in three user-facing strings (`download
 Alert-bound but could be lifted into a pure `downloadDecision(status, freeBytes, estimate)` and
 tested the way `evaluateDownloadGate` is. · **minor, S**. · **Partly done** (`4157735`): `formatBytes`
 now has tests covering its three unit boundaries and the `Math.max(1, …)` clamp, moved to
-`src/format/units.ts`. The `packDescriptor` and `downloadDecision` clauses remain open.
+`src/format/units.ts`. The `packDescriptor` and `downloadDecision` clauses remain open. · **Done**: `packDescriptor` is tested, and the order is
+lifted into a pure, tested `downloadDecision(gate, freeBytes, estimate)` that takes the gate's
+verdict, so the connectivity fail-open stays in `guardDownload`.
 
 **TEST-2 — No test for a GPX with no points** · `src/data/trails/__tests__/parse.test.ts` covers
 routes, tracks, namespaces, titles and a missing coordinate, but not the empty document / no-points

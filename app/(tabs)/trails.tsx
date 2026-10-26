@@ -12,19 +12,21 @@ import { useTheme } from '../../src/theme/useTheme'
 import { TrailSummary } from '../../src/data/trails/types'
 import { logEvent } from '../../src/log'
 import { newTrailHref } from '../../src/trails/newTrailHref'
-import { useRefreshTrailsOnFocus } from '../../src/trails/useRefreshTrailsOnFocus'
+import { useRefreshOnFocus } from '../../src/components/useRefreshOnFocus'
+import { TRAILS_REFRESH_FAILURE } from '../../src/trails/refreshFailure'
 
 export default function TrailsScreen() {
   const c = useTheme()
   const router = useRouter()
   const trails = useTrailsStore((s) => s.trails)
+  const loadTrails = useTrailsStore((s) => s.loadTrails)
   const removeTrail = useTrailsStore((s) => s.removeTrail)
   const select = useMapStore((s) => s.select)
   const offlineController = useOfflineController()
   const removeForTrail = useOfflineStore((s) => s.removeForTrail)
   const [pending, setPending] = useState(false)
 
-  useRefreshTrailsOnFocus()
+  useRefreshOnFocus(loadTrails, TRAILS_REFRESH_FAILURE)
 
   const confirmDelete = useCallback(
     (trail: TrailSummary) => {
