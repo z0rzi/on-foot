@@ -1,4 +1,4 @@
-import type { NetInfoState } from '../netinfo'
+import type { NetInfoState } from '@react-native-community/netinfo'
 import { toConnectivityStatus } from '../netinfo'
 
 const state = (s: any) => s as NetInfoState
