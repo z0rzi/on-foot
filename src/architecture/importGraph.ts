@@ -3,7 +3,7 @@ import { SourceFile } from './sourceScan'
 
 const SPECIFIER = /(?:import|export)[^'"]*?from\s*['"]([^'"]+)['"]|import\s*['"]([^'"]+)['"]|(?:require|import)\(\s*['"]([^'"]+)['"]/g
 
-function specifiers(content: string): string[] {
+export function importSpecifiers(content: string): string[] {
   const found: string[] = []
   for (const m of content.matchAll(SPECIFIER)) {
     found.push(m[1] ?? m[2] ?? m[3])
@@ -13,7 +13,7 @@ function specifiers(content: string): string[] {
 
 const CANDIDATE_SUFFIXES = ['', '.ts', '.tsx', '/index.ts', '/index.tsx']
 
-function resolve(fromPath: string, spec: string, known: Set<string>): string | null {
+export function resolveImport(fromPath: string, spec: string, known: Set<string>): string | null {
   let base: string
   if (spec.startsWith('@/')) base = `src/${spec.slice(2)}`
   else if (spec.startsWith('.')) base = path.posix.join(path.posix.dirname(fromPath), spec)
@@ -30,8 +30,8 @@ export function findImportCycles(files: SourceFile[]): string[][] {
   const graph = new Map<string, string[]>()
   for (const file of files) {
     const deps = new Set<string>()
-    for (const spec of specifiers(file.content)) {
-      const target = resolve(file.path, spec, known)
+    for (const spec of importSpecifiers(file.content)) {
+      const target = resolveImport(file.path, spec, known)
       if (target && target !== file.path) deps.add(target)
     }
     graph.set(file.path, [...deps])

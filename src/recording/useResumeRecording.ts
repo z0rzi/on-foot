@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useRootNavigationState } from 'expo-router'
 import { resumeIfActive } from './recordingController'
-import { logEvent } from '../log'
-import { deviceInfo } from '../log/deviceInfo'
+import { deviceInfo, logEvent } from '../log'
 
 export function useResumeRecording() {
   const navState = useRootNavigationState()

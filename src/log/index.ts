@@ -1,2 +1,7 @@
 export { logEvent } from './logEvent'
+export { deviceInfo } from './deviceInfo'
+export { fixBatchSummary } from './fixBatchSummary'
+export { installGlobalErrorHandler } from './installGlobalErrorHandler'
+export { useLogRetention } from './useLogRetention'
+export { LogList } from './LogList'
 export type { LogArea, LogEntry, LogLevel } from '../data/log'

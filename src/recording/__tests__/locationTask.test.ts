@@ -1,5 +1,8 @@
 jest.mock('../../location', () => ({ defineBackgroundFixHandler: jest.fn() }))
-jest.mock('../../log', () => ({ logEvent: jest.fn() }))
+jest.mock('../../log', () => ({
+  logEvent: jest.fn(),
+  fixBatchSummary: jest.requireActual('../../log/fixBatchSummary').fixBatchSummary,
+}))
 jest.mock('../../data/activities', () => ({
   activitiesRepository: { getActiveSession: jest.fn(), appendPoints: jest.fn() },
 }))

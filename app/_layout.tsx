@@ -14,9 +14,7 @@ import '../src/recording/locationTask'
 import { useResumeRecording } from '../src/recording/useResumeRecording'
 import { useRecordingStream } from '../src/recording/useRecordingStream'
 import { useIncomingShare } from '../src/trails/useIncomingShare'
-import { useLogRetention } from '../src/log/useLogRetention'
-import { installGlobalErrorHandler } from '../src/log/installGlobalErrorHandler'
-import { logEvent } from '../src/log'
+import { installGlobalErrorHandler, logEvent, useLogRetention } from '../src/log'
 
 installGlobalErrorHandler()
 
