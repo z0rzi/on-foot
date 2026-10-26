@@ -5,10 +5,7 @@ import { AccentButton } from '../components/AccentButton'
 import { LoadingScreen } from '../components/LoadingScreen'
 import { useTheme } from '../theme/useTheme'
 import { formatActivityDate, formatClockSeconds } from '../activities/format'
-import { deviceInfo } from './deviceInfo'
-import { logEvent } from './logEvent'
-import { logExportText } from './logExportText'
-import { LOG_MAX_ENTRIES } from './retention'
+import { deviceInfo, LOG_MAX_ENTRIES, logEvent, logExportText } from '../log'
 
 // The list is newest-first, so an entry opens a day whenever the entry above it falls on another one:
 // the date is stated once per day instead of on all 5,000 rows.

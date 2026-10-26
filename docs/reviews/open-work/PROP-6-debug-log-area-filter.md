@@ -10,7 +10,7 @@ blocked_by: []
 
 `fix batch` entries (area `capture`, written per GPS batch by `src/recording/locationTask.ts:26`)
 are ~95% of the log's volume, so a rare `launch` or `recording` entry is hard to find in
-Settings → Debug log (`src/log/LogList.tsx`).
+Settings → Debug log (`src/settings/LogList.tsx`).
 
 ## Comments
 
