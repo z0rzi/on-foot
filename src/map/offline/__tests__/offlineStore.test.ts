@@ -39,8 +39,8 @@ function makeController(opts: {
 beforeEach(() => useOfflineStore.setState({ packs: [], progress: {} }))
 
 describe('offlineStore ownership', () => {
-  test('init loads the registry', async () => {
-    await useOfflineStore.getState().init(makeController({ packs: [info(packId(1, 'a'))] }))
+  test('reload loads the registry', async () => {
+    await useOfflineStore.getState().reload(makeController({ packs: [info(packId(1, 'a'))] }))
     expect(useOfflineStore.getState().packs).toHaveLength(1)
   })
 

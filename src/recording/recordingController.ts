@@ -17,6 +17,7 @@ import { resumeActionFor, ResumeAction } from './resume'
 import { applyPause, applyRelaunch, applyResume } from './session'
 import { createSerialQueue } from '../async/serialQueue'
 import { logEvent } from '../log'
+import { formatClockTime } from '../activities/format'
 
 export type CaptureReadiness = 'ready' | 'permission-denied' | 'location-off'
 export type CaptureRefusal = Exclude<CaptureReadiness, 'ready'>
@@ -236,7 +237,9 @@ async function resumeAfterProcessDeath(session: RecordingSession): Promise<void>
   useRecordingStore.getState().hydrate(relaunched, points)
   logEvent('info', 'recording', 'segment began', { segment: relaunched.currentSegment, segmentStartedAt: relaunched.segmentStartedAt })
   const since = points.length > 0 ? points[points.length - 1].t : session.startedAt
-  useRecordingStore.getState().announceInterruption({ since, until: Date.now() })
+  const until = Date.now()
+  logEvent('warn', 'launch', 'detected an interruption', { from: formatClockTime(since), to: formatClockTime(until) })
+  useRecordingStore.getState().announceInterruption({ since, until })
   await issueStreamIfAvailable()
 }
 

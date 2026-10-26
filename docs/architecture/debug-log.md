@@ -33,17 +33,18 @@ write is swallowed; the next entry still gets its turn.
   finish, and refusals (e.g. "start already-active").
 - **`capture`** — the location stream: start/stop, permission and location-off refusals, each fix
   batch (`fixBatchSummary`), and interruption recovery decisions.
-- **`launch`** — cold start, the action `useResumeRecording` took, and any interruption it
-  announces.
+- **`launch`** — cold start, the action `useResumeRecording` took, an interruption it detects
+  (with its range), and the moment that interruption is announced, once the map has loaded.
 - **`map`** — the recording sheet mounting, every map-mode transition, the sheet settling on a snap
   point (`sheet settled`, with the mode and the index), the sheet/root/graph geometry sampled on
   `AppState` becoming `'active'` (`useSheetGeometryLog`), and each hand-off of a destination to an
   external map app (`openMapApp`).
 - **`error`** — uncaught errors (the global `ErrorUtils` handler), render errors caught by
-  `ErrorBoundary`, and every failure or refusal the user is told about in an alert: start, pause,
-  resume and stop recording, saving or discarding an activity, saving a trail, importing a GPX file,
-  deleting a trail or an activity, clearing the log, and the offline-download refusals (offline, not
-  enough space, a trail with no route).
+  `ErrorBoundary`, and every failure or refusal the user is told about in an alert or a toast:
+  start, pause, resume and stop recording, saving or discarding an activity, saving a trail,
+  opening the file picker, importing a GPX file or measuring its route, refreshing the trails list,
+  reloading the offline maps, deleting a trail or an activity, clearing the log, and the
+  offline-download refusals (offline, not enough space, a trail with no route).
 
 ## No coordinates, ever
 

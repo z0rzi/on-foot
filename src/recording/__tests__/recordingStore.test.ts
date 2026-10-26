@@ -18,6 +18,7 @@ beforeEach(() => {
     locationAvailable: null,
     stream: { kind: 'stopped' },
     resumeSettled: false,
+    interruption: null,
   })
 })
 
@@ -114,5 +115,10 @@ describe('stream state', () => {
     useRecordingStore.getState().markResumeSettled()
     useRecordingStore.getState().reset()
     expect(useRecordingStore.getState().resumeSettled).toBe(true)
+  })
+  it('reset drops an interruption not yet announced, since its recording is gone', () => {
+    useRecordingStore.getState().announceInterruption({ since: 1000, until: 2000 })
+    useRecordingStore.getState().reset()
+    expect(useRecordingStore.getState().interruption).toBeNull()
   })
 })

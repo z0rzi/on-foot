@@ -6,7 +6,7 @@ import { parsePackId } from './packId'
 interface OfflineStore {
   packs: OfflinePackInfo[]
   progress: Record<string, LiveProgress>
-  init: (controller: OfflineController) => Promise<void>
+  reload: (controller: OfflineController) => Promise<void>
   download: (controller: OfflineController, descriptor: OfflinePackDescriptor) => void
   resume: (controller: OfflineController, id: string) => void
   remove: (controller: OfflineController, ids: string[]) => Promise<void>
@@ -83,7 +83,7 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
   return {
     packs: [],
     progress: {},
-    init: (controller) => reload(controller),
+    reload,
     download: (controller, descriptor) =>
       track(controller, descriptor.id, () => controller.downloadPack(descriptor)),
     resume: (controller, id) => track(controller, id, () => controller.resumePack(id)),

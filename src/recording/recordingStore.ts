@@ -74,5 +74,5 @@ export const useRecordingStore = create<RecordingStore>((set) => ({
   markResumeSettled: () => set({ resumeSettled: true }),
   announceInterruption: (gap) => set({ interruption: gap }),
   clearInterruption: () => set({ interruption: null }),
-  reset: () => set({ session: null, livePoints: [], ...CLEARED_STREAM }),
+  reset: () => set({ session: null, livePoints: [], interruption: null, ...CLEARED_STREAM }),
 }))

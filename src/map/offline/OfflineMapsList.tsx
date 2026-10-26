@@ -6,6 +6,7 @@ import { useTheme } from '../../theme/useTheme'
 import { useMapCapabilities, useOfflineController } from '../provider'
 import { useOfflineStore } from './offlineStore'
 import { useTrailsStore } from '../../store/trailsStore'
+import { useRefreshTrailsOnFocus } from '../../trails/useRefreshTrailsOnFocus'
 import { groupPacksByTrail, totalOfflineBytes } from './grouping'
 import { formatBytes } from '../../format/units'
 import { packId } from './packId'
@@ -18,18 +19,18 @@ export function OfflineMapsList() {
   const controller = useOfflineController()
   const labelFor = (styleId: string) => caps.styles.find((s) => s.id === styleId)?.label ?? styleId
   const packs = useOfflineStore((s) => s.packs)
-  const init = useOfflineStore((s) => s.init)
+  const reload = useOfflineStore((s) => s.reload)
   const remove = useOfflineStore((s) => s.remove)
   const trails = useTrailsStore((s) => s.trails)
-  const loadTrails = useTrailsStore((s) => s.loadTrails)
 
+  useRefreshTrailsOnFocus()
   useFocusEffect(
     useCallback(() => {
-      void loadTrails()
-      init(controller).catch((error) =>
-        logEvent('warn', 'error', 'reloading offline packs failed', { error: String(error) }),
-      )
-    }, [loadTrails, init, controller]),
+      reload(controller).catch((error) => {
+        logEvent('error', 'error', 'reloading offline packs failed', { error: String(error) })
+        showToast('Could not load the offline maps')
+      })
+    }, [reload, controller]),
   )
 
   const groups = groupPacksByTrail(packs, trails)

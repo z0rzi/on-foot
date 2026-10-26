@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Alert, Pressable, StyleSheet, Text } from 'react-native'
-import { useFocusEffect, useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
 import * as DocumentPicker from 'expo-document-picker'
 import { useTrailsStore } from '../../src/store/trailsStore'
 import { useMapStore } from '../../src/store/mapStore'
@@ -12,27 +12,19 @@ import { useTheme } from '../../src/theme/useTheme'
 import { TrailSummary } from '../../src/data/trails/types'
 import { logEvent } from '../../src/log'
 import { newTrailHref } from '../../src/trails/newTrailHref'
-import { showToast } from '../../src/components/toast'
+import { useRefreshTrailsOnFocus } from '../../src/trails/useRefreshTrailsOnFocus'
 
 export default function TrailsScreen() {
   const c = useTheme()
   const router = useRouter()
   const trails = useTrailsStore((s) => s.trails)
-  const loadTrails = useTrailsStore((s) => s.loadTrails)
   const removeTrail = useTrailsStore((s) => s.removeTrail)
   const select = useMapStore((s) => s.select)
   const offlineController = useOfflineController()
   const removeForTrail = useOfflineStore((s) => s.removeForTrail)
   const [pending, setPending] = useState(false)
 
-  useFocusEffect(
-    useCallback(() => {
-      loadTrails().catch((error) => {
-        logEvent('error', 'error', 'refreshing the trails list failed', { error: String(error) })
-        showToast('Could not refresh the trails')
-      })
-    }, [loadTrails]),
-  )
+  useRefreshTrailsOnFocus()
 
   const confirmDelete = useCallback(
     (trail: TrailSummary) => {

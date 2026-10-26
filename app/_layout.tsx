@@ -36,10 +36,10 @@ function RecordingStreamHandler() {
 
 function OfflineInitHandler() {
   const controller = useOfflineController()
-  const init = useOfflineStore((s) => s.init)
+  const reload = useOfflineStore((s) => s.reload)
   useEffect(() => {
-    init(controller).catch(() => {})
-  }, [init, controller])
+    reload(controller).catch(() => {})
+  }, [reload, controller])
   return null
 }
 

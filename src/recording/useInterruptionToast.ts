@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import { showToast } from '../components/toast'
-import { formatClockTime } from '../activities/format'
 import { logEvent } from '../log'
 import { useRecordingStore } from './recordingStore'
 import { interruptionMessage } from './interruption'
@@ -14,10 +13,7 @@ export function useInterruptionToast(mapLoaded: boolean): void {
   useEffect(() => {
     if (!mapLoaded || !interruption) return
     showToast(interruptionMessage(interruption))
-    logEvent('warn', 'launch', 'announced an interruption', {
-      from: formatClockTime(interruption.since),
-      to: formatClockTime(interruption.until),
-    })
+    logEvent('info', 'launch', 'announced an interruption')
     clearInterruption()
   }, [mapLoaded, interruption, clearInterruption])
 }

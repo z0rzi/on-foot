@@ -43,6 +43,7 @@ import {
   startRecording,
 } from '../recordingController'
 import { useRecordingStore } from '../recordingStore'
+import { logEvent } from '../../log'
 
 const repo = jest.mocked(activitiesRepository)
 const port = jest.mocked(locationPort)
@@ -509,6 +510,7 @@ describe('resumeIfActive', () => {
     expect(useRecordingStore.getState().session?.segmentStartedAt).toBe(reopenedAt)
     expect(useRecordingStore.getState().session?.currentSegment).toBe(2)
     expect(useRecordingStore.getState().interruption).toEqual({ since: lastPointAt, until: reopenedAt })
+    expect(jest.mocked(logEvent)).toHaveBeenCalledWith('warn', 'launch', 'detected an interruption', { from: '13:56', to: '14:40' })
     expect(port.startBackgroundTracking).toHaveBeenCalledTimes(1)
     expect(repo.appendPoints).not.toHaveBeenCalled()
   })
