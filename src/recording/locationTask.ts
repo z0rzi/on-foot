@@ -1,7 +1,6 @@
 import { defineBackgroundFixHandler } from '../location'
 import { activitiesRepository } from '../data/activities'
-import { logEvent } from '../log'
-import { fixBatchSummary } from '../log/fixBatchSummary'
+import { fixBatchSummary, logEvent } from '../log'
 import { useRecordingStore } from './recordingStore'
 import { fixesInSegment } from './session'
 

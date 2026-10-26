@@ -1,6 +1,6 @@
 import { View } from 'react-native'
 import { useTheme } from '../../src/theme/useTheme'
-import { LogList } from '../../src/log/LogList'
+import { LogList } from '../../src/log'
 import { useGoBackOrHome } from '../../src/components/useGoBackOrHome'
 import { ScreenHeader } from '../../src/components/ScreenHeader'
 
