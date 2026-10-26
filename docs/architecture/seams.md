@@ -18,7 +18,8 @@ All seams live in `src/architecture/seams.ts` as the `SEAMS` array. Each entry:
 ```
 
 The `seams` Jest test (`src/architecture/__tests__/seams.test.ts`) scans all production
-source (`src` + `app`, excluding `__tests__`) and fails if any file outside `allow` imports a
+source (`src`, `app` and the local Expo modules under `modules`, excluding `__tests__`,
+`build` and `node_modules`) and fails if any file outside `allow` imports a
 forbidden token. It runs with every `npm test` / `npm run verify`, locally, in the pre-push
 hook, and in CI. `SEAMS` is the only source of truth: other docs point here rather than listing
 seams, and the table below mirrors the array — if they ever disagree, the array is right.
@@ -51,6 +52,7 @@ That is the whole process. One array entry; the test, the gate, and the docs fol
 | `net` | `@react-native-community/netinfo` | `src/net/` |
 | `location` | `expo-location`, `expo-task-manager` | `src/location/` |
 | `external-apps` | `expo-linking` | `src/external/` |
+| `native-modules` | `expo-modules-core` | `modules/share-intent/` |
 
 ## The persistence seam's row types are checked, not cast
 

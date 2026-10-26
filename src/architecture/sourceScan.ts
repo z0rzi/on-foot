@@ -8,16 +8,17 @@ export interface SourceFile {
 
 const SOURCE_EXT = /\.tsx?$/
 const TEST_FILE = /\.(test|spec)\.tsx?$/
+const SKIPPED_DIRS = new Set(['__tests__', 'build', 'node_modules'])
 
 export function collectSourceFiles(
-  roots: string[] = ['src', 'app'],
+  roots: string[] = ['src', 'app', 'modules'],
   rootDir: string = process.cwd(),
 ): SourceFile[] {
   const out: SourceFile[] = []
   const walk = (abs: string, rel: string) => {
     for (const entry of fs.readdirSync(abs, { withFileTypes: true })) {
       if (entry.isDirectory()) {
-        if (entry.name === '__tests__') continue
+        if (SKIPPED_DIRS.has(entry.name)) continue
         walk(path.join(abs, entry.name), `${rel}/${entry.name}`)
       } else if (entry.isFile() && SOURCE_EXT.test(entry.name) && !TEST_FILE.test(entry.name)) {
         out.push({ path: `${rel}/${entry.name}`, content: fs.readFileSync(path.join(abs, entry.name), 'utf8') })

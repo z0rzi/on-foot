@@ -1,8 +1,6 @@
 import NetInfo, { type NetInfoState } from '@react-native-community/netinfo'
 import type { ConnectivityStatus } from './types'
 
-export type { NetInfoState }
-
 export function toConnectivityStatus(state: NetInfoState): ConnectivityStatus {
   return {
     online: !!state.isConnected && state.isInternetReachable !== false,
