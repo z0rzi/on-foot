@@ -35,3 +35,6 @@ residue a completed check could not reach.
 - **Not enough disk space for an offline download** is implemented but never checked on a device.
   The refusal writes a debug-log entry with the needed and free bytes, so a field occurrence leaves
   evidence.
+- **FIELD-3** (interruption toast after the map loads): kill the process mid-recording, relaunch, and
+  check that `No position between HH:MM and HH:MM` is seen over the map rather than behind the
+  splash; the `announced an interruption` debug-log entry now marks when the toast was actually shown.

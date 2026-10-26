@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { LiveTrackPoint, RecordingSession, TrackPoint } from '../data/activities/types'
+import type { InterruptionGap } from './interruption'
 
 export type RecordingPhase = 'idle' | 'recording' | 'paused'
 
@@ -39,12 +40,16 @@ interface RecordingStore extends StreamState {
   livePoints: LiveTrackPoint[]
   // Launch handling has decided what the durable session means for this process.
   resumeSettled: boolean
+  // A gap left by a dead process, waiting to be announced once the map is on screen.
+  interruption: InterruptionGap | null
   beginSession: (session: RecordingSession) => void
   hydrate: (session: RecordingSession, points: LiveTrackPoint[]) => void
   setSession: (session: RecordingSession) => void
   appendLivePoints: (segment: number, points: TrackPoint[]) => void
   setStreamState: (state: Partial<StreamState>) => void
   markResumeSettled: () => void
+  announceInterruption: (gap: InterruptionGap) => void
+  clearInterruption: () => void
   reset: () => void
 }
 
@@ -55,6 +60,7 @@ export const useRecordingStore = create<RecordingStore>((set) => ({
   livePoints: [],
   ...CLEARED_STREAM,
   resumeSettled: false,
+  interruption: null,
   beginSession: (session) => set({ session, livePoints: [], ...CLEARED_STREAM }),
   hydrate: (session, points) => set({ session, livePoints: points, ...CLEARED_STREAM }),
   setSession: (session) => set({ session }),
@@ -66,5 +72,7 @@ export const useRecordingStore = create<RecordingStore>((set) => ({
     ),
   setStreamState: (state) => set(state),
   markResumeSettled: () => set({ resumeSettled: true }),
+  announceInterruption: (gap) => set({ interruption: gap }),
+  clearInterruption: () => set({ interruption: null }),
   reset: () => set({ session: null, livePoints: [], ...CLEARED_STREAM }),
 }))

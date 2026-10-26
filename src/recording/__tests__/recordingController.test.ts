@@ -11,7 +11,6 @@ jest.mock('../../location', () => ({
 }))
 jest.mock('../appActivity', () => ({ isAppActive: jest.fn(), whenAppActive: jest.fn() }))
 jest.mock('../notificationAccess', () => ({ ensureTrackingNotificationAccess: jest.fn() }))
-jest.mock('../../components/toast', () => ({ showToast: jest.fn() }))
 jest.mock('../../store/activitiesStore', () => ({
   useActivitiesStore: { getState: () => ({ saveActivity: mockSaveActivity }) },
 }))
@@ -44,7 +43,6 @@ import {
   startRecording,
 } from '../recordingController'
 import { useRecordingStore } from '../recordingStore'
-import { showToast } from '../../components/toast'
 
 const repo = jest.mocked(activitiesRepository)
 const port = jest.mocked(locationPort)
@@ -83,6 +81,7 @@ beforeEach(() => {
     locationAvailable: null,
     stream: { kind: 'stopped' },
     resumeSettled: false,
+    interruption: null,
   })
 
   repo.getActiveSession.mockImplementation(async () => row)
@@ -490,7 +489,7 @@ describe('resumeIfActive', () => {
     await resumeIfActive()
     expect(repo.getSessionPoints).not.toHaveBeenCalled()
     expect(repo.markResumed).not.toHaveBeenCalled()
-    expect(jest.mocked(showToast)).not.toHaveBeenCalled()
+    expect(useRecordingStore.getState().interruption).toBeNull()
     expect(port.startBackgroundTracking).not.toHaveBeenCalled()
     expect(useRecordingStore.getState().resumeSettled).toBe(true)
   })
@@ -509,27 +508,29 @@ describe('resumeIfActive', () => {
     expect(repo.markResumed).toHaveBeenCalledWith(7, 500, 2, reopenedAt)
     expect(useRecordingStore.getState().session?.segmentStartedAt).toBe(reopenedAt)
     expect(useRecordingStore.getState().session?.currentSegment).toBe(2)
-    expect(jest.mocked(showToast)).toHaveBeenCalledWith('Recording interrupted 13:56–14:40')
+    expect(useRecordingStore.getState().interruption).toEqual({ since: lastPointAt, until: reopenedAt })
     expect(port.startBackgroundTracking).toHaveBeenCalledTimes(1)
     expect(repo.appendPoints).not.toHaveBeenCalled()
   })
 
   it('announces the gap from the session start when nothing was captured', async () => {
-    row = { ...recording, startedAt: new Date(2026, 8, 14, 10, 0).getTime() }
-    const clock = jest.spyOn(Date, 'now').mockReturnValue(new Date(2026, 8, 14, 10, 30).getTime())
+    const startedAt = new Date(2026, 8, 14, 10, 0).getTime()
+    const reopenedAt = new Date(2026, 8, 14, 10, 30).getTime()
+    row = { ...recording, startedAt }
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(reopenedAt)
     try {
       await resumeIfActive()
     } finally {
       clock.mockRestore()
     }
-    expect(jest.mocked(showToast)).toHaveBeenCalledWith('Recording interrupted 10:00–10:30')
+    expect(useRecordingStore.getState().interruption).toEqual({ since: startedAt, until: reopenedAt })
   })
 
   it('hydrates a paused session without announcing or starting anything', async () => {
     row = paused
     await resumeIfActive()
     expect(useRecordingStore.getState().session).toEqual(paused)
-    expect(jest.mocked(showToast)).not.toHaveBeenCalled()
+    expect(useRecordingStore.getState().interruption).toBeNull()
     expect(port.startBackgroundTracking).not.toHaveBeenCalled()
   })
 

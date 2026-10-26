@@ -8,8 +8,6 @@ import {
   startBackgroundTracking,
   stopBackgroundTracking,
 } from '../location'
-import { formatClockTime } from '../activities/format'
-import { showToast } from '../components/toast'
 import { useActivitiesStore } from '../store/activitiesStore'
 import { isAppActive, whenAppActive } from './appActivity'
 import { ensureTrackingNotificationAccess } from './notificationAccess'
@@ -238,9 +236,7 @@ async function resumeAfterProcessDeath(session: RecordingSession): Promise<void>
   useRecordingStore.getState().hydrate(relaunched, points)
   logEvent('info', 'recording', 'segment began', { segment: relaunched.currentSegment, segmentStartedAt: relaunched.segmentStartedAt })
   const since = points.length > 0 ? points[points.length - 1].t : session.startedAt
-  const now = Date.now()
-  showToast(`Recording interrupted ${formatClockTime(since)}–${formatClockTime(now)}`)
-  logEvent('warn', 'launch', 'announced an interruption', { from: formatClockTime(since), to: formatClockTime(now) })
+  useRecordingStore.getState().announceInterruption({ since, until: Date.now() })
   await issueStreamIfAvailable()
 }
 

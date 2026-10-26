@@ -89,6 +89,8 @@ export interface MapViewProps {
   styleURL: string
   // Fires as the camera moves; heading only (all the North button needs). SDK-neutral.
   onCameraChanged?: (e: { heading: number }) => void
+  // Fires once the map has loaded its style and is on screen; may fire again after a style change.
+  onMapLoaded?: () => void
   children?: React.ReactNode
   style?: StyleProp<ViewStyle>
 }

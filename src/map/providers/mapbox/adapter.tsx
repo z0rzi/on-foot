@@ -13,7 +13,7 @@ void Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN)
 
 const TRAIL_CASING = '#333333'
 
-const View = ({ styleURL, onCameraChanged, style, children }: MapViewProps) => (
+const View = ({ styleURL, onCameraChanged, onMapLoaded, style, children }: MapViewProps) => (
   <Mapbox.MapView
     style={style}
     styleURL={styleURL}
@@ -22,6 +22,7 @@ const View = ({ styleURL, onCameraChanged, style, children }: MapViewProps) => (
     attributionEnabled={false}
     compassEnabled={false}
     onCameraChanged={(e: MapState) => onCameraChanged?.({ heading: e?.properties?.heading ?? 0 })}
+    onDidFinishLoadingMap={onMapLoaded}
   >
     {children}
   </Mapbox.MapView>

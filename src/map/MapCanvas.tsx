@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { useMapProvider, useMapCapabilities } from './provider'
 import type { CameraController } from './provider/types'
@@ -13,6 +13,7 @@ import { MapOverlays, type OverlayRoute } from './MapOverlays'
 import { ScrubMarkerLayer } from './ScrubMarkerLayer'
 import { useRouteColouring } from '../elevation/useRouteColouring'
 import type { RouteDisplay } from '../elevation/routeDisplay'
+import { useInterruptionToast } from '../recording/useInterruptionToast'
 
 // Counts points without allocating the flattened copy flattenSegments would build.
 function pointCount<T>(segments: T[][]): number {
@@ -47,6 +48,8 @@ export function MapCanvas({
   const pendingFit = useMapStore((s) => s.pendingFit)
   const clearPendingFit = useMapStore((s) => s.clearPendingFit)
   const cameraRef = useRef<CameraController>(null)
+  const [mapLoaded, setMapLoaded] = useState(false)
+  useInterruptionToast(mapLoaded)
 
   // rnmapbox drops any camera move (imperative or declarative) while follow is active, and a
   // programmatic follow-off only reaches the native camera on the next frame. The store actions
@@ -119,6 +122,7 @@ export function MapCanvas({
       style={StyleSheet.absoluteFill}
       styleURL={style.url}
       onCameraChanged={(e) => setCameraHeading(e.heading)}
+      onMapLoaded={() => setMapLoaded(true)}
     >
       <Camera
         ref={cameraRef}
