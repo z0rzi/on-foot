@@ -411,14 +411,17 @@ activity is tapped during a recording (deliberate rule, invisible to the user); 
 `OfflineMapsList` (`OfflineMapsList.tsx:24-28`) reloads trails on focus but never re-`init`s packs,
 so after one failed init the settings list says "No offline maps yet" until the app restarts. · Fix:
 `showToast('Finish the recording first')` for the first; for the second re-run `init` on focus of
-`OfflineMapsList` (cheap) or keep a `loadFailed` flag the list can show. · **minor, S**.
+`OfflineMapsList` (cheap) or keep a `loadFailed` flag the list can show. · **minor, S**. · **Done**
+(`d01df26`): the tap shows a toast; the offline list re-runs `init` on focus and logs a failure.
 
 **ERR-5 — Unhandled picker rejection** · `app/(tabs)/trails.tsx:68-77` `pickGpx` is an async
 `onPress`; `DocumentPicker.getDocumentAsync` can reject (the attribute exemption in
 `eslint.config.js` hides it). The same file's `app/(tabs)/trails.tsx:27` `void loadTrails()` on
 focus is the same shape — a rejected repository read has no failure outcome. · Fix: try/catch with
 an Alert for `pickGpx`; a logged catch for the focus reload, which has no user action to retry. ·
-**minor, S**.
+**minor, S**. · **Done** (`1682d29`): both are logged and shown (alert for the picker, toast for the
+refresh). The attribute exemption stays, now justified in `eslint.config.js`: every other async
+`onPress` it covers already catches its own failure.
 
 **ERR-6 — `metricsForSegments` runs outside the surrounding `try`** · `app/trail/new.tsx:50` calls
 `metricsForSegments(parsed.segments)` after the `try`/`catch` at `new.tsx:33-47` has already closed,
@@ -427,7 +430,8 @@ as ERR-3, in a file this work touched. Deliberately not fixed: folding the call 
 the existing `try` would label it with that block's "Not a GPX file" alert, which would misreport
 what failed. `app/(tabs)/trails.tsx:27`'s `void loadTrails()` is the same class; see ERR-5 rather
 than a third row for it. · Fix: a third outcome in the same effect, not a wider catch, so a metrics
-failure gets its own message instead of borrowing the parse failure's. · **should-fix, S**.
+failure gets its own message instead of borrowing the parse failure's. · **should-fix, S**. ·
+**Done** (`26c615d`): a `metrics` outcome with its own alert.
 
 **ERR-7 — A deleted trail leaves a permanently dangling `linked_trail_id`, now logged on every open**
 · `src/data/db/schema.ts:21,41` declares `linked_trail_id` as a plain `integer` on both `activities`
@@ -438,7 +442,8 @@ writes a "linked trail not found" `warn` entry every time that activity's sheet 
 this same work's area (see the loaded-entity design spec). Repeating benign noise is exactly what
 degrades the debug log `AGENTS.md` makes the first place to look for a field bug. · Fix: null the
 column in `deleteTrail`, or add the FK with `ON DELETE SET NULL` so SQLite enforces it. ·
-**should-fix, S**.
+**should-fix, S**. · **Done** (`99cfff1`): `deleteTrail` nulls the links in the delete's
+transaction; migration 0008 cleans existing ones. No FK (it would need a table rebuild).
 
 Clean and defensible: the recording transitions (rollback, pause-before-stop, resume-before-commit)
 with their failure-path tests; `offlineStore.remove` best-effort semantics and orphan-subscription
@@ -698,7 +703,8 @@ reopen): the recording sheet is present and stays present. **FIELD-2 is closed.*
 **FIELD-3 — The interruption toast is hidden, and its range overstates the gap** · It fires while the
 splash screen still covers the map, and its start is the last stored point, so a stationary user is
 shown minutes of interruption before the actual death (observed `14:45–14:49` for a kill at 14:49).
-· **minor, S**.
+· **minor, S**. · **Done** (`fb226ea`), device check pending: the range is kept but worded
+`No position between HH:MM and HH:MM`, and the toast waits for the map port's `onMapLoaded`.
 
 **FIELD-4 — expo-location crashes on a location delivery after the permission is revoked** ·
 `SecurityException` wrapped in `RuntimeExecutionException` at `LocationTaskConsumer.kt:89`: for a
