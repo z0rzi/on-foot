@@ -463,7 +463,9 @@ a clamp (`Math.max(1, …)`) and appears in three user-facing strings (`download
 Alert-bound but could be lifted into a pure `downloadDecision(status, freeBytes, estimate)` and
 tested the way `evaluateDownloadGate` is. · **minor, S**. · **Partly done** (`4157735`): `formatBytes`
 now has tests covering its three unit boundaries and the `Math.max(1, …)` clamp, moved to
-`src/format/units.ts`. The `packDescriptor` and `downloadDecision` clauses remain open.
+`src/format/units.ts`. The `packDescriptor` and `downloadDecision` clauses remain open. · **Done**: `packDescriptor` is tested, and the order is
+lifted into a pure, tested `downloadDecision(gate, freeBytes, estimate)` that takes the gate's
+verdict, so the connectivity fail-open stays in `guardDownload`.
 
 **TEST-2 — No test for a GPX with no points** · `src/data/trails/__tests__/parse.test.ts` covers
 routes, tracks, namespaces, titles and a missing coordinate, but not the empty document / no-points
