@@ -39,6 +39,8 @@ module.exports = tseslint.config(
     },
     rules: {
       '@typescript-eslint/no-floating-promises': 'error',
+      // An async handler on a JSX attribute (onPress) is idiomatic React Native; the handler, not the
+      // rule, owns its failure outcome, since a rejection there is unhandled.
       '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: { attributes: false } }],
       '@typescript-eslint/no-explicit-any': 'error',
       'import/first': 'error',

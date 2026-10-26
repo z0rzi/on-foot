@@ -12,6 +12,7 @@ import { useTheme } from '../../src/theme/useTheme'
 import { TrailSummary } from '../../src/data/trails/types'
 import { logEvent } from '../../src/log'
 import { newTrailHref } from '../../src/trails/newTrailHref'
+import { showToast } from '../../src/components/toast'
 
 export default function TrailsScreen() {
   const c = useTheme()
@@ -24,7 +25,14 @@ export default function TrailsScreen() {
   const removeForTrail = useOfflineStore((s) => s.removeForTrail)
   const [pending, setPending] = useState(false)
 
-  useFocusEffect(useCallback(() => { void loadTrails() }, [loadTrails]))
+  useFocusEffect(
+    useCallback(() => {
+      loadTrails().catch((error) => {
+        logEvent('error', 'error', 'refreshing the trails list failed', { error: String(error) })
+        showToast('Could not refresh the trails')
+      })
+    }, [loadTrails]),
+  )
 
   const confirmDelete = useCallback(
     (trail: TrailSummary) => {
@@ -66,10 +74,17 @@ export default function TrailsScreen() {
   )
 
   const pickGpx = useCallback(async () => {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: ['application/gpx+xml', 'application/octet-stream', 'application/xml', 'text/xml', '*/*'],
-      copyToCacheDirectory: true,
-    })
+    let result: DocumentPicker.DocumentPickerResult
+    try {
+      result = await DocumentPicker.getDocumentAsync({
+        type: ['application/gpx+xml', 'application/octet-stream', 'application/xml', 'text/xml', '*/*'],
+        copyToCacheDirectory: true,
+      })
+    } catch (error) {
+      logEvent('error', 'error', 'opening the file picker failed', { error: String(error) })
+      Alert.alert('Could not open the file picker', 'Something went wrong opening the file picker. Please try again.')
+      return
+    }
     if (result.canceled) return
     const asset = result.assets[0]
     const fallback = asset.name?.replace(/\.[^.]+$/, '')
