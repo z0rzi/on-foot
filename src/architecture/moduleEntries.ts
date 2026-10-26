@@ -1,4 +1,4 @@
-import { importSpecifiers, resolveImport } from './importGraph'
+import { importSpecifiers, resolveImport } from './importResolution'
 import { SourceFile } from './sourceScan'
 
 // Modules with a single public entry: code outside the directory imports its `index`, never a file

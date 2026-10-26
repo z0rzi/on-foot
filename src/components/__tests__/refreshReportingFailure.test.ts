@@ -3,7 +3,7 @@ jest.mock('../toast', () => ({ showToast: jest.fn() }))
 
 import { logEvent } from '../../log'
 import { showToast } from '../toast'
-import { refreshReportingFailure } from '../refreshOnFocus'
+import { refreshReportingFailure } from '../refreshReportingFailure'
 
 const logged = jest.mocked(logEvent)
 const toasted = jest.mocked(showToast)
