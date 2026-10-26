@@ -44,7 +44,7 @@ write is swallowed; the next entry still gets its turn.
   `ErrorBoundary`, and every failure or refusal the user is told about in an alert or a toast:
   start, pause, resume and stop recording, opening an activity while recording, saving or
   discarding an activity, saving a trail, opening the file picker, importing a GPX file or measuring
-  its route, refreshing the trails list, reloading the offline maps, deleting a trail or an activity, clearing the log, and the
+  its route, refreshing the trails or activities list, reloading the offline maps, deleting a trail or an activity, clearing the log, and the
   offline-download refusals (offline, not enough space, a trail with no route).
 
 ## No coordinates, ever
