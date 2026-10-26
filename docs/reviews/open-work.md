@@ -38,3 +38,11 @@ residue a completed check could not reach.
 - **FIELD-3** (interruption toast after the map loads): kill the process mid-recording, relaunch, and
   check that `No position between HH:MM and HH:MM` is seen over the map rather than behind the
   splash; the `announced an interruption` debug-log entry now marks when the toast was actually shown.
+- **ERR-7** (`99cfff1`): migration 0008 has never run on a real database. After upgrading, open an
+  activity whose trail was deleted earlier: no `linked trail not found` warning in the debug log.
+  Then delete a linked trail and reopen its activity: still no warning.
+- **ERR-4** (`d01df26`, `11fd0fe`): tap an activity while recording, the toast shows and nothing
+  opens. A pack registered after a failed launch-time load appears once the offline maps list is
+  opened; this needs a forced load failure, so it may stay unobserved.
+- **ERR-5** (`1682d29`): a rejected file picker shows an alert. The picker rarely rejects, so this
+  may stay unobserved; a cancelled pick still does nothing.

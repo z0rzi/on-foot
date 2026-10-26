@@ -37,13 +37,14 @@ write is swallowed; the next entry still gets its turn.
   (with its range), and the moment that interruption is announced, once the map has loaded.
 - **`map`** — the recording sheet mounting, every map-mode transition, the sheet settling on a snap
   point (`sheet settled`, with the mode and the index), the sheet/root/graph geometry sampled on
-  `AppState` becoming `'active'` (`useSheetGeometryLog`), and each hand-off of a destination to an
-  external map app (`openMapApp`).
+  `AppState` becoming `'active'` (`useSheetGeometryLog`), each hand-off of a destination to an
+  external map app (`openMapApp`), and a failed launch-time load of the offline packs (the offline
+  maps list retries it on focus).
 - **`error`** — uncaught errors (the global `ErrorUtils` handler), render errors caught by
   `ErrorBoundary`, and every failure or refusal the user is told about in an alert or a toast:
-  start, pause, resume and stop recording, saving or discarding an activity, saving a trail,
-  opening the file picker, importing a GPX file or measuring its route, refreshing the trails list,
-  reloading the offline maps, deleting a trail or an activity, clearing the log, and the
+  start, pause, resume and stop recording, opening an activity while recording, saving or
+  discarding an activity, saving a trail, opening the file picker, importing a GPX file or measuring
+  its route, refreshing the trails list, reloading the offline maps, deleting a trail or an activity, clearing the log, and the
   offline-download refusals (offline, not enough space, a trail with no route).
 
 ## No coordinates, ever

@@ -38,8 +38,8 @@ export default function NewTrailScreen() {
         return
       }
       const fail = (failure: GpxImportFailure, err: unknown) => {
-        // The wrapper's own message says nothing a reader can act on; the cause is the permission
-        // or missing-file error worth having in the log.
+        // A read failure's own message says nothing a reader can act on; its cause, the permission
+        // or missing-file error, is what the log needs.
         logEvent('error', 'error', `gpx import failed, ${IMPORT_FAILURE_LOG_PHRASE[failure]}`, {
           error: String(err instanceof GpxReadError ? err.cause : err),
         })

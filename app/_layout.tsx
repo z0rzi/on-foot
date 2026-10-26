@@ -16,6 +16,7 @@ import { useRecordingStream } from '../src/recording/useRecordingStream'
 import { useIncomingShare } from '../src/trails/useIncomingShare'
 import { useLogRetention } from '../src/log/useLogRetention'
 import { installGlobalErrorHandler } from '../src/log/installGlobalErrorHandler'
+import { logEvent } from '../src/log'
 
 installGlobalErrorHandler()
 
@@ -38,7 +39,9 @@ function OfflineInitHandler() {
   const controller = useOfflineController()
   const reload = useOfflineStore((s) => s.reload)
   useEffect(() => {
-    reload(controller).catch(() => {})
+    reload(controller).catch((error) =>
+      logEvent('warn', 'map', 'loading offline packs at launch failed', { error: String(error) }),
+    )
   }, [reload, controller])
   return null
 }

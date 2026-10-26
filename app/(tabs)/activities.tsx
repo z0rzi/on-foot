@@ -22,6 +22,7 @@ export default function ActivitiesScreen() {
   const onSelect = useCallback(
     (id: number) => {
       if (recordingPhase(useRecordingStore.getState().session) !== 'idle') {
+        logEvent('warn', 'error', 'refused opening an activity while recording')
         showToast('Finish the recording to open an activity')
         return
       }

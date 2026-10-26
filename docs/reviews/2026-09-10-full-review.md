@@ -412,7 +412,8 @@ activity is tapped during a recording (deliberate rule, invisible to the user); 
 so after one failed init the settings list says "No offline maps yet" until the app restarts. · Fix:
 `showToast('Finish the recording first')` for the first; for the second re-run `init` on focus of
 `OfflineMapsList` (cheap) or keep a `loadFailed` flag the list can show. · **minor, S**. · **Done**
-(`d01df26`): the tap shows a toast; the offline list re-runs `init` on focus and logs a failure.
+(`d01df26`, `11fd0fe`): the tap shows a toast; the offline list re-runs the pack `reload` on focus,
+and a failure is logged and toasted.
 
 **ERR-5 — Unhandled picker rejection** · `app/(tabs)/trails.tsx:68-77` `pickGpx` is an async
 `onPress`; `DocumentPicker.getDocumentAsync` can reject (the attribute exemption in
