@@ -327,7 +327,8 @@ building block, and the two estimate tests now assert the byte count against it 
 constant instead of against the dropped field.
 
 **DEAD-4 — `NetInfoState` re-export** · `src/net/netinfo.ts:4` is consumed only by its own test
-(`netinfo.test.ts:1`). Harmless; the test can import the type from the package. · **minor, S**.
+(`netinfo.test.ts:1`). Harmless; the test can import the type from the package. · **minor, S**. · **Done**: the re-export is
+gone; the test imports the type from the package.
 
 Clean: no `TODO`/`FIXME`/`console.*`, no commented-out code, no `@ts-ignore`; the four
 `eslint-disable`s (`MapControls.tsx:70`, `RecordButton.tsx:69`, `parse.ts:36`,
