@@ -24,6 +24,7 @@ jest.mock('../../data/activities', () => ({
     markResumed: jest.fn(),
     markLinkedTrail: jest.fn(),
     getSessionPoints: jest.fn(),
+    getLastSegmentPoint: jest.fn(),
     appendPoints: jest.fn(),
   },
 }))

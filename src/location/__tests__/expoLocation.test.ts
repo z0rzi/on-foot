@@ -75,11 +75,17 @@ describe('toLocationFix', () => {
   it('keeps a missing altitude as a null elevation', () => {
     expect(toLocationFix(location(0, 0, null, 5))).toEqual({ lat: 0, lng: 0, ele: null, t: 5, accuracy: 5 })
   })
-  it('maps the accuracy radius across', () => {
-    expect(toLocationFix(location(0, 0, null, 5, 12)).accuracy).toBe(12)
+  it('maps a positive accuracy radius across unchanged', () => {
+    expect(toLocationFix(location(0, 0, null, 5, 12.5)).accuracy).toBe(12.5)
   })
   it('keeps a missing accuracy as null', () => {
     expect(toLocationFix(location(0, 0, null, 5, null)).accuracy).toBeNull()
+  })
+  it('reads a zero accuracy, as Android reports a missing one, as unknown', () => {
+    expect(toLocationFix(location(0, 0, null, 5, 0)).accuracy).toBeNull()
+  })
+  it('reads a negative accuracy, as iOS reports an invalid one, as unknown', () => {
+    expect(toLocationFix(location(0, 0, null, 5, -1)).accuracy).toBeNull()
   })
 })
 

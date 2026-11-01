@@ -9,13 +9,18 @@ const ACTIVITY_TYPES: Record<BackgroundTrackingOptions['activity'], Location.Act
   fitness: Location.ActivityType.Fitness,
 }
 
+// Android reports a missing accuracy as 0 and iOS an invalid one as negative.
+function knownAccuracy(accuracy: number | null | undefined): number | null {
+  return accuracy != null && accuracy > 0 ? accuracy : null
+}
+
 export function toLocationFix(location: Location.LocationObject): LocationFix {
   return {
     lat: location.coords.latitude,
     lng: location.coords.longitude,
     ele: location.coords.altitude,
     t: Math.round(location.timestamp),
-    accuracy: location.coords.accuracy,
+    accuracy: knownAccuracy(location.coords.accuracy),
   }
 }
 

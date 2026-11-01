@@ -1,10 +1,21 @@
-import { defineBackgroundFixHandler } from '../location'
+import { defineBackgroundFixHandler, LocationFix } from '../location'
 import { activitiesRepository } from '../data/activities'
-import { fixBatchSummary, logEvent } from '../log'
+import { createSerialQueue } from '../async/serialQueue'
+import { logEvent } from '../log'
 import { useRecordingStore } from './recordingStore'
 import { fixesInSegment } from './session'
+import { gateFixes } from './fixGate'
+import { fixBatchSummary } from './fixBatchSummary'
 
-defineBackgroundFixHandler(async (fixes) => {
+// The task manager awaits each delivery but does not queue them; the gate reads the segment's last
+// point and appends after it, so two deliveries must never interleave.
+const serial = createSerialQueue()
+
+// Lives only in memory: after a process death the relaunch opens a new segment, which no candidate
+// may vote on.
+let heldCandidate: { sessionId: number; segment: number; fix: LocationFix } | null = null
+
+defineBackgroundFixHandler((fixes) => serial(async () => {
   const session = await activitiesRepository.getActiveSession()
   // A paused session still being delivered to is the interesting case: the stop that pause asked for
   // did not take. No session at all means the stream outlived every recording.
@@ -17,13 +28,17 @@ defineBackgroundFixHandler(async (fixes) => {
     )
     return
   }
+  const segment = session.currentSegment
   const segmentFixes = fixesInSegment(fixes, session.segmentStartedAt)
-  // The previous stored point is what makes an implausible jump visible, and it is the only thing
-  // read from it: a distance, never a position.
-  const livePoints = useRecordingStore.getState().livePoints
-  const previous = livePoints.length ? livePoints[livePoints.length - 1] : null
-  logEvent('info', 'capture', 'fix batch', fixBatchSummary(fixes, segmentFixes, previous))
-  if (segmentFixes.length === 0) return
-  await activitiesRepository.appendPoints(session.id, session.currentSegment, segmentFixes)
-  useRecordingStore.getState().appendLivePoints(session.currentSegment, segmentFixes)
-})
+  const anchor = await activitiesRepository.getLastSegmentPoint(session.id, segment)
+  const candidate =
+    heldCandidate && heldCandidate.sessionId === session.id && heldCandidate.segment === segment
+      ? heldCandidate.fix
+      : null
+  const gate = gateFixes(segmentFixes, anchor, candidate)
+  heldCandidate = gate.candidate && { sessionId: session.id, segment, fix: gate.candidate }
+  logEvent('info', 'capture', 'fix batch', fixBatchSummary(fixes, segmentFixes, gate, anchor))
+  if (gate.kept.length === 0) return
+  await activitiesRepository.appendPoints(session.id, segment, gate.kept)
+  useRecordingStore.getState().appendLivePoints(segment, gate.kept)
+}))

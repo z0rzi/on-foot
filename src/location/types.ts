@@ -3,6 +3,7 @@ export interface LocationFix {
   lng: number
   ele: number | null
   t: number
+  // A positive horizontal radius in metres, or null when the provider gave none.
   accuracy: number | null
 }
 

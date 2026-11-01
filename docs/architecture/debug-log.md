@@ -47,6 +47,27 @@ write is swallowed; the next entry still gets its turn.
   its route, refreshing the trails or activities list, reloading the offline maps, deleting a trail or an activity, clearing the log, and the
   offline-download refusals (offline, not enough space, a trail with no route).
 
+## The `fix batch` entry
+
+One per delivery of fixes to a recording session (`capture`, `fixBatchSummary`), written after the
+fix gate (`src/recording/fixGate.ts`) has judged them and before the kept ones are stored:
+
+| field | meaning |
+|---|---|
+| `arrived` | fixes in the delivery |
+| `kept` | fixes stored as points |
+| `droppedBeforeSegment` | fixes taken before the current segment began (a cached position after a restart) |
+| `droppedAccuracy` | fixes rejected because their accuracy exceeded the gate's ceiling |
+| `droppedJump` | fixes rejected as a jump from the segment's last point |
+| `recovered` | fixes kept because they agreed with an earlier rejected fix against a wrong anchor |
+| `firstAt`, `lastAt` | time of the first and last fix, to the second |
+| `bestAccuracy` | the smallest accuracy in the delivery, or null when none is known |
+| `worstRejectedAccuracy` | the largest accuracy the ceiling rejected, or null |
+| `worstJump` | `{ metres, allowedMetres, seconds }` of the rejected jump that most exceeded its allowance, or null |
+| `metresFromAnchor` | whole metres from the segment's last stored point to the first fix of the segment, kept or not, so a rejected jump still shows its size; null with no stored point or no fix in the segment |
+
+A paused session or no session logs `fixes ignored, …` with `arrived` instead.
+
 ## No coordinates, ever
 
 A position is logged as an accuracy and a distance from the previous point, never a latitude or

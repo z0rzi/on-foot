@@ -34,3 +34,34 @@ _Avoid_: offline region, download (as a noun)
 The provider's unit of offline download — the tiles for one trail on one layer. Named
 `offline:<trailId>:<layerId>`; the provider owns the bytes and is the only source of what exists.
 _Avoid_: region, cache, tile set
+
+### Recording
+
+**Fix**:
+A position the location service hands over, with its accuracy. Not yet part of the track: it may
+be rejected.
+_Avoid_: location, sample, coordinate
+
+**Point**:
+A fix kept into a recording's track.
+_Avoid_: fix (once kept), sample, coordinate
+
+**Segment**:
+A continuous run of points, opened by start, resume or a relaunch after the app was killed. Nothing
+is measured across two segments.
+_Avoid_: leg, section, part
+
+**Anchor**:
+The point a new fix is judged against: the last point of the current segment. A segment's first fix
+has none.
+_Avoid_: previous point, last fix, reference
+
+**Candidate**:
+A rejected fix good enough to testify against the anchor: if the next good fix agrees with it rather
+than with the anchor, the anchor was the error and the track moves on.
+_Avoid_: pending fix, suspect
+
+**Jump**:
+A fix farther from the previous point of its segment than a walker could have gone in the time
+elapsed.
+_Avoid_: spike, glitch, teleport

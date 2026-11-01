@@ -5,6 +5,7 @@ export interface ActivitiesRepository {
   getActiveSession(): Promise<RecordingSession | null>
   appendPoints(sessionId: number, segment: number, points: TrackPoint[]): Promise<void>
   getSessionPoints(sessionId: number): Promise<LiveTrackPoint[]>
+  getLastSegmentPoint(sessionId: number, segment: number): Promise<TrackPoint | null>
   markPaused(sessionId: number, pausedAt: number): Promise<void>
   markResumed(sessionId: number, pausedMs: number, currentSegment: number, segmentStartedAt: number): Promise<void>
   markLinkedTrail(sessionId: number, linkedTrailId: number | null): Promise<void>

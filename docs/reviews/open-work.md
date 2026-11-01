@@ -41,3 +41,9 @@ residue a completed check could not reach.
   toast on a read error.
 - **Map twist** (the north button after a two-finger rotation): `adb` cannot inject multi-touch on
   this phone (`sendevent` is refused by SELinux), so any rotation check is the owner's.
+- **IDEA-17, the fix gate** (`feat/fix-gate`, [[2026-10-27-fix-gate-design]]) is built and
+  unit-tested, never run on a device. Two checks are owed, both in the spec's "Device check": a
+  2-minute indoor standstill (no segment longer than ~50 m, `droppedAccuracy > 0` in at least one
+  `fix batch`), and a walk of known length under open sky (distance within ~5 %, `droppedJump` 0 or
+  near it). The four constants are reasoned, not calibrated; the new `fix batch` fields are what
+  calibrates them.

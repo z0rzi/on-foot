@@ -1,4 +1,4 @@
-import { asc, desc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq } from 'drizzle-orm'
 import { ActivitiesRepository } from '../activities/repository'
 import {
   inputToActivityValues, pointsToInsertValues,
@@ -31,6 +31,15 @@ export const sqliteActivitiesRepository: ActivitiesRepository = {
       .where(eq(recordingPoints.sessionId, sessionId))
       .orderBy(asc(recordingPoints.segment), asc(recordingPoints.t), asc(recordingPoints.id))
     return rows.map(rowToLivePoint)
+  },
+  async getLastSegmentPoint(sessionId, segment) {
+    const rows = await db
+      .select()
+      .from(recordingPoints)
+      .where(and(eq(recordingPoints.sessionId, sessionId), eq(recordingPoints.segment, segment)))
+      .orderBy(desc(recordingPoints.t), desc(recordingPoints.id))
+      .limit(1)
+    return rows.length ? rowToLivePoint(rows[0]) : null
   },
   async markPaused(sessionId, pausedAt) {
     await db.update(recordingSessions).set({ pausedAt }).where(eq(recordingSessions.id, sessionId))
