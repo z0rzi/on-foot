@@ -76,7 +76,7 @@
       "/.claude/worktrees/"
     ],
     "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@rnmapbox/.*|react-navigation|@react-navigation/.*|@gorhom/.*|zustand))"
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@rnmapbox/.*|react-navigation|@react-navigation/.*|standard-navigation|@gorhom/.*|zustand))"
     ]
   },
   "expo": {

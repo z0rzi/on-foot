@@ -5,6 +5,7 @@ interface ActivitiesStore {
   activities: ActivitySummary[]
   version: number
   loadActivities: () => Promise<void>
+  publishTrailDeleted: () => Promise<void>
   saveActivity: (sessionId: number, input: NewActivityInput) => Promise<number>
   removeActivity: (id: number) => Promise<void>
 }
@@ -24,6 +25,9 @@ export const useActivitiesStore = create<ActivitiesStore>((set, get) => {
     loadActivities: async () => {
       set({ activities: await activitiesRepository.listSummaries() })
     },
+    // A trail delete clears the links to it in the same transaction, so the trails store
+    // publishes that activity change here.
+    publishTrailDeleted: commit,
     saveActivity: async (sessionId, input) => {
       const id = await activitiesRepository.saveActivity(sessionId, input)
       await commit()

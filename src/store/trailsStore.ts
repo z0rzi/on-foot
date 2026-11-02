@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { NewTrailInput, TrailSummary, TrailUpdate, trailsRepository } from '../data/trails'
+import { useActivitiesStore } from './activitiesStore'
 
 interface TrailsStore {
   trails: TrailSummary[]
@@ -36,7 +37,12 @@ export const useTrailsStore = create<TrailsStore>((set, get) => {
     },
     removeTrail: async (id) => {
       await trailsRepository.deleteTrail(id)
-      await commit()
+      // The trails still reload if the activities publication fails.
+      try {
+        await useActivitiesStore.getState().publishTrailDeleted()
+      } finally {
+        await commit()
+      }
     },
   }
 })

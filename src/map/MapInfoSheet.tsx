@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { ReactNode, useEffect } from 'react'
 import { StyleSheet } from 'react-native'
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet'
 import type { SharedValue } from 'react-native-reanimated'
@@ -16,6 +16,11 @@ export function MapInfoSheet({
   children: ReactNode
 }) {
   const c = useTheme()
+  // Outside gorhom's own reaction, this component is the app's only writer of animatedPosition, so
+  // it leaves the "no sheet" value (0) behind when it goes rather than the last edge it reported.
+  useEffect(() => () => {
+    if (animatedPosition) animatedPosition.value = 0
+  }, [animatedPosition])
   return (
     <BottomSheet
       index={0}

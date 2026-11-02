@@ -1,6 +1,7 @@
 // Manual Jest mock: the real package throws at import time when its native module isn't
-// linked (always true under Jest). Only the offline manager surface is stubbed — extend as
-// other mapbox-adapter files gain tests.
+// linked (always true under Jest). Only the offline manager and the user-tracking enum (mirroring
+// `UserTrackingMode` in `@rnmapbox/maps/src/components/Camera.tsx`) are stubbed — extend as other
+// mapbox-adapter files gain tests.
 const offlineManager = {
   createPack: jest.fn(),
   deletePack: jest.fn(),
@@ -10,4 +11,9 @@ const offlineManager = {
   unsubscribe: jest.fn(),
 }
 
-export default { offlineManager, setAccessToken: jest.fn() }
+const UserTrackingMode = {
+  Follow: 'normal',
+  FollowWithHeading: 'compass',
+}
+
+export default { offlineManager, UserTrackingMode, setAccessToken: jest.fn() }

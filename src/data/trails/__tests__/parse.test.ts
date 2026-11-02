@@ -158,3 +158,46 @@ test('a gpx root holding only text is a format failure, but an empty root is not
   expect(reasonOf(TEXT_ROOT)).toBe('format')
   expect(reasonOf(EMPTY_ROOT)).toBe('empty')
 })
+
+function trackNamed(name: string): string {
+  return `<?xml version="1.0"?>
+<gpx><trk><name>${name}</name><trkseg>
+<trkpt lat="1.0" lon="2.0"/><trkpt lat="1.1" lon="2.1"/>
+</trkseg></trk>
+<wpt lat="1.0" lon="2.0"><name>${name}</name><desc>${name}</desc></wpt></gpx>`
+}
+
+test('decimal and hex numeric references decode in every text field', () => {
+  const r = parseGpx(trackNamed('Lac d&#039;Or&#xE9;don &#x27;x&#x27;'))
+  expect(r.title).toBe("Lac d'Orédon 'x'")
+  expect(r.waypoints[0].name).toBe("Lac d'Orédon 'x'")
+  expect(r.waypoints[0].description).toBe("Lac d'Orédon 'x'")
+})
+
+test('the five XML entities decode alongside numeric references, each only once', () => {
+  expect(parseGpx(trackNamed('&lt;a&gt; &quot;b&quot; &apos;c&apos; d&#039;e &amp; f')).title)
+    .toBe(`<a> "b" 'c' d'e & f`)
+  expect(parseGpx(trackNamed('&amp;#039; &amp;amp;')).title).toBe('&#039; &amp;')
+})
+
+test('HTML named entities are not XML and stay literal', () => {
+  expect(parseGpx(trackNamed('Or&eacute;don&nbsp;&copy;')).title).toBe('Or&eacute;don&nbsp;&copy;')
+})
+
+test('malformed and out-of-range numeric references stay literal without throwing', () => {
+  expect(parseGpx(trackNamed('a&#xZZ;b&#;c&#1114112;d&#x110000;e')).title)
+    .toBe('a&#xZZ;b&#;c&#1114112;d&#x110000;e')
+})
+
+test('the fallback name is a file name, not XML, and is not decoded', () => {
+  expect(parseGpx(NO_NAMES, 'a&#039;b').title).toBe('a&#039;b')
+})
+
+test('CDATA content is literal text and is not decoded', () => {
+  expect(parseGpx(trackNamed('<![CDATA[a &amp; b &#039;]]>')).title).toBe('a &amp; b &#039;')
+})
+
+test('an internal DOCTYPE entity expands in text fields', () => {
+  const xml = trackNamed('&lake;').replace('<gpx>', '<!DOCTYPE gpx [<!ENTITY lake "Lac Bleu">]><gpx>')
+  expect(parseGpx(xml).title).toBe('Lac Bleu')
+})

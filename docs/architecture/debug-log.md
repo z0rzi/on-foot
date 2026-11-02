@@ -88,7 +88,9 @@ header (app version, phone model, Android version, the instant of the export), t
 newest-first, capped at 200,000 characters with a count of older entries left out if it doesn't all
 fit. Because a log holds up to 7 days, every exported line is dated — `MM-DD HH:MM:SS`
 (`formatCalendarClockSeconds`) — and the viewer states the date once at the top of each day instead
-of on every row. Clear empties the table after confirmation.
+of on every row. One chip per area filters the viewer (all on when the screen opens, not
+persisted); Share ignores the filter and exports every entry. Clear empties the table after
+confirmation.
 
 ## Known limits
 

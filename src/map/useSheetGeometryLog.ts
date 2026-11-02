@@ -27,8 +27,8 @@ export function useSheetGeometryLog({
         rootHeight: rootHeight.value,
         graphBottom: graphBottom.value,
       }))
-      // The sheet's initial position is the window height, so sheetTop === windowHeight says the
-      // sheet never left it rather than leaving the reader to infer it from the tab bar.
+      // sheetTop is 0 when no sheet is mounted; sheetTop === windowHeight says a mounted sheet is
+      // still parked at its initial position, off the bottom of the window.
       logEvent('info', 'map', 'app active', {
         mode,
         windowHeight: Math.round(Dimensions.get('window').height),

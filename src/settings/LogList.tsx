@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, FlatList, Share, StyleSheet, Text, View } from 'react-native'
-import { LogEntry, logRepository } from '../data/log'
+import { logRepository } from '../data/log'
+import { LOG_AREAS, LogArea, LogEntry } from '../data/log/types'
 import { AccentButton } from '../components/AccentButton'
+import { EnumMultiSelector } from '../components/EnumMultiSelector'
 import { LoadingScreen } from '../components/LoadingScreen'
 import { useTheme } from '../theme/useTheme'
 import { formatActivityDate, formatClockSeconds } from '../activities/format'
-import { deviceInfo, LOG_MAX_ENTRIES, logEvent, logExportText } from '../log'
+import { deviceInfo, filterByArea, LOG_MAX_ENTRIES, logEvent, logExportText } from '../log'
+import { logAreaField } from './logAreaField'
 
 // The list is newest-first, so an entry opens a day whenever the entry above it falls on another one:
 // the date is stated once per day instead of on all 5,000 rows.
@@ -18,6 +21,15 @@ export function LogList() {
   const c = useTheme()
   const [entries, setEntries] = useState<LogEntry[] | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
+  const [enabledAreas, setEnabledAreas] = useState<ReadonlySet<LogArea>>(() => new Set(LOG_AREAS))
+
+  const toggleArea = useCallback((area: LogArea) => {
+    setEnabledAreas((current) => {
+      const next = new Set(current)
+      if (!next.delete(area)) next.add(area)
+      return next
+    })
+  }, [])
 
   const load = useCallback(() => {
     logRepository
@@ -58,6 +70,8 @@ export function LogList() {
     ])
   }, [])
 
+  const shownEntries = useMemo(() => (entries ? filterByArea(entries, enabledAreas) : []), [entries, enabledAreas])
+
   if (!entries) return <LoadingScreen />
 
   const levelColour = (level: LogEntry['level']) =>
@@ -69,17 +83,24 @@ export function LogList() {
         <AccentButton label="Share" onPress={share} />
         <AccentButton label="Clear" onPress={clear} />
       </View>
+      <View style={styles.filter}>
+        <EnumMultiSelector field={logAreaField} selected={enabledAreas} onToggle={toggleArea} />
+      </View>
       <FlatList
-        data={entries}
+        data={shownEntries}
         keyExtractor={(entry) => String(entry.id)}
         ListEmptyComponent={
           <Text style={[styles.empty, { color: c.onSurfaceVariant }]}>
-            {loadFailed ? 'Could not load the log.' : 'Nothing logged yet.'}
+            {loadFailed
+              ? 'Could not load the log.'
+              : entries.length > 0
+                ? 'No entry in the selected areas.'
+                : 'Nothing logged yet.'}
           </Text>
         }
         renderItem={({ item, index }) => (
           <View style={[styles.row, { borderColor: c.panelDivider }]}>
-            {startsADay(entries, index) ? (
+            {startsADay(shownEntries, index) ? (
               <Text style={[styles.day, { color: c.onSurfaceVariant }]}>{formatActivityDate(item.t)}</Text>
             ) : null}
             <Text style={[styles.head, { color: levelColour(item.level) }]}>
@@ -98,6 +119,7 @@ export function LogList() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, padding: 12 },
+  filter: { paddingHorizontal: 12, paddingBottom: 12 },
   row: { paddingVertical: 8, paddingHorizontal: 12, borderBottomWidth: 1 },
   day: { fontSize: 11, fontWeight: '700', marginBottom: 4 },
   head: { fontSize: 13, fontWeight: '600' },

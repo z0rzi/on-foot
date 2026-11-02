@@ -25,12 +25,11 @@ residue a completed check could not reach.
   north-up and flat with the puck centred; `compass` tilts and rotates heading-up while holding the
   puck at the same screen point, and Mapbox's `LocationCompassEngine` registers the rotation-vector
   sensor on entry and unregisters it on exit — `FollowWithHeading` reaching the native layer. A
-  manual pan clears follow. No `UserTrackingMode` error in logcat. **One fragment is permanently
-  unobservable**: `course` has no producer, so no UI path exercises it; the `TRACKING_MODE` entry is
-  correct by the native sources but will stay unexercised until the port's literals are decided
-  (`PROP-2`). Also unobservable: the 2D/3D `content-desc` cannot be read while compass-follow
-  animates — `uiautomator dump` returns `could not get idle state` and can serve a stale file, so
-  that label is evidence only in a screenshot.
+  manual pan clears follow. No `UserTrackingMode` error in logcat. The port has since stopped
+  speaking Mapbox's words (`PROP-2`): it carries `position` / `positionAndBearing`, the Mapbox
+  adapter maps them to `normal` / `compass`, and `course` is gone. **Unobservable**: the 2D/3D
+  `content-desc` cannot be read while compass-follow animates — `uiautomator dump` returns `could
+  not get idle state` and can serve a stale file, so that label is evidence only in a screenshot.
 - **Not enough disk space for an offline download** is implemented but never checked on a device:
   it would mean filling the phone's storage. The refusal writes a debug-log entry with the needed
   and free bytes, so a field occurrence leaves evidence.
@@ -47,3 +46,16 @@ residue a completed check could not reach.
   `fix batch`), and a walk of known length under open sky (distance within ~5 %, `droppedJump` 0 or
   near it). The four constants are reasoned, not calibrated; the new `fix batch` fields are what
   calibrates them.
+- **The 2026-11-01 batch** (PROP-41, PROP-40, PROP-6, FIELD-35, PROP-42, PROP-39, PROP-2, PROP-3)
+  was checked on the device on 2026-11-02, release build. Confirmed: a re-imported GPX lists `d'`
+  and `&`; deleting a linked trail with its activity selected logs no `linked trail not found`
+  and a rename updates the "View linked trail" label; the five area chips filter, all off shows
+  "No entry in the selected areas."; every pushed screen has a dark header in dark scheme; the
+  free-mode `app active` entry reads `sheetTop: 0`; the follow cycle and pan-cancel behave as
+  ARCH-3 saw them; logcat holds no `No image holder data` across cold starts. Found and filed:
+  `PROP-43` (status bar stale after a live scheme switch) and `PROP-44` (activity sheet left
+  off-screen once after a trail rename). Residue, unobserved: the Share export's content under a
+  filter (the code exports the unfiltered list); a single-frame flash of the controls at the old
+  sheet edge, finer than the ~0.3 s screenshot interval; a late gorhom `animatedPosition` write
+  after the unmount reset; the three stored `d&#039;` names, which the owner renames. The map tab's
+  status bar over light Mapbox styles in dark scheme stays the owner's call, not built.

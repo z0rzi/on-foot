@@ -43,9 +43,9 @@ export function MapScreen() {
   const rootHeight = useSharedValue(0)
   const sheetTop = useSharedValue(0)
   // The sheet's live top edge, as a bottom offset; the fundamental quantity everything below rides on.
-  // A sheet reports 0 before it has laid out and its own container height while parked at its
-  // pre-layout position; neither is an edge to ride, so both fall back to the root's own bottom
-  // rather than pushing the graph and controls off the screen.
+  // sheetTop is 0 while no sheet is mounted or before it has laid out, and the container height
+  // while parked at its pre-layout position; neither is an edge to ride, so both fall back to the
+  // root's own bottom rather than pushing the graph and controls off the screen.
   const graphBottom = useDerivedValue(() =>
     rootHeight.value === 0 || sheetTop.value === 0 || sheetTop.value >= rootHeight.value
       ? 0

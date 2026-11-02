@@ -23,6 +23,8 @@ const parser = new XMLParser({
   parseTagValue: false,
   parseAttributeValue: false,
   trimValues: true,
+  // The .d.ts types it boolean, but an object is the named-entity table and also enables numeric refs (OrderedObjParser.js:95-99).
+  htmlEntities: {} as boolean,
 })
 
 function asArray<T>(value: T | T[] | undefined | null): T[] {

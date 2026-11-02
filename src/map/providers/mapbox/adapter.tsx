@@ -6,6 +6,7 @@ import type {
 } from '../../provider/types'
 import { mapboxCapabilities } from './capabilities'
 import { mapboxOfflineController } from './offline'
+import { trackingModeFor } from './followMode'
 import { TERRAIN_DEM } from './styles'
 import { MAPBOX_ACCESS_TOKEN } from './token'
 
@@ -27,14 +28,6 @@ const View = ({ styleURL, onCameraChanged, onMapLoaded, style, children }: MapVi
     {children}
   </Mapbox.MapView>
 )
-
-// The port's follow-mode literals, declared against the provider's tracking enum. Exhaustive by
-// type: a fourth port literal without an entry is a compile error.
-const TRACKING_MODE: Record<NonNullable<CameraProps['followUserMode']>, Mapbox.UserTrackingMode> = {
-  normal: Mapbox.UserTrackingMode.Follow,
-  compass: Mapbox.UserTrackingMode.FollowWithHeading,
-  course: Mapbox.UserTrackingMode.FollowWithCourse,
-}
 
 // The camera is driven declaratively (follow props / pitch) — see MapCanvas. Two imperative
 // affordances remain, both only ever called when follow is off, so the rnmapbox "imperative move is
@@ -59,7 +52,7 @@ const Camera = forwardRef<CameraController, CameraProps>(
       <Mapbox.Camera
         ref={inner}
         {...rest}
-        followUserMode={followUserMode && TRACKING_MODE[followUserMode]}
+        followUserMode={followUserMode && trackingModeFor(followUserMode)}
         onUserTrackingModeChange={
           onUserTrackingModeChange
             ? (e) => onUserTrackingModeChange(!!e?.nativeEvent?.payload?.followUserLocation)
@@ -80,17 +73,24 @@ const Terrain = ({ exaggeration }: TerrainProps) => (
 // The default 2D puck is a radially symmetric dot, so heading rotation is invisible on it. A
 // custom bearingImage — a dot with a chevron above it — makes the facing direction visible,
 // mirroring the Kotlin app's LocationPuck2D bearing arrow. The image is high-resolution and
-// scaled down so it stays crisp.
+// scaled down so it stays crisp. Once any puck image is custom, rnmapbox hands Mapbox no image
+// for the unset slots and Mapbox logs an error per re-render, so top and shadow are filled with
+// a transparent pixel.
 const puckBearingArrow = require('./puck-bearing-arrow.png')
+const puckTransparent = require('./puck-transparent.png')
 
 const UserPuck = ({ scale }: UserPuckProps) => (
   <>
-    <Mapbox.Images images={{ 'puck-bearing-arrow': puckBearingArrow }} />
+    <Mapbox.Images
+      images={{ 'puck-bearing-arrow': puckBearingArrow, 'puck-transparent': puckTransparent }}
+    />
     <Mapbox.LocationPuck
       puckBearing="heading"
       puckBearingEnabled
       visible
+      topImage="puck-transparent"
       bearingImage="puck-bearing-arrow"
+      shadowImage="puck-transparent"
       scale={scale}
       pulsing={{ isEnabled: true }}
     />

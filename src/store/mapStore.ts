@@ -2,8 +2,9 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { MapTokens } from '../theme/tokens'
+import type { CameraProps, FollowUserMode } from '../map/provider/types'
 
-export type FollowMode = 'off' | 'position' | 'positionAndBearing'
+export type FollowMode = 'off' | FollowUserMode
 
 export function nextFollowMode(current: FollowMode): FollowMode {
   switch (current) {
@@ -67,12 +68,8 @@ export function followModeChange(mode: FollowMode, currentPitch: number): Follow
 // SDK-neutral <Camera> follow configuration for a given follow mode. Mirrors the Kotlin
 // FollowPuckViewportState options: Position = follow location north-up & flat; PositionAndBearing
 // = follow location + device heading, tilted to 3D. 'off' releases the camera to the user.
-export interface FollowCameraProps {
-  followUserLocation: boolean
-  followUserMode?: 'normal' | 'compass' | 'course'
-  followZoomLevel?: number
-  followPitch?: number
-}
+export type FollowCameraProps = Required<Pick<CameraProps, 'followUserLocation'>> &
+  Pick<CameraProps, 'followUserMode' | 'followZoomLevel' | 'followPitch'>
 export function followCameraProps(mode: FollowMode): FollowCameraProps {
   switch (mode) {
     case 'off':
@@ -80,14 +77,14 @@ export function followCameraProps(mode: FollowMode): FollowCameraProps {
     case 'position':
       return {
         followUserLocation: true,
-        followUserMode: 'normal',
+        followUserMode: 'position',
         followZoomLevel: MapTokens.locationZoom,
         followPitch: MapTokens.pitchMin,
       }
     case 'positionAndBearing':
       return {
         followUserLocation: true,
-        followUserMode: 'compass',
+        followUserMode: 'positionAndBearing',
         followZoomLevel: MapTokens.locationZoom,
         followPitch: MapTokens.pitchToggle,
       }

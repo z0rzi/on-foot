@@ -63,14 +63,14 @@ describe('followCameraProps', () => {
   test('position follows location, north-up and flat', () =>
     expect(followCameraProps('position')).toEqual({
       followUserLocation: true,
-      followUserMode: 'normal',
+      followUserMode: 'position',
       followZoomLevel: 15,
       followPitch: 0,
     }))
   test('positionAndBearing follows location + heading, tilted', () =>
     expect(followCameraProps('positionAndBearing')).toEqual({
       followUserLocation: true,
-      followUserMode: 'compass',
+      followUserMode: 'positionAndBearing',
       followZoomLevel: 15,
       followPitch: 60,
     }))

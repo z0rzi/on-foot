@@ -18,10 +18,14 @@ export interface MapCapabilities {
   styles: StyleDescriptor[]
 }
 
+// How the camera follows the user: on position alone (north-up), or on position and the device
+// heading. Each provider translates it to its own tracking mode.
+export type FollowUserMode = 'position' | 'positionAndBearing'
+
 export interface CameraProps {
   pitch?: number
   followUserLocation?: boolean
-  followUserMode?: 'normal' | 'compass' | 'course'
+  followUserMode?: FollowUserMode
   followZoomLevel?: number
   followPitch?: number
   animationDuration?: number
