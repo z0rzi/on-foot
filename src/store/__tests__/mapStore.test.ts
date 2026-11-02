@@ -17,6 +17,8 @@ import {
 
 // Mirrors the provider's style list shape (id + semantic satellite flag). The store logic
 // operates on this, never on a hardcoded provider style id, preserving the seam.
+const CAMERA = { center: [6.86, 45.92] as [number, number], zoom: 14, pitch: 45, heading: 30 }
+
 const STYLES = [
   { id: 'standard' },
   { id: 'satellite', satellite: true },
@@ -166,11 +168,36 @@ describe('store actions', () => {
       cameraHeading: 0,
       northResetNonce: 0,
       pendingFit: null,
+      lastCamera: null,
+      launchResolved: false,
+      restoredCamera: null,
     })
   })
-  test('defaults to position follow so the map centres on the user at launch', () => {
-    // The persisted store hydrates followMode from the initializer default, not persistence.
+  test('defaults to position follow so a first launch centres on the user', () => {
     expect(useMapStore.getInitialState().followMode).toBe('position')
+  })
+  test('setLastCamera records the framing the camera came to rest on', () => {
+    useMapStore.getState().setLastCamera(CAMERA)
+    expect(useMapStore.getState().lastCamera).toEqual(CAMERA)
+  })
+  test('restoreCamera holds the camera for the session, follow off, and seeds pitch and heading', () => {
+    useMapStore.setState({ followMode: 'position', pitchAnimated: true })
+    useMapStore.getState().restoreCamera(CAMERA)
+    const s = useMapStore.getState()
+    expect(s.restoredCamera).toEqual(CAMERA)
+    expect(s.launchResolved).toBe(true)
+    expect(s.followMode).toBe('off')
+    expect(s.cameraPitch).toBe(45)
+    expect(s.cameraHeading).toBe(30)
+    expect(s.pitchAnimated).toBe(false)
+  })
+  test('startFollow resolves the launch into the mode and syncs its pitch', () => {
+    useMapStore.getState().startFollow('positionAndBearing')
+    const s = useMapStore.getState()
+    expect(s.launchResolved).toBe(true)
+    expect(s.restoredCamera).toBeNull()
+    expect(s.followMode).toBe('positionAndBearing')
+    expect(s.cameraPitch).toBe(60)
   })
   test('cycleFollowMode advances the machine and syncs the pitch label', () => {
     useMapStore.getState().cycleFollowMode()
@@ -321,19 +348,25 @@ describe('store actions', () => {
     expect(useMapStore.getState().mapStyleId).toBe('standard')
     expect(useMapStore.getState().previousMapStyleId).toBeNull()
   })
-  test('partialize persists mapStyleId and a trail selection', () => {
+  test('partialize persists mapStyleId, a trail selection, the follow state and the last camera', () => {
     const partialize = useMapStore.persist.getOptions().partialize!
-    useMapStore.setState({ selection: { kind: 'trail', id: 7 } })
+    useMapStore.setState({ selection: { kind: 'trail', id: 7 }, followMode: 'off', lastCamera: CAMERA })
     const partial = partialize({ ...useMapStore.getState() } as any)
-    expect(partial).toEqual({ mapStyleId: useMapStore.getState().mapStyleId, selection: { kind: 'trail', id: 7 } })
+    expect(partial).toEqual({
+      mapStyleId: useMapStore.getState().mapStyleId,
+      selection: { kind: 'trail', id: 7 },
+      followMode: 'off',
+      lastCamera: CAMERA,
+    })
     expect(partial).not.toHaveProperty('pendingFit')
-    expect(partial).not.toHaveProperty('followMode')
+    expect(partial).not.toHaveProperty('restoredCamera')
+    expect(partial).not.toHaveProperty('launchResolved')
   })
   test('partialize drops an activity selection so it never restores across a restart', () => {
     const partialize = useMapStore.persist.getOptions().partialize!
     useMapStore.setState({ selection: { kind: 'activity', id: 4 } })
     const partial = partialize({ ...useMapStore.getState() } as any)
-    expect(partial).toEqual({ mapStyleId: useMapStore.getState().mapStyleId, selection: null })
+    expect(partial).toMatchObject({ mapStyleId: useMapStore.getState().mapStyleId, selection: null })
   })
 })
 

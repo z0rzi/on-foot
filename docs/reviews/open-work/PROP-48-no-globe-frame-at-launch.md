@@ -4,7 +4,7 @@ category: enhancement
 size: S
 triage: ready-for-agent
 source: "agent, 2026-11-02 (split from IDEA-18)"
-blocked_by: ["[[PROP-47-restore-free-camera-at-launch]]"]
+blocked_by: []
 ---
 # PROP-48: no globe frame at launch when the camera was free
 

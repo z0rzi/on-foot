@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { MapTokens } from '../theme/tokens'
-import type { CameraProps, FollowUserMode } from '../map/provider/types'
+import type { CameraFraming, CameraProps, FollowUserMode } from '../map/provider/types'
 
 export type FollowMode = 'off' | FollowUserMode
 
@@ -156,6 +156,7 @@ export interface PendingFit {
 }
 
 interface MapStore {
+  // Persisted exactly, so a launch follows again in the same mode or, when free, restores lastCamera.
   followMode: FollowMode
   mapStyleId: string
   // The style shown before the current one, so a swipe on the layers button can A/B-toggle back.
@@ -179,6 +180,14 @@ interface MapStore {
   // geometry loads. select() sets it; a restored trail selection leaves it null, so restore shows
   // the overlay without fitting. Session-only.
   pendingFit: PendingFit | null
+  // The framing the camera last came to rest on, whatever the follow state. Persisted; only a free
+  // launch reads it.
+  lastCamera: CameraFraming | null
+  // Whether this session's launch camera has been decided (see useLaunchCamera). Session-only.
+  launchResolved: boolean
+  // The last camera this session's launch restored, held for the session as the map's initial
+  // camera; null when the launch follows. Session-only.
+  restoredCamera: CameraFraming | null
   cycleFollowMode: () => void
   disableFollow: () => void
   northPressed: () => void
@@ -191,14 +200,16 @@ interface MapStore {
   setCameraPitch: (p: number) => void
   setCameraPitchAnimated: (p: number) => void
   setCameraHeading: (h: number) => void
+  setLastCamera: (camera: CameraFraming) => void
+  restoreCamera: (camera: CameraFraming) => void
+  startFollow: (mode: FollowUserMode) => void
 }
 
 export const useMapStore = create<MapStore>()(
   persist(
     (set) => ({
-      // Default to Position so the map centres and zooms to the user on launch once location is
-      // granted (matches the Kotlin app's default FollowMode.Position). Not persisted, so every
-      // launch re-follows.
+      // Default to Position so a first launch centres and zooms to the user once location is
+      // granted (matches the Kotlin app's default FollowMode.Position).
       followMode: 'position',
       mapStyleId: 'standard',
       previousMapStyleId: null,
@@ -208,6 +219,9 @@ export const useMapStore = create<MapStore>()(
       cameraHeading: 0,
       northResetNonce: 0,
       pendingFit: null,
+      lastCamera: null,
+      launchResolved: false,
+      restoredCamera: null,
       cycleFollowMode: () => set((s) => followModeChange(nextFollowMode(s.followMode), s.cameraPitch)),
       disableFollow: () => set({ followMode: 'off' }),
       // Compass-follow → demote to north-up Position (follow viewport snaps bearing to north, and
@@ -259,6 +273,19 @@ export const useMapStore = create<MapStore>()(
       setCameraPitch: (p) => set({ cameraPitch: p, pitchAnimated: false }),
       setCameraPitchAnimated: (p) => set({ cameraPitch: p, pitchAnimated: true }),
       setCameraHeading: (h) => set({ cameraHeading: h }),
+      setLastCamera: (camera) => set({ lastCamera: camera }),
+      // The declarative manual pitch and the North button read cameraPitch and cameraHeading, so
+      // both start from the restored camera instead of flattening or hiding its tilt and rotation.
+      restoreCamera: (camera) =>
+        set({
+          launchResolved: true,
+          restoredCamera: camera,
+          followMode: 'off',
+          cameraPitch: camera.pitch,
+          cameraHeading: camera.heading,
+          pitchAnimated: false,
+        }),
+      startFollow: (mode) => set((s) => ({ launchResolved: true, ...followModeChange(mode, s.cameraPitch) })),
     }),
     {
       name: 'onfoot-map',
@@ -266,6 +293,8 @@ export const useMapStore = create<MapStore>()(
       partialize: (s) => ({
         mapStyleId: s.mapStyleId,
         selection: s.selection?.kind === 'trail' ? s.selection : null,
+        followMode: s.followMode,
+        lastCamera: s.lastCamera,
       }),
     }
   )

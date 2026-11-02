@@ -14,6 +14,8 @@ import { ScrubMarkerLayer } from './ScrubMarkerLayer'
 import { useRouteColouring } from '../elevation/useRouteColouring'
 import type { RouteDisplay } from '../elevation/routeDisplay'
 import { useInterruptionToast } from '../recording/useInterruptionToast'
+import { useLaunchCamera } from './useLaunchCamera'
+import { useLastCameraCapture } from './useLastCameraCapture'
 
 // Counts points without allocating the flattened copy flattenSegments would build.
 function pointCount<T>(segments: T[][]): number {
@@ -36,9 +38,10 @@ export function MapCanvas({
   const { View: MapView, Camera, Terrain, UserPuck } = components
 
   // The camera is driven declaratively from the store. When a follow mode is active, rnmapbox
-  // owns the camera (centres/zooms/tilts to the puck) — this is what auto-zooms to the user on
-  // launch and recentres when the location button is tapped. When follow is off, we apply the
-  // manual pitch (from the 2D/3D button / drag) via the pitch prop.
+  // owns the camera (centres/zooms/tilts to the puck) — this is what auto-zooms to the user on a
+  // following launch and recentres when the location button is tapped. When follow is off, we
+  // apply the manual pitch (from the 2D/3D button / drag) via the pitch prop. A free launch starts
+  // on the restored last camera, which is only ever set together with follow off.
   const followMode = useMapStore((s) => s.followMode)
   const cameraPitch = useMapStore((s) => s.cameraPitch)
   const pitchAnimated = useMapStore((s) => s.pitchAnimated)
@@ -48,6 +51,8 @@ export function MapCanvas({
   const pendingFit = useMapStore((s) => s.pendingFit)
   const clearPendingFit = useMapStore((s) => s.clearPendingFit)
   const cameraRef = useRef<CameraController>(null)
+  const initialCamera = useLaunchCamera()
+  const captureLastCamera = useLastCameraCapture()
   const [mapLoaded, setMapLoaded] = useState(false)
   useInterruptionToast(mapLoaded)
 
@@ -89,7 +94,7 @@ export function MapCanvas({
   // activity.geometry.segments are stable references for a given loaded entity, so fitSegments is
   // a sound effect dependency. pendingFit is cleared only after the deferred fit fires (not
   // before), so the effect cleanup can't cancel its own pending frame. A restored selection leaves
-  // pendingFit null, so it never fits and the camera keeps following the user.
+  // pendingFit null, so it never fits: the camera follows the user or stays on the restored camera.
   const fitSegments =
     pendingFit?.kind === 'trail' && trail?.id === pendingFit.id
       ? trail.geometry.segments
@@ -121,11 +126,15 @@ export function MapCanvas({
     <MapView
       style={StyleSheet.absoluteFill}
       styleURL={style.url}
-      onCameraChanged={(e) => setCameraHeading(e.heading)}
+      onCameraChanged={(framing) => {
+        setCameraHeading(framing.heading)
+        captureLastCamera(framing)
+      }}
       onMapLoaded={() => setMapLoaded(true)}
     >
       <Camera
         ref={cameraRef}
+        initialCamera={initialCamera}
         {...follow}
         {...manualPitch}
         // A manual pan/zoom/tilt cancels rnmapbox tracking; drop our follow mode to match so the
