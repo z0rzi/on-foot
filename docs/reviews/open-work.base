@@ -56,15 +56,18 @@ views:
       - severity
       - size
       - triage
-      - blocked_by
       - source
     sort:
+      - property: severity
+        direction: DESC
       - property: category
         direction: ASC
       - property: formula.rank
         direction: ASC
       - property: file.name
         direction: ASC
+    columnSize:
+      note.size: 78
   - type: table
     name: Owner ideas
     filters:
