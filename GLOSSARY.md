@@ -23,7 +23,18 @@ A map feature a provider may lack and the app renders without — today only 3D 
 not one: every provider must support it, so the app never asks.
 _Avoid_: feature flag, support flag, option
 
-### Offline
+**Follow**:
+The camera is locked on the user's position — position alone, or position and heading. Any manual
+pan, zoom or tilt ends it.
+_Avoid_: tracking, locked camera, recenter mode
+
+**Free camera**:
+The camera is not following: its framing is the one the user set by hand.
+_Avoid_: manual camera, unlocked, follow off (in user-facing text)
+
+**Last camera**:
+The free camera's framing — centre, zoom, pitch, heading — as it was when the app was last left.
+_Avoid_: saved position, last view, camera state
 
 **Offline map**:
 Everything downloaded for one trail so its map can be shown without a network: one pack per layer
