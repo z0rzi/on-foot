@@ -6,4 +6,6 @@ export const mapboxCapabilities: MapCapabilities = {
   id: 'mapbox',
   supportsTerrain: true,
   styles: MAPBOX_STYLES,
+  minZoom: 0,
+  maxZoom: 25,
 }

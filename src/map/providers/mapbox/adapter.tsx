@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle, useRef } from 'react'
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import Mapbox, { type MapState } from '@rnmapbox/maps'
 import type {
   MapProvider, MapViewProps, CameraProps, TerrainProps, CameraController, RouteOverlayProps,
@@ -7,6 +7,7 @@ import type {
 import { mapboxCapabilities } from './capabilities'
 import { mapboxOfflineController } from './offline'
 import { trackingModeFor } from './followMode'
+import { cameraStopFor, framingFromMapState } from './camera'
 import { TERRAIN_DEM } from './styles'
 import { MAPBOX_ACCESS_TOKEN } from './token'
 
@@ -22,7 +23,10 @@ const View = ({ styleURL, onCameraChanged, onMapLoaded, style, children }: MapVi
     logoEnabled={false}
     attributionEnabled={false}
     compassEnabled={false}
-    onCameraChanged={(e: MapState) => onCameraChanged?.({ heading: e?.properties?.heading ?? 0 })}
+    onCameraChanged={(e: MapState) => {
+      const framing = framingFromMapState(e)
+      if (framing) onCameraChanged?.(framing)
+    }}
     onDidFinishLoadingMap={onMapLoaded}
   >
     {children}
@@ -34,9 +38,18 @@ const View = ({ styleURL, onCameraChanged, onMapLoaded, style, children }: MapVi
 // a no-op while following" trap does not apply: resetNorth, a one-shot rotate to bearing 0, and
 // fitBounds, which frames a trail. The port describes both (`src/map/provider/types.ts`). Pull out
 // fields whose neutral shape differs from rnmapbox's before spreading the rest.
+// The initial camera is applied once: defined at mount, it is rnmapbox's `defaultSettings`, which
+// the native camera applies before the first frame; first defined later, it is a jump.
 const Camera = forwardRef<CameraController, CameraProps>(
-  ({ followUserMode, onUserTrackingModeChange, ...rest }, ref) => {
+  ({ followUserMode, onUserTrackingModeChange, initialCamera, ...rest }, ref) => {
     const inner = useRef<Mapbox.Camera>(null)
+    const [defaultSettings] = useState(() => initialCamera && cameraStopFor(initialCamera))
+    const initialApplied = useRef(defaultSettings !== undefined)
+    useEffect(() => {
+      if (initialApplied.current || !initialCamera) return
+      initialApplied.current = true
+      inner.current?.setCamera(cameraStopFor(initialCamera))
+    }, [initialCamera])
     useImperativeHandle(ref, () => ({
       resetNorth: (animated: boolean) =>
         inner.current?.setCamera({ heading: 0, animationDuration: animated ? 300 : 0 }),
@@ -52,6 +65,9 @@ const Camera = forwardRef<CameraController, CameraProps>(
       <Mapbox.Camera
         ref={inner}
         {...rest}
+        defaultSettings={defaultSettings}
+        minZoomLevel={mapboxCapabilities.minZoom}
+        maxZoomLevel={mapboxCapabilities.maxZoom}
         followUserMode={followUserMode && trackingModeFor(followUserMode)}
         onUserTrackingModeChange={
           onUserTrackingModeChange

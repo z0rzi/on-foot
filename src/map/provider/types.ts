@@ -16,6 +16,17 @@ export interface MapCapabilities {
   id: string
   supportsTerrain: boolean
   styles: StyleDescriptor[]
+  // The camera's zoom range, enforced by the provider's camera.
+  minZoom: number
+  maxZoom: number
+}
+
+// Where the camera looks: centre as [lng, lat], zoom, pitch and heading in degrees.
+export interface CameraFraming {
+  center: [number, number]
+  zoom: number
+  pitch: number
+  heading: number
 }
 
 // How the camera follows the user: on position alone (north-up), or on position and the device
@@ -29,6 +40,9 @@ export interface CameraProps {
   followZoomLevel?: number
   followPitch?: number
   animationDuration?: number
+  // Applied once, the first time it is defined, without animation: at mount it is the starting
+  // framing, before the first rendered frame; defined later, a jump. Later changes are ignored.
+  initialCamera?: CameraFraming
   // Fires when the map's user-tracking state changes. `following` is false when a manual gesture
   // cancels follow, so the app can drop its follow mode. SDK-neutral (see adapter for mapping).
   onUserTrackingModeChange?: (following: boolean) => void
@@ -91,8 +105,8 @@ export interface UserPuckProps {
 
 export interface MapViewProps {
   styleURL: string
-  // Fires as the camera moves; heading only (all the North button needs). SDK-neutral.
-  onCameraChanged?: (e: { heading: number }) => void
+  // Fires as the camera moves.
+  onCameraChanged?: (framing: CameraFraming) => void
   // Fires once the map has loaded its style and is on screen; may fire again after a style change.
   onMapLoaded?: () => void
   children?: React.ReactNode

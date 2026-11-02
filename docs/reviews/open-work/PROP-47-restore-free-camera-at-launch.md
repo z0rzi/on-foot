@@ -4,7 +4,7 @@ category: enhancement
 size: M
 triage: ready-for-agent
 source: "agent, 2026-11-02 (split from IDEA-18)"
-blocked_by: ["[[PROP-46-camera-port-full-framing]]"]
+blocked_by: []
 ---
 # PROP-47: a free camera is restored at launch
 

@@ -10,3 +10,7 @@ test('exposes the three ported styles with correct URLs', () => {
 test('mapbox capabilities are terrain-capable', () => {
   expect(mapboxCapabilities.supportsTerrain).toBe(true)
 })
+
+test('mapbox camera zooms from 0 (whole earth) to 25', () => {
+  expect([mapboxCapabilities.minZoom, mapboxCapabilities.maxZoom]).toEqual([0, 25])
+})
