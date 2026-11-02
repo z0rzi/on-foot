@@ -21,6 +21,8 @@ it proves the persist-across-restart path before the harder GPS work leans on it
   persisting `followMode`, camera pitch, heading, or position (these stay session-only by
   design — every launch re-follows the user).
 
+> Superseded on the camera by `docs/adr/0003-last-camera-restored-when-free.md`: a free camera is now restored at launch.
+
 ## Locked decision
 
 **Restore-camera behavior = "follow me, trail overlaid."** On reopen with a restored

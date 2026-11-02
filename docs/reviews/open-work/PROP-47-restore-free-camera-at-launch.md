@@ -8,7 +8,7 @@ blocked_by: ["[[PROP-46-camera-port-full-framing]]"]
 ---
 # PROP-47: a free camera is restored at launch
 
-The demoable slice of `IDEA-18`. Today the follow state and the camera are session-only, so a
+The demoable slice of `IDEA-18`. Spec: `docs/design/specs/2026-11-02-last-camera-design.md`. Today the follow state and the camera are session-only, so a
 relaunch — including a background kill while the save-activity screen is open (the merged
 `FIELD-37`) — always re-follows the user from the globe.
 
@@ -22,10 +22,14 @@ Every launch starts in position follow; `followMode` and the camera are not pers
 
 **Desired behavior:**
 - The follow state is persisted exactly (position, position and heading, or free).
-- The last camera is captured whenever the camera comes to rest (debounced) and persisted.
+- The last camera is captured whenever the camera comes to rest (debounced), whatever the follow
+  state, and persisted.
 - At launch: following → follow as today; free with a valid last camera → the map starts on it via
   the port's initial camera, follow off; free with an invalid or missing last camera → follow as
-  today, plus one `warn` line in the debug log (accuracy-free: no coordinates).
+  today, plus one `warn` line in the debug log naming the reason (no coordinates).
+- The launch decision is computed once from the hydrated state and held for the session.
+- A restored camera seeds the store's `cameraPitch` and `cameraHeading`, so the declarative manual
+  pitch keeps the restored tilt and the North button shows when the view is rotated.
 - The restored view stands whatever the user's current distance from it; the position button
   re-follows as today.
 - A restored trail selection keeps today's rule: overlay shown, no fit.
@@ -33,9 +37,9 @@ Every launch starts in position follow; `followMode` and the camera are not pers
 A brief globe frame before the restored camera is tolerated here; `PROP-48` removes it.
 
 **Key interfaces:**
-- A pure launch-camera resolution helper (follow state + last camera → what the camera does at
-  launch) and a pure last-camera validity predicate (finite numbers, zoom within the provider's
-  range), both TDD'd.
+- A pure launch-camera resolution helper (follow state + last camera + zoom range → what the camera
+  does at launch) and a pure last-camera validity predicate (finite numbers, latitude and longitude
+  in range, zoom within the provider's declared range), both TDD'd.
 - The map store's persisted subset gains the follow state and the last camera.
 
 **Acceptance criteria:**

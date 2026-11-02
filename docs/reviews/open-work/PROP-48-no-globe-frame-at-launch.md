@@ -8,7 +8,7 @@ blocked_by: ["[[PROP-47-restore-free-camera-at-launch]]"]
 ---
 # PROP-48: no globe frame at launch when the camera was free
 
-Last slice of `IDEA-18`. The map store persists to AsyncStorage, which hydrates asynchronously, and
+Last slice of `IDEA-18`. Spec: `docs/design/specs/2026-11-02-last-camera-design.md`. The map store persists to AsyncStorage, which hydrates asynchronously, and
 nothing in the app waits for it: the map can mount on the defaults (whole-earth view) before the
 restored state arrives, so a restored free camera flashes the globe first.
 
@@ -21,7 +21,8 @@ restored state arrives, so a restored free camera flashes the globe first.
 The map mounts without waiting for the map store's hydration.
 
 **Desired behavior:**
-- The map mounts only once the map store has hydrated; the splash covers the wait.
+- The map mounts only once the map store has hydrated; the native splash (`expo-splash-screen`,
+  which auto-hides today) is held over the wait.
 - A hydration that fails or never completes does not hold the app: past a bounded wait, the map
   mounts on the defaults (follow) and the debug log records one `warn` line.
 - Launches that follow behave exactly as today.
