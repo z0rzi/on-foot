@@ -1,7 +1,8 @@
-import { create } from 'zustand'
+import { create, type Mutate, type StoreApi, type UseBoundStore } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { MapTokens } from '../theme/tokens'
+import { writesAfterHydration } from './writesAfterHydration'
 import type { CameraFraming, CameraProps, FollowUserMode } from '../map/provider/types'
 
 export type FollowMode = 'off' | FollowUserMode
@@ -183,11 +184,16 @@ interface MapStore {
   // The framing the camera last came to rest on, whatever the follow state. Persisted; only a free
   // launch reads it.
   lastCamera: CameraFraming | null
-  // Whether this session's launch camera has been decided (see useLaunchCamera). Session-only.
+  // Whether this session's launch camera has been decided (see MapLaunchGate). Session-only.
   launchResolved: boolean
   // The last camera this session's launch restored, held for the session as the map's initial
   // camera; null when the launch follows. Session-only.
   restoredCamera: CameraFraming | null
+  // The class of the error reading the persisted state failed with, null while it has not. Never
+  // the message: a parse error's can quote the stored payload, coordinates included. The store
+  // library reports a failure only through its rehydration callback; the launch gate opens on it
+  // (see MapLaunchGate). Session-only.
+  hydrationError: string | null
   cycleFollowMode: () => void
   disableFollow: () => void
   northPressed: () => void
@@ -203,9 +209,24 @@ interface MapStore {
   setLastCamera: (camera: CameraFraming) => void
   restoreCamera: (camera: CameraFraming) => void
   startFollow: (mode: FollowUserMode) => void
+  failHydration: (errorClass: string) => void
 }
 
-export const useMapStore = create<MapStore>()(
+type PersistedMapState = Pick<MapStore, 'mapStyleId' | 'selection' | 'followMode' | 'lastCamera'>
+
+// A hydration that lands after the launch was resolved without it (the gate timed out) still
+// restores the style and selection, but never overrides the follow state the session started in
+// or a last camera captured since.
+function mergeHydrated(persisted: unknown, current: MapStore): MapStore {
+  const restored = (persisted ?? {}) as Partial<PersistedMapState>
+  if (!current.launchResolved) return { ...current, ...restored }
+  return { ...current, ...restored, followMode: current.followMode, lastCamera: current.lastCamera }
+}
+
+// Annotated because the storage reads the store's own hydration status.
+type MapStoreHook = UseBoundStore<Mutate<StoreApi<MapStore>, [['zustand/persist', PersistedMapState]]>>
+
+export const useMapStore: MapStoreHook = create<MapStore>()(
   persist(
     (set) => ({
       // Default to Position so a first launch centres and zooms to the user once location is
@@ -222,6 +243,7 @@ export const useMapStore = create<MapStore>()(
       lastCamera: null,
       launchResolved: false,
       restoredCamera: null,
+      hydrationError: null,
       cycleFollowMode: () => set((s) => followModeChange(nextFollowMode(s.followMode), s.cameraPitch)),
       disableFollow: () => set({ followMode: 'off' }),
       // Compass-follow → demote to north-up Position (follow viewport snaps bearing to north, and
@@ -286,16 +308,25 @@ export const useMapStore = create<MapStore>()(
           pitchAnimated: false,
         }),
       startFollow: (mode) => set((s) => ({ launchResolved: true, ...followModeChange(mode, s.cameraPitch) })),
+      failHydration: (errorClass) => set({ hydrationError: errorClass }),
     }),
     {
       name: 'onfoot-map',
-      storage: createJSONStorage(() => AsyncStorage),
+      // The launch runs on the defaults when hydration fails or times out; those never reach storage.
+      storage: writesAfterHydration(
+        createJSONStorage<PersistedMapState>(() => AsyncStorage),
+        () => useMapStore.persist.hasHydrated(),
+      ),
       partialize: (s) => ({
         mapStyleId: s.mapStyleId,
         selection: s.selection?.kind === 'trail' ? s.selection : null,
         followMode: s.followMode,
         lastCamera: s.lastCamera,
       }),
+      merge: mergeHydrated,
+      onRehydrateStorage: (state) => (_, error) => {
+        if (error) state.failHydration(error instanceof Error ? error.name : typeof error)
+      },
     }
   )
 )

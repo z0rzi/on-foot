@@ -14,7 +14,6 @@ import { ScrubMarkerLayer } from './ScrubMarkerLayer'
 import { useRouteColouring } from '../elevation/useRouteColouring'
 import type { RouteDisplay } from '../elevation/routeDisplay'
 import { useInterruptionToast } from '../recording/useInterruptionToast'
-import { useLaunchCamera } from './useLaunchCamera'
 import { useLastCameraCapture } from './useLastCameraCapture'
 
 // Counts points without allocating the flattened copy flattenSegments would build.
@@ -41,7 +40,8 @@ export function MapCanvas({
   // owns the camera (centres/zooms/tilts to the puck) — this is what auto-zooms to the user on a
   // following launch and recentres when the location button is tapped. When follow is off, we
   // apply the manual pitch (from the 2D/3D button / drag) via the pitch prop. A free launch starts
-  // on the restored last camera, which is only ever set together with follow off.
+  // on the restored last camera, which is only ever set together with follow off, and before the
+  // map mounts (MapLaunchGate).
   const followMode = useMapStore((s) => s.followMode)
   const cameraPitch = useMapStore((s) => s.cameraPitch)
   const pitchAnimated = useMapStore((s) => s.pitchAnimated)
@@ -51,7 +51,7 @@ export function MapCanvas({
   const pendingFit = useMapStore((s) => s.pendingFit)
   const clearPendingFit = useMapStore((s) => s.clearPendingFit)
   const cameraRef = useRef<CameraController>(null)
-  const initialCamera = useLaunchCamera()
+  const initialCamera = useMapStore((s) => s.restoredCamera) ?? undefined
   const captureLastCamera = useLastCameraCapture()
   const [mapLoaded, setMapLoaded] = useState(false)
   useInterruptionToast(mapLoaded)

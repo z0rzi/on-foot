@@ -46,13 +46,17 @@ else joins the persisted subset: a pending fit and an activity selection stay se
 
 - `MapViewProps.onCameraChanged` delivers a `CameraFraming` instead of `{ heading }`. The North
   button reads `heading` from it, unchanged.
-- `CameraProps.initialCamera?: CameraFraming`. The provider applies it once, the first time it is
-  defined, without animation: at mount it is the camera's starting framing, before the first
-  rendered frame; defined later (a late hydration, only possible before `PROP-48`), it is a jump.
-  Later changes are ignored. "Once" is the port's contract, so a caller can never move the camera
-  through it by accident.
+- `CameraProps.initialCamera?: CameraFraming`. The provider reads it once, at mount, and applies it
+  without animation as the camera's starting framing, before the first rendered frame. Later
+  changes are ignored. "Once" is the port's contract, so a caller can never move the camera through
+  it by accident. (Until `PROP-48` a late hydration could define it after mount, so `PROP-46`'s
+  adapter also applied a late first definition as a jump; `PROP-48` mounts the map only once the
+  launch is decided, and that branch went with it.)
 - `MapCapabilities` declares the provider's camera zoom range (`minZoom`, `maxZoom`), which the
-  validity predicate takes as input. No Mapbox number is written in shared code.
+  validity predicate takes as input. No Mapbox number is written in shared code. The Mapbox adapter
+  declares 0–25 and enforces it on the camera (`minZoomLevel` / `maxZoomLevel`), so a declared
+  range is never one the map can leave. 0–25 is rnmapbox Android's own default, so Android
+  behaviour is unchanged.
 
 The Mapbox adapter translates all three in `src/map/providers/mapbox/` only. No caller passes an
 initial camera yet; behaviour is unchanged.
@@ -62,12 +66,14 @@ initial camera yet; behaviour is unchanged.
 - **Store.** The map store gains `lastCamera: CameraFraming | null`, written by the camera-changed
   handler through a debounce, so it is written when the camera comes to rest. `partialize` adds
   `followMode` and `lastCamera`.
-- **Validity.** A pure `isValidLastCamera(camera, zoomRange)`: finite numbers, latitude in
+- **Validity.** A pure `lastCameraFault(camera, zoomRange)` returns why a stored camera cannot be
+  restored (`non-finite`, `out-of-range`) or null: finite numbers, latitude in
   [-90, 90], longitude in [-180, 180], zoom inside the provider's range. Pitch and heading are not
   range-checked: the provider clamps pitch, and heading is an angle.
 - **Launch resolution.** A pure `launchCamera(followMode, lastCamera, zoomRange)` returns one of
   `{ kind: 'follow', mode }` (following at the last leave), `{ kind: 'restore', camera }` (free,
-  valid) or `{ kind: 'follow', mode: 'position', invalid: true }` (free, invalid or missing). It is
+  valid) or `{ kind: 'follow', mode: 'position', invalid: <fault> }` (free, invalid or missing; the
+  fault is `missing` or the one `lastCameraFault` returned). It is
   computed once, from the hydrated state, and held for the session: `lastCamera` keeps changing after
   launch, the launch decision does not.
 - **Applying it.** `restore` → `MapCanvas` passes the camera as `initialCamera`, follow stays off,
@@ -88,6 +94,19 @@ is held (`expo-splash-screen`) until then. A bounded wait caps it: past the boun
 the defaults (follow) and the debug log gets one `warn` line. The decision "hydrated or timed out"
 is a pure, tested function. A launch that follows behaves exactly as today.
 
+As built: `MapLaunchGate` (inside the map provider, around the app's navigator in the root layout)
+waits on the gate, decides the launch camera, and renders its children only once
+`launchResolved` is set; the root layout hides the splash on that flag. zustand persist reports a
+storage error only through `onRehydrateStorage`, which records it on the store
+(`hydrationError`), so a failure opens the gate at once instead of waiting out the bound
+(`MapTokens.hydrationBoundMs`); the store records the error class only, since a parse error's
+message can quote the stored payload. The map store's storage drops writes until hydration has
+completed (`src/store/writesAfterHydration.ts`): zustand persist writes on every `set`, so otherwise
+the defaults a failed or timed-out launch runs on would overwrite the stored style, trail selection
+and last camera. A failed session therefore persists nothing. A hydration landing after a
+timed-out launch still restores the style and trail selection, but the store's `merge` keeps the
+session's follow state and last camera; writes resume from there.
+
 ## Existing shape
 
 - **The 2026-08-21 restore-last-map-state spec** is the same shape: one map-store field joins
@@ -100,6 +119,15 @@ is a pure, tested function. A launch that follows behaves exactly as today.
 - **The port's neutral translations** (`onUserTrackingModeChange(following)`,
   `FollowUserMode` → `trackingModeFor`, 2026-11-01 follow-mode spec): `CameraFraming` and
   `initialCamera` follow them, the SDK shape only in the adapter.
+- **`MapLaunchGate`** has one sibling: the root layout's database-migrations gate
+  (`app/_layout.tsx`), which renders the app only once `useDatabaseMigrations` succeeds and hides
+  the splash on its outcome. Same shape (async readiness → render children, release the splash),
+  reused as is: `MapLaunchGate` nests inside it and the layout hides the splash on either flag. Not
+  extracted: the migrations gate has no bound and blocks on failure, this one opens on both.
+- **`hydrationGate`, `useLastCameraCapture` and `writesAfterHydration`:** none. No other pure
+  readiness decision, no other debounced capture of a native event into a store, and the only other
+  persisted store (`preferencesStore`) writes on user action alone, so it has no session-start
+  write to keep from storage.
 - **Extracted to be shared:** `CameraFraming`, used by the camera-changed event, the initial camera
   and the stored last camera, so the three can't drift.
 
@@ -111,11 +139,14 @@ is a pure, tested function. A launch that follows behaves exactly as today.
   rest was captured, or the first launch after upgrading): same as invalid.
 - **Stale last camera** (killed mid-pan, before the debounce fires): the previous rest is restored.
   It is still a framing the user had; accepted.
-- **Hydration fails** (AsyncStorage error): zustand persist keeps the defaults, launch follows as
-  today. After `PROP-48` the gate opens on the failure and logs one `warn` line.
+- **Hydration fails** (AsyncStorage error or a corrupt payload): zustand persist keeps the
+  defaults, launch follows as today. After `PROP-48` the gate opens on the failure and logs one
+  `warn` line with the error class. Nothing is written for the rest of the session, so storage
+  still holds what it held. A corrupt payload therefore keeps failing every launch until storage is
+  cleared.
 - **Hydration slow or never completes:** before `PROP-48`, a brief globe frame then the jump.
   After it, the splash holds up to the bound, then the map mounts on the defaults with one `warn`
-  line. The app is never held.
+  line. The app is never held. Nothing is written until the hydration lands, if it ever does.
 - **No location permission or no position yet:** a free launch is unaffected, the restored camera
   needs no position. A following launch behaves as today (no puck, nothing to follow until a fix).
 - **Restored trail selection with a free camera:** overlay and info card shown, no fit
@@ -126,7 +157,7 @@ is a pure, tested function. A launch that follows behaves exactly as today.
 
 ## Testing
 
-**Pure logic (Jest, TDD):** `isValidLastCamera` (finite, lat/lng range, zoom range edges, NaN,
+**Pure logic (Jest, TDD):** `lastCameraFault` (finite, lat/lng range, zoom range edges, NaN,
 Infinity); `launchCamera` (following in each mode, free + valid, free + invalid, free + missing);
 `partialize` includes `followMode` and `lastCamera` and still excludes `pendingFit`; the hydration
 gate's decision (hydrated, failed, timed out).

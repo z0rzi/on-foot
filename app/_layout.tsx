@@ -1,11 +1,14 @@
 import { useEffect } from 'react'
 import { Stack, ThemeProvider } from 'expo-router'
+import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import { Text, useColorScheme, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
 import { KeyboardProvider } from 'react-native-keyboard-controller'
 import { MapProviderProvider, useOfflineController } from '../src/map/provider'
+import { MapLaunchGate } from '../src/map/MapLaunchGate'
+import { useMapStore } from '../src/store/mapStore'
 import { mapboxProvider } from '../src/map/providers/mapbox'
 import { ErrorBoundary } from '../src/components/ErrorBoundary'
 import { useOfflineStore } from '../src/map/offline/offlineStore'
@@ -18,6 +21,8 @@ import { getNavigationTheme } from '../src/theme/navigationTheme'
 import { installGlobalErrorHandler, logEvent, useLogRetention } from '../src/log'
 
 installGlobalErrorHandler()
+// Held until the map can mount on its launch camera, so a restored camera never shows the globe first.
+void SplashScreen.preventAutoHideAsync()
 
 function ShareIntentHandler() {
   useIncomingShare()
@@ -53,6 +58,11 @@ function LogRetentionHandler() {
 export default function RootLayout() {
   const { success, error } = useDatabaseMigrations()
   const scheme = useColorScheme()
+  const launchResolved = useMapStore((s) => s.launchResolved)
+
+  useEffect(() => {
+    if (error || launchResolved) SplashScreen.hide()
+  }, [error, launchResolved])
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -66,14 +76,16 @@ export default function RootLayout() {
           ) : success ? (
             <KeyboardProvider>
               <MapProviderProvider provider={mapboxProvider}>
-                <BottomSheetModalProvider>
-                  <Stack screenOptions={{ headerShown: false }} />
-                  <ShareIntentHandler />
-                  <ResumeRecordingHandler />
-                  <RecordingStreamHandler />
-                  <OfflineInitHandler />
-                  <LogRetentionHandler />
-                </BottomSheetModalProvider>
+                <MapLaunchGate>
+                  <BottomSheetModalProvider>
+                    <Stack screenOptions={{ headerShown: false }} />
+                    <ShareIntentHandler />
+                    <ResumeRecordingHandler />
+                    <RecordingStreamHandler />
+                    <OfflineInitHandler />
+                    <LogRetentionHandler />
+                  </BottomSheetModalProvider>
+                </MapLaunchGate>
               </MapProviderProvider>
             </KeyboardProvider>
           ) : null}

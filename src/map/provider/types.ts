@@ -40,8 +40,8 @@ export interface CameraProps {
   followZoomLevel?: number
   followPitch?: number
   animationDuration?: number
-  // Applied once, the first time it is defined, without animation: at mount it is the starting
-  // framing, before the first rendered frame; defined later, a jump. Later changes are ignored.
+  // The starting framing, read once at mount and applied without animation before the first
+  // rendered frame. Later changes are ignored, so it can never move the camera.
   initialCamera?: CameraFraming
   // Fires when the map's user-tracking state changes. `following` is false when a manual gesture
   // cancels follow, so the app can drop its follow mode. SDK-neutral (see adapter for mapping).

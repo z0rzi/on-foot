@@ -8,9 +8,6 @@ describe('lastCameraFault', () => {
   test('a finite in-range camera has no fault', () => {
     expect(lastCameraFault(CAMERA, RANGE)).toBeNull()
   })
-  test('a missing camera is missing', () => {
-    expect(lastCameraFault(null, RANGE)).toBe('missing')
-  })
   test.each([
     ['NaN longitude', { ...CAMERA, center: [NaN, 45] as [number, number] }],
     ['Infinity latitude', { ...CAMERA, center: [6, Infinity] as [number, number] }],

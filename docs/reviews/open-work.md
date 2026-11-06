@@ -59,3 +59,10 @@ residue a completed check could not reach.
   sheet edge, finer than the ~0.3 s screenshot interval; a late gorhom `animatedPosition` write
   after the unmount reset; the three stored `d&#039;` names, which the owner renames. The map tab's
   status bar over light Mapbox styles in dark scheme stays the owner's call, not built.
+- **IDEA-18, the last camera** (PROP-46, PROP-47, PROP-48, [[2026-11-02-last-camera-design]]) is
+  built and unit-tested, never run on a device. Owed, the owner's: pan, tilt and rotate, kill,
+  relaunch → same framing, pitch and heading, with no globe frame at any point (the splash holds
+  until the map mounts on it); following at kill → relaunch follows as today; kill with the
+  save-activity screen open while free → the map comes back on the last camera; the North button
+  still appears after a rotation and resets. Unobserved by construction: the bounded wait's `warn`
+  line (`map store hydration timed out` / `failed`), which needs a broken AsyncStorage.

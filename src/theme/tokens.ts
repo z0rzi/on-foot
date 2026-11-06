@@ -26,6 +26,9 @@ export const MapTokens = {
   trailFitDurationMs: 1000,
   // How long the camera must stay still before its framing is recorded as the last camera.
   cameraRestMs: 500,
+  // How long launch waits on the map store's hydration, under the splash, before mounting the map
+  // on the defaults.
+  hydrationBoundMs: 2000,
   holdToStopMs: 1000,
   recordRingWidth: 3,
 } as const

@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import {
   nextFollowMode,
   demoteBearing,
@@ -384,5 +385,77 @@ describe('trailToShow', () => {
   })
   it('shows nothing when no trail is selected', () => {
     expect(trailToShow('recording', null)).toBeNull()
+  })
+})
+
+describe('hydration', () => {
+  const getItem = AsyncStorage.getItem as jest.Mock
+  const setItem = AsyncStorage.setItem as jest.Mock
+  const persisted = JSON.stringify({
+    state: { mapStyleId: 'outdoors', followMode: 'off', lastCamera: CAMERA },
+    version: 0,
+  })
+  beforeEach(() => {
+    useMapStore.setState({
+      followMode: 'position',
+      mapStyleId: 'standard',
+      lastCamera: null,
+      launchResolved: false,
+      hydrationError: null,
+    })
+    setItem.mockClear()
+  })
+  afterEach(() => {
+    getItem.mockReset()
+    setItem.mockReset()
+  })
+
+  test('a storage error is reported as a failed hydration, not a completed one', async () => {
+    getItem.mockRejectedValueOnce(new Error('storage unavailable'))
+    await useMapStore.persist.rehydrate()
+    expect(useMapStore.getState().hydrationError).not.toBeNull()
+    expect(useMapStore.persist.hasHydrated()).toBe(false)
+  })
+  test('a corrupt payload is reported by its error class, never by a message quoting the payload', async () => {
+    getItem.mockResolvedValueOnce('{"state":{"lastCamera":{"center":[6.86,45.92]')
+    await useMapStore.persist.rehydrate()
+    expect(useMapStore.getState().hydrationError).toBe('SyntaxError')
+  })
+  test('before the launch is resolved, the persisted state lands whole', async () => {
+    getItem.mockResolvedValueOnce(persisted)
+    await useMapStore.persist.rehydrate()
+    const s = useMapStore.getState()
+    expect(s.mapStyleId).toBe('outdoors')
+    expect(s.followMode).toBe('off')
+    expect(s.lastCamera).toEqual(CAMERA)
+  })
+  test('a hydration landing after a launch resolved on the defaults keeps the session camera state', async () => {
+    const live = { ...CAMERA, zoom: 10 }
+    useMapStore.setState({ launchResolved: true, followMode: 'position', lastCamera: live })
+    getItem.mockResolvedValueOnce(persisted)
+    await useMapStore.persist.rehydrate()
+    const s = useMapStore.getState()
+    expect(s.mapStyleId).toBe('outdoors')
+    expect(s.followMode).toBe('position')
+    expect(s.lastCamera).toEqual(live)
+  })
+  test('a failed hydration never writes the defaults over the stored state', async () => {
+    getItem.mockRejectedValueOnce(new Error('storage unavailable'))
+    await useMapStore.persist.rehydrate()
+    useMapStore.getState().startFollow('position')
+    useMapStore.getState().setLastCamera(CAMERA)
+    expect(setItem).not.toHaveBeenCalled()
+  })
+  test('nothing is written while hydration is pending, and writes resume once it lands', async () => {
+    let land: (value: string) => void = () => {}
+    getItem.mockReturnValueOnce(new Promise<string>((resolve) => { land = resolve }))
+    const hydration = useMapStore.persist.rehydrate()
+    useMapStore.getState().startFollow('position')
+    expect(setItem).not.toHaveBeenCalled()
+    land(persisted)
+    await hydration
+    useMapStore.getState().setLastCamera(CAMERA)
+    expect(setItem).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(setItem.mock.calls[0][1]).state).toMatchObject({ mapStyleId: 'outdoors', lastCamera: CAMERA })
   })
 })
