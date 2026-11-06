@@ -20,12 +20,13 @@ suggest filling it in upfront.
 
 ```
 /
-├── GLOSSARY.md                        ← exists: map, offline vocabulary
+├── GLOSSARY.md                        ← exists: map, recording, work vocabulary
 ├── docs/
 │   ├── adr/                           ← exists
 │   ├── architecture/                  ← exists: seams, debug log, native patches
 │   ├── design/                        ← every feature's spec and plan
-│   └── reviews/                       ← review reports and open-work/ tickets
+│   ├── reviews/                       ← review reports
+│   └── tickets/                       ← the worklist, one file per ticket, by area
 └── src/
 ```
 

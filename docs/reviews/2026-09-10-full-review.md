@@ -828,7 +828,7 @@ PERF-1 are adjacent to §4/§5/§6 and were not visible from those sections' sco
 - **Needs a device or runtime check:** whether `expo-system-ui` is in fact required for
   `userInterfaceStyle: "automatic"` on this SDK before pruning (DEP-1 deliberately keeps it). ERR-1
   and ERR-2 were checked on 2026-10-10 and the results are in their own notes; what stayed
-  unobserved — ERR-1's `'already-active'` route and a failing `stopLocationUpdatesAsync` — is listed in `docs/reviews/open-work.md` under pending device checks.
+  unobserved — ERR-1's `'already-active'` route and a failing `stopLocationUpdatesAsync` — is listed in `docs/tickets/device-checks.md` under pending device checks.
 - **Hunches without an anchor** (kept out of §3): the Telegram → "Add trail" loop in `tasks.md`
   (a second share while `/trail/new` is open pushes a second instance; `useIncomingShare.ts:12`
   always `push`es) is consistent with the code but was not reproduced; `ActionsMenu`'s

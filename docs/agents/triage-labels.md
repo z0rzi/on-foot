@@ -14,7 +14,7 @@ label strings used in this repo's issue tracker.
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label
 string from this table.
 
-The worklist (`docs/reviews/open-work/`) has no label objects: write the role in a ticket file's
+The worklist (`docs/tickets/`) has no label objects: write the role in a ticket file's
 `triage:` frontmatter field instead, as `issue-tracker.md` describes. On GitHub Issues — reserved for
 outside reports — the strings above are real labels; they don't exist yet and are created with
 `gh label create <name>` before the first triage.
