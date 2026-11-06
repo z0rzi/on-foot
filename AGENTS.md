@@ -38,8 +38,9 @@ uphold the original design, do not let it erode one expedient change at a time.
   decompose, not to keep piling on.
 - **Pure logic is TDD'd; native rendering is device-verified.** State machines, resolution
   helpers, theme/capability logic → Jest tests written first (`src/**/__tests__/`). Map
-  rendering, gestures, and camera behaviour are verified on-device, not unit-tested. Device
-  verification is the user's step and is never claimed on their behalf.
+  rendering, gestures, and camera behaviour are verified on-device, not unit-tested. An agent
+  verifies on the device what its evidence shows, through the `device-check` skill; feel
+  (gestures, animation, field GPS) is the user's step and is never claimed on their behalf.
 - **Persist the minimum.** Only state that must survive a restart is persisted (Zustand
   `partialize`); session/UI state stays in-memory.
 - **Hold the type and quality line.** No new `any`/`as any`/`@ts-ignore`/`eslint-disable`
