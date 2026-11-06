@@ -689,6 +689,18 @@ kills) with pss 10–44 MB and **no excessive-CPU kill at all**. So the patholog
 session retains, not idle caching — "what burns CPU while cached with no recording" may be the wrong
 question; ask instead what a recording holds on to once it ends. The finding's second open question is
 still open: no kill in this window fell during a recording that had lost its foreground service.
+· **Ruled closed** (owner, 2026-11-06, on the adb session of 2026-10-26 in the ticket's comments). The
+footprint is the map SDK's working set — ~140 MB native heap and ~100 MB graphics, resident on every
+tab because the `MapView` is detached, never destroyed, and only partly released in the background —
+not a leak and not what a recording retains. The kills it drew were all at importance 300/400, cached
+and not recording: routine housekeeping the owner accepts. The one kill with the foreground service up
+(2026-10-02 17:57:22) was the FIELD-4 repro's `PERMISSION CHANGE`, and the field interruption toasts
+trace to the same repro, so no recording has ever been lost to memory. `setMaximumAmbientCacheSize`
+bounds the disk cache and would not move RSS. Considered and dropped the same day: unmounting the map
+off the Map tab (does nothing for background kills, which happen with the Map tab in front) and
+unloading it after 30 s locked (a blank, reloading map at every unlock mid-hike, to avoid a kill never
+observed). Residual risk — a kill during a recording that lost its foreground service — has zero
+observations and the interruption toast already reports it truthfully. **FIELD-1 is closed.**
 
 **FIELD-2 — The recording sheet is sometimes missing after reopening while following a trail** · The
 sheet stays at `@gorhom/bottom-sheet`'s initial position (the window height), so `MapScreen`'s
