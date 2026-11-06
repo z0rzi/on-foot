@@ -3,7 +3,7 @@
 The worklist was a flat `docs/reviews/open-work/` of 30 files named `<PREFIX>-<n>-<slug>.md`, viewed
 as an Obsidian base. The owner wanted it grouped by what the tickets are about and ordered by date,
 and neither was expressible: the only grouping axes were the prefix and the free-text `source`, and
-25 of 30 tickets shared the string `owner, tasks.md (moved 2026-10-26)`. Decided with the owner on
+24 of 30 tickets shared the string `owner, tasks.md (moved 2026-10-26)`. Decided with the owner on
 2026-11-06 in a grilling session.
 
 ## The decisions
@@ -16,20 +16,25 @@ and neither was expressible: the only grouping axes were the prefix and the free
    raised a ticket and which review kind it was; those are now `origin` and `category`. The counter
    was already shared across prefixes and no open number collided, so every ticket keeps its number.
    A bare number was rejected: `#50` autolinks to a GitHub issue in a public repo's commit messages.
-   Old names in commits, specs and reports are not rewritten; the README states the mapping once.
+   Old names in commits, specs, reports and the device-checks list are not rewritten; the README
+   states the mapping and `issue-tracker.md` carries the rule. The next number is the highest ever
+   issued plus one, found through git as well as on disk, so a closed number is never reused.
 3. **Frontmatter**: `severity`, `category` (`bug | enhancement | refactor | docs | tests | idea`),
    `size`, `triage`, `origin` (`owner | agent`), `filed` (ISO date, required), `from` (optional
    context: a wikilink to the spec, report or parent ticket, or a short note), `blocked_by`.
    `source` is gone: its three jobs were who (`origin`), when (`filed`) and context (`from`).
 4. **Idea is a category, not a home**: a parked wish stays in the tracker, in its area, with no
    severity, size or triage. It is promoted by changing its category, or dropped by deleting its
-   file. `category: idea` with a triage role is a violation. The work views of the base exclude ideas.
+   file. `category: idea` with a triage role is a violation. By severity and Ready for agent exclude ideas;
+   By area shows them beside the work, which is the point of the area grouping.
 5. **Dates for the migration**: a ticket's `filed` is the day it entered the tracker. `tasks.md` was
-   never committed, so the 25 imported ideas carry 2026-10-26; FIELD-5 carries its report's date.
-6. **Views**: By area (default, newest first), By severity, Ready for agent, Ideas, By origin.
+   never committed, so the 24 imported ideas carry 2026-10-26, as does PROP-9, split off that day;
+   FIELD-5 carries its report's date.
+6. **Views**: By area (default, newest first), By severity, Ready for agent, Ideas, By from
+   (grouped by the `from` context: the spec, report or parent a ticket follows from).
 7. **Companions**: `docs/tickets/README.md` (folder rules, ID mapping note) and
-   `docs/tickets/device-checks.md` (the pending-device-checks list, moved out of `open-work.md`
-   unchanged). Glossary gains Ticket, Area, Idea. No ADR: the move is cheap to reverse and the
+   `docs/tickets/device-checks.md` (the pending-device-checks list, moved out of `open-work.md`,
+   old ticket names kept). Glossary gains Ticket, Area, Idea. No ADR: the move is cheap to reverse and the
    reasoning lives in `issue-tracker.md`.
 
 ## Existing shape
@@ -49,7 +54,7 @@ shared: the base is a document, the migration was a one-off script in the agent 
   `yaml`'s default schema parses an unquoted date as a string, so the check sees the text.
 - **An idea with a triage role**: violation; the fix is to empty the triage or promote the category.
 - **An area folder emptied by a closing commit**: git drops the directory; the test tolerates a
-  missing area. The list of areas lives in the test, not on disk.
+  missing area. The list of areas lives in `tickets.ts`, not on disk.
 - **A `blocked_by` link across areas**: resolves, because the link is the file's basename and
   Obsidian wikilinks are folder-agnostic.
 - **An old prefixed ID cited somewhere**: still readable through the README's mapping rule; the

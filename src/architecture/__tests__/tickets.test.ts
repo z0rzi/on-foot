@@ -4,7 +4,7 @@
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import { AREAS, collectTicketFiles, findTicketViolations, type TicketFile } from '../tickets'
+import { collectTicketFiles, findTicketViolations, type TicketFile } from '../tickets'
 
 const frontmatter = (overrides: Record<string, string> = {}) => {
   const fields: Record<string, string> = {
@@ -55,7 +55,8 @@ describe('worklist ticket conventions', () => {
   })
 
   test('accepts every declared area', () => {
-    expect(findTicketViolations(AREAS.map((area, n) => ticket(`${area}/T-${n}-x.md`)))).toEqual([])
+    const areas = ['map', 'recording', 'trails', 'activities', 'elevation', 'offline', 'settings', 'app-shell']
+    expect(findTicketViolations(areas.map((area, n) => ticket(`${area}/T-${n}-x.md`)))).toEqual([])
   })
 
   test('ignores a non-ticket file at the root, such as the README', () => {

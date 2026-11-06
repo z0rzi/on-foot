@@ -10,4 +10,4 @@ blocked_by: []
 ---
 # T-30: an activity has no default title
 
-Owner idea. Close to `IDEA-12` (name an activity from its trail); decide them together.
+Owner idea. Close to `T-12` (name an activity from its trail); decide them together.

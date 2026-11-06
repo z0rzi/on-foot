@@ -13,7 +13,7 @@ export interface TicketViolation {
   problem: string
 }
 
-export const AREAS = [
+const AREAS = [
   'map',
   'recording',
   'trails',

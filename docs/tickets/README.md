@@ -17,4 +17,6 @@ promoted by changing its category, or dropped by deleting its file.
 already shared, so `T-<n>` is the same ticket as any prefixed `<PREFIX>-<n>`; commits, specs and
 reports that cite the old name are not rewritten.
 
-Device claims no device has confirmed yet are listed in `device-checks.md`.
+`docs/reviews/2026-09-10-full-review.md` stays authoritative for the findings it raised; those it
+ruled `accept` or `none` (DUP-6, PERF-3) have no ticket. Device claims no device has confirmed yet
+are listed in `device-checks.md`.

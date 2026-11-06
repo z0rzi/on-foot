@@ -112,7 +112,7 @@ views:
       - property: file.name
         direction: ASC
   - type: table
-    name: By origin
+    name: By from
     groupBy:
       property: from
       direction: ASC

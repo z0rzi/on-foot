@@ -19,8 +19,9 @@ the end of this file.
 ## Where internal work lives
 
 - **The worklist** — `docs/tickets/<area>/T-<n>-<slug>.md`, one file per open ticket. The ID is
-  `T-<n>` on one counter shared by every ticket; the next free number is the highest in the folder
-  plus one. The folder is the ticket's **area**, the product surface it belongs to, one of `map`,
+  `T-<n>` on one counter shared by every ticket. The next number is the highest **ever issued** plus
+  one, not the highest on disk: closed tickets are deleted, so look through git as well
+  (`git log --all --diff-filter=A --name-only -- docs/tickets docs/reviews/open-work | sort -u`). The folder is the ticket's **area**, the product surface it belongs to, one of `map`,
   `recording`, `trails`, `activities`, `elevation`, `offline`, `settings`, `app-shell`. An area
   folder exists only while it holds a ticket; a ticket touching two areas goes in the one its fix
   lands in. `docs/tickets/README.md` explains the folder, `docs/tickets/tickets.base` is the
@@ -55,8 +56,8 @@ role: the test refuses the combination.
 
 For internal work, first read every file under `docs/tickets/`: it is a short tree, and reading all
 of it is how you notice that a new finding is an existing ticket's defect class, duplicates one, or
-is an idea already parked. Then create `docs/tickets/<area>/T-<n>-<slug>.md` with the next free
-number. A ticket batch is one file per ticket, never a combined file. For an outside report, see
+is an idea already parked. Then create `docs/tickets/<area>/T-<n>-<slug>.md` with the next number (highest ever issued plus
+one, see above). A ticket batch is one file per ticket, never a combined file. For an outside report, see
 **Outside reports** below.
 
 A ticket file is frontmatter, a `# T-<n>: <title>` heading, then the evidence in prose — file and

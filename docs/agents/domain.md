@@ -20,7 +20,7 @@ suggest filling it in upfront.
 
 ```
 /
-├── GLOSSARY.md                        ← exists: map, offline vocabulary
+├── GLOSSARY.md                        ← exists: map, recording, work vocabulary
 ├── docs/
 │   ├── adr/                           ← exists
 │   ├── architecture/                  ← exists: seams, debug log, native patches

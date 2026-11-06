@@ -42,7 +42,7 @@ prefix; see `README.md`.
   "No entry in the selected areas."; every pushed screen has a dark header in dark scheme; the
   free-mode `app active` entry reads `sheetTop: 0`; the follow cycle and pan-cancel behave as
   ARCH-3 saw them; logcat holds no `No image holder data` across cold starts. Found and filed:
-  `T-43` (status bar stale after a live scheme switch) and `T-44` (activity sheet left
+  `PROP-43` (status bar stale after a live scheme switch) and `PROP-44` (activity sheet left
   off-screen once after a trail rename). Residue, unobserved: the Share export's content under a
   filter (the code exports the unfiltered list); a single-frame flash of the controls at the old
   sheet edge, finer than the ~0.3 s screenshot interval; a late gorhom `animatedPosition` write
