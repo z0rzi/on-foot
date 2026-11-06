@@ -1,12 +1,17 @@
-import { lastCameraFault, launchCamera } from '../launchCamera'
+import { launchCamera } from '../launchCamera'
 import type { CameraFraming } from '../provider/types'
+import type { FollowMode } from '../../store/mapStore'
 
 const RANGE = { minZoom: 0, maxZoom: 22 }
 const CAMERA: CameraFraming = { center: [6.86, 45.92], zoom: 14, pitch: 45, heading: 30 }
 
-describe('lastCameraFault', () => {
+describe('last camera validity, read through a free launch', () => {
+  const fault = (camera: CameraFraming) => {
+    const launch = launchCamera('off', camera, RANGE)
+    return launch.kind === 'restore' ? null : launch.invalid
+  }
   test('a finite in-range camera has no fault', () => {
-    expect(lastCameraFault(CAMERA, RANGE)).toBeNull()
+    expect(fault(CAMERA)).toBeNull()
   })
   test.each([
     ['NaN longitude', { ...CAMERA, center: [NaN, 45] as [number, number] }],
@@ -15,7 +20,7 @@ describe('lastCameraFault', () => {
     ['Infinity pitch', { ...CAMERA, pitch: Infinity }],
     ['NaN heading', { ...CAMERA, heading: NaN }],
   ])('%s is non-finite', (_, camera) => {
-    expect(lastCameraFault(camera, RANGE)).toBe('non-finite')
+    expect(fault(camera)).toBe('non-finite')
   })
   test.each([
     ['latitude above 90', { ...CAMERA, center: [6, 90.1] as [number, number] }],
@@ -25,25 +30,37 @@ describe('lastCameraFault', () => {
     ['zoom below the range', { ...CAMERA, zoom: -0.1 }],
     ['zoom above the range', { ...CAMERA, zoom: 22.1 }],
   ])('%s is out of range', (_, camera) => {
-    expect(lastCameraFault(camera, RANGE)).toBe('out-of-range')
+    expect(fault(camera)).toBe('out-of-range')
   })
   test('range edges are valid', () => {
-    expect(lastCameraFault({ ...CAMERA, center: [-180, -90], zoom: 0 }, RANGE)).toBeNull()
-    expect(lastCameraFault({ ...CAMERA, center: [180, 90], zoom: 22 }, RANGE)).toBeNull()
+    expect(fault({ ...CAMERA, center: [-180, -90], zoom: 0 })).toBeNull()
+    expect(fault({ ...CAMERA, center: [180, 90], zoom: 22 })).toBeNull()
   })
   test('pitch and heading are not range-checked', () => {
-    expect(lastCameraFault({ ...CAMERA, pitch: 120, heading: -400 }, RANGE)).toBeNull()
+    expect(fault({ ...CAMERA, pitch: 120, heading: -400 })).toBeNull()
   })
   test('a malformed value from storage is non-finite, not a throw', () => {
     const malformed = { center: 'x', zoom: '3' } as unknown as CameraFraming
-    expect(lastCameraFault(malformed, RANGE)).toBe('non-finite')
+    expect(fault(malformed)).toBe('non-finite')
   })
 })
 
 describe('launchCamera', () => {
-  test.each(['position', 'positionAndBearing'] as const)('following in %s follows in the same mode', (mode) => {
-    expect(launchCamera(mode, CAMERA, RANGE)).toEqual({ kind: 'follow', mode })
-    expect(launchCamera(mode, null, RANGE)).toEqual({ kind: 'follow', mode })
+  test.each(['position', 'positionAndBearing'] as const)(
+    'following in %s follows in the same mode, from the last camera',
+    (mode) => {
+      expect(launchCamera(mode, CAMERA, RANGE)).toEqual({ kind: 'follow', mode, from: CAMERA })
+    },
+  )
+  test('following with no last camera follows from the provider default, no fault', () => {
+    expect(launchCamera('position', null, RANGE)).toEqual({ kind: 'follow', mode: 'position' })
+  })
+  test('following with an invalid last camera follows from the provider default and names the fault', () => {
+    expect(launchCamera('position', { ...CAMERA, zoom: 99 }, RANGE)).toEqual({
+      kind: 'follow',
+      mode: 'position',
+      invalid: 'out-of-range',
+    })
   })
   test('free with a valid last camera restores it', () => {
     expect(launchCamera('off', CAMERA, RANGE)).toEqual({ kind: 'restore', camera: CAMERA })
@@ -53,6 +70,16 @@ describe('launchCamera', () => {
       kind: 'follow',
       mode: 'position',
       invalid: 'out-of-range',
+    })
+  })
+  test.each([
+    ['a value from an older shape', 'compass'],
+    ['a non-string', 3],
+  ])('%s as the follow state follows position and names the fault', (_, followMode) => {
+    expect(launchCamera(followMode as unknown as FollowMode, CAMERA, RANGE)).toEqual({
+      kind: 'follow',
+      mode: 'position',
+      invalid: 'unknown-follow-state',
     })
   })
   test('free with no last camera follows position, fault missing', () => {

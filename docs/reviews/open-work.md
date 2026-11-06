@@ -62,7 +62,7 @@ residue a completed check could not reach.
 - **IDEA-18, the last camera** (PROP-46, PROP-47, PROP-48, [[2026-11-02-last-camera-design]]) is
   built and unit-tested, never run on a device. Owed, the owner's: pan, tilt and rotate, kill,
   relaunch → same framing, pitch and heading, with no globe frame at any point (the splash holds
-  until the map mounts on it); following at kill → relaunch follows as today; kill with the
+  until the map mounts on it); following at kill → relaunch opens on the last camera with no globe frame, then moves to the user; kill with the
   save-activity screen open while free → the map comes back on the last camera; the North button
   still appears after a rotation and resets. Unobserved by construction: the bounded wait's `warn`
   line (`map store hydration timed out` / `failed`), which needs a broken AsyncStorage.

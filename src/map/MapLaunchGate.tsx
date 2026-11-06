@@ -41,8 +41,8 @@ export function MapLaunchGate({ children }: { children: ReactNode }) {
       restoreCamera(launch.camera)
       return
     }
-    if (launch.invalid) logEvent('warn', 'map', 'last camera not restored', { reason: launch.invalid })
-    startFollow(launch.mode)
+    if (launch.invalid) logEvent('warn', 'map', 'persisted launch camera ignored', { reason: launch.invalid })
+    startFollow(launch.mode, launch.from)
   }, [gate, launchResolved, hydrationError, minZoom, maxZoom])
 
   return launchResolved ? children : null

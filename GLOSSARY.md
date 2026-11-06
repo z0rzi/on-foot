@@ -33,7 +33,7 @@ The camera is not following: its framing is the one the user set by hand.
 _Avoid_: manual camera, unlocked, follow off (in user-facing text)
 
 **Last camera**:
-The free camera's framing — centre, zoom, pitch, heading — as it was when the app was last left.
+The camera's framing — centre, zoom, pitch, heading — as it last came to rest, following or free. A launch starts the map on it.
 _Avoid_: saved position, last view, camera state
 
 **Offline map**:

@@ -22,6 +22,7 @@ import { installGlobalErrorHandler, logEvent, useLogRetention } from '../src/log
 
 installGlobalErrorHandler()
 // Held until the map can mount on its launch camera, so a restored camera never shows the globe first.
+// Not awaited: if holding fails, the splash hides on its own and the cost is that globe frame.
 void SplashScreen.preventAutoHideAsync()
 
 function ShareIntentHandler() {

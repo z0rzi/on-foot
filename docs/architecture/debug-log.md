@@ -39,9 +39,10 @@ write is swallowed; the next entry still gets its turn.
   point (`sheet settled`, with the mode and the index), the sheet/root/graph geometry sampled on
   `AppState` becoming `'active'` (`useSheetGeometryLog`), each hand-off of a destination to an
   external map app (`openMapApp`), a failed launch-time load of the offline packs (the offline
-  maps list retries it on focus), and the launch camera falling back to follow: the map store's
-  hydration failing (with the error class, never its message) or timing out (with the bound), and a
-  last camera not restored (with the fault: `missing`, `non-finite` or `out-of-range`).
+  maps list retries it on focus), and the launch camera falling back: the map store's hydration
+  failing (with the error class, never its message) or timing out (with the bound), and a persisted
+  launch camera ignored (with the fault: `missing`, `non-finite`, `out-of-range` or
+  `unknown-follow-state`).
 - **`error`** — uncaught errors (the global `ErrorUtils` handler), render errors caught by
   `ErrorBoundary`, and every failure or refusal the user is told about in an alert or a toast:
   start, pause, resume and stop recording, opening an activity while recording, saving or

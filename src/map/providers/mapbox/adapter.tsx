@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react'
+import React, { createContext, forwardRef, useContext, useImperativeHandle, useRef, useState } from 'react'
 import Mapbox, { type MapState } from '@rnmapbox/maps'
 import type {
   MapProvider, MapViewProps, CameraProps, TerrainProps, CameraController, RouteOverlayProps,
@@ -15,35 +15,53 @@ void Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN)
 
 const TRAIL_CASING = '#333333'
 
-const View = ({ styleURL, onCameraChanged, onMapLoaded, style, children }: MapViewProps) => (
-  <Mapbox.MapView
-    style={style}
-    styleURL={styleURL}
-    scaleBarEnabled={false}
-    logoEnabled={false}
-    attributionEnabled={false}
-    compassEnabled={false}
-    onCameraChanged={(e: MapState) => {
-      const framing = framingFromMapState(e)
-      if (framing) onCameraChanged?.(framing)
-    }}
-    onDidFinishLoadingMap={onMapLoaded}
-  >
-    {children}
-  </Mapbox.MapView>
-)
+// Whether the map has finished loading once; the Camera holds follow until then.
+const MapLoadedContext = createContext(false)
+
+// Before the map has loaded, rnmapbox's Android map reports the camera it holds before the initial
+// camera is applied (the style's default), and reports no change when the initial camera lands. So
+// camera changes are only forwarded once the map has loaded: earlier ones describe a camera nobody
+// sees, and would overwrite the heading and the last camera with it.
+const View = ({ styleURL, onCameraChanged, onMapLoaded, style, children }: MapViewProps) => {
+  const [loaded, setLoaded] = useState(false)
+  return (
+    <Mapbox.MapView
+      style={style}
+      styleURL={styleURL}
+      scaleBarEnabled={false}
+      logoEnabled={false}
+      attributionEnabled={false}
+      compassEnabled={false}
+      onCameraChanged={(e: MapState) => {
+        const framing = framingFromMapState(e)
+        if (framing && loaded) onCameraChanged?.(framing)
+      }}
+      onDidFinishLoadingMap={() => {
+        setLoaded(true)
+        onMapLoaded?.()
+      }}
+    >
+      <MapLoadedContext.Provider value={loaded}>{children}</MapLoadedContext.Provider>
+    </Mapbox.MapView>
+  )
+}
 
 // The camera is driven declaratively (follow props / pitch) — see MapCanvas. Two imperative
 // affordances remain, both only ever called when follow is off, so the rnmapbox "imperative move is
 // a no-op while following" trap does not apply: resetNorth, a one-shot rotate to bearing 0, and
 // fitBounds, which frames a trail. The port describes both (`src/map/provider/types.ts`). Pull out
 // fields whose neutral shape differs from rnmapbox's before spreading the rest.
-// The initial camera, read at mount, is rnmapbox's `defaultSettings`, which the native camera
-// applies before the first frame.
+// The initial camera, read at mount, is rnmapbox's `defaultSettings`. On Android the native camera
+// applies it only once the map view is attached to the window, but starts a follow transition at
+// once, from the whole-earth default; that transition then owns the camera and the initial camera
+// is lost. So with an initial camera, follow is held off until the map has loaded (the view is
+// attached by then), and the follow transition starts from the initial camera.
 const Camera = forwardRef<CameraController, CameraProps>(
-  ({ followUserMode, onUserTrackingModeChange, initialCamera, ...rest }, ref) => {
+  ({ followUserMode, onUserTrackingModeChange, initialCamera, followUserLocation, ...rest }, ref) => {
     const inner = useRef<Mapbox.Camera>(null)
     const [defaultSettings] = useState(() => initialCamera && cameraStopFor(initialCamera))
+    const mapLoaded = useContext(MapLoadedContext)
+    const holdFollow = defaultSettings != null && !mapLoaded
     useImperativeHandle(ref, () => ({
       resetNorth: (animated: boolean) =>
         inner.current?.setCamera({ heading: 0, animationDuration: animated ? 300 : 0 }),
@@ -60,6 +78,7 @@ const Camera = forwardRef<CameraController, CameraProps>(
         ref={inner}
         {...rest}
         defaultSettings={defaultSettings}
+        followUserLocation={followUserLocation && !holdFollow}
         minZoomLevel={mapboxCapabilities.minZoom}
         maxZoomLevel={mapboxCapabilities.maxZoom}
         followUserMode={followUserMode && trackingModeFor(followUserMode)}

@@ -181,14 +181,14 @@ interface MapStore {
   // geometry loads. select() sets it; a restored trail selection leaves it null, so restore shows
   // the overlay without fitting. Session-only.
   pendingFit: PendingFit | null
-  // The framing the camera last came to rest on, whatever the follow state. Persisted; only a free
-  // launch reads it.
+  // The framing the camera last came to rest on, whatever the follow state. Persisted; the launch
+  // starts the map on it.
   lastCamera: CameraFraming | null
   // Whether this session's launch camera has been decided (see MapLaunchGate). Session-only.
   launchResolved: boolean
-  // The last camera this session's launch restored, held for the session as the map's initial
-  // camera; null when the launch follows. Session-only.
-  restoredCamera: CameraFraming | null
+  // The last camera this session's launch started the map on, held for the session as the map's
+  // initial camera; null when there was none to use. Session-only.
+  startingCamera: CameraFraming | null
   // The class of the error reading the persisted state failed with, null while it has not. Never
   // the message: a parse error's can quote the stored payload, coordinates included. The store
   // library reports a failure only through its rehydration callback; the launch gate opens on it
@@ -208,7 +208,7 @@ interface MapStore {
   setCameraHeading: (h: number) => void
   setLastCamera: (camera: CameraFraming) => void
   restoreCamera: (camera: CameraFraming) => void
-  startFollow: (mode: FollowUserMode) => void
+  startFollow: (mode: FollowUserMode, from?: CameraFraming) => void
   failHydration: (errorClass: string) => void
 }
 
@@ -242,7 +242,7 @@ export const useMapStore: MapStoreHook = create<MapStore>()(
       pendingFit: null,
       lastCamera: null,
       launchResolved: false,
-      restoredCamera: null,
+      startingCamera: null,
       hydrationError: null,
       cycleFollowMode: () => set((s) => followModeChange(nextFollowMode(s.followMode), s.cameraPitch)),
       disableFollow: () => set({ followMode: 'off' }),
@@ -301,13 +301,19 @@ export const useMapStore: MapStoreHook = create<MapStore>()(
       restoreCamera: (camera) =>
         set({
           launchResolved: true,
-          restoredCamera: camera,
+          startingCamera: camera,
           followMode: 'off',
           cameraPitch: camera.pitch,
           cameraHeading: camera.heading,
           pitchAnimated: false,
         }),
-      startFollow: (mode) => set((s) => ({ launchResolved: true, ...followModeChange(mode, s.cameraPitch) })),
+      startFollow: (mode, from) =>
+        set((s) => ({
+          launchResolved: true,
+          startingCamera: from ?? null,
+          cameraHeading: from?.heading ?? s.cameraHeading,
+          ...followModeChange(mode, s.cameraPitch),
+        })),
       failHydration: (errorClass) => set({ hydrationError: errorClass }),
     }),
     {

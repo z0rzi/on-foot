@@ -37,11 +37,11 @@ export function MapCanvas({
   const { View: MapView, Camera, Terrain, UserPuck } = components
 
   // The camera is driven declaratively from the store. When a follow mode is active, rnmapbox
-  // owns the camera (centres/zooms/tilts to the puck) — this is what auto-zooms to the user on a
+  // owns the camera (centres/zooms/tilts to the puck) — this is what moves to the user on a
   // following launch and recentres when the location button is tapped. When follow is off, we
-  // apply the manual pitch (from the 2D/3D button / drag) via the pitch prop. A free launch starts
-  // on the restored last camera, which is only ever set together with follow off, and before the
-  // map mounts (MapLaunchGate).
+  // apply the manual pitch (from the 2D/3D button / drag) via the pitch prop. A launch starts on
+  // the last camera when it has a usable one, set before the map mounts (MapLaunchGate): a free
+  // launch stays there, a following one moves from there to the user.
   const followMode = useMapStore((s) => s.followMode)
   const cameraPitch = useMapStore((s) => s.cameraPitch)
   const pitchAnimated = useMapStore((s) => s.pitchAnimated)
@@ -51,7 +51,7 @@ export function MapCanvas({
   const pendingFit = useMapStore((s) => s.pendingFit)
   const clearPendingFit = useMapStore((s) => s.clearPendingFit)
   const cameraRef = useRef<CameraController>(null)
-  const initialCamera = useMapStore((s) => s.restoredCamera) ?? undefined
+  const initialCamera = useMapStore((s) => s.startingCamera) ?? undefined
   const captureLastCamera = useLastCameraCapture()
   const [mapLoaded, setMapLoaded] = useState(false)
   useInterruptionToast(mapLoaded)

@@ -5,17 +5,20 @@ re-follows the user, and follow mode, camera position, pitch and heading stay se
 field that meant a relaunch — the system kills the app in the background (`FIELD-1`), including
 while the save-activity screen is open — always came back on the globe and swept to the user,
 throwing away a framing the owner had set by hand. We reverse the session-only rule (2026-11-02):
-the follow state is persisted exactly as it was, and when the camera was **free** at the last
-leave, its **last camera** (centre, zoom, pitch, heading) is persisted too and the map opens
-directly on it — no globe frame, no sweep. When it was **following**, launch re-follows as before:
-the camera was the user, there is nothing else to restore. A free camera is a deliberate intention,
+the follow state is persisted exactly as it was, and so is the **last camera** (centre, zoom,
+pitch, heading), captured whenever the camera comes to rest. When the camera was **free** at the
+last leave, the map opens directly on it — no globe frame, no sweep. When it was **following**, launch re-follows, starting
+from the last camera: the camera was the user, so the move to the user's current position is
+short instead of a sweep from the globe. A free camera is a deliberate intention,
 so the restored view stands even when the user is now far from it; the position button is one tap
 away.
 
 **Considered and rejected:** always restoring the camera and only following on tap — breaks the
 reflex "open the app on the trail, see yourself", the common case. A distance threshold that
 re-follows when the user is far from the last camera — a heuristic to tune and to explain, added
-only if use shows the need. Restoring the camera and then re-following once a position arrives —
-cosmetic, it only hides the globe. Capturing the camera only on backgrounding instead of on every
+only if use shows the need. Restoring the camera and then re-following once a position arrives,
+for a free camera — it throws the user's deliberate framing away. (For a following launch it was
+first rejected too, as only hiding the globe; the first device check showed the globe sweep was
+the very annoyance the owner meant, and it was taken up, 2026-11-02.) Capturing the camera only on backgrounding instead of on every
 camera idle — depends on a lifecycle event and misses a foreground crash (`FIELD-5`) for no
 saving worth having.
