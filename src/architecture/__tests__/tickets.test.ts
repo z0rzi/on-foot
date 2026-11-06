@@ -4,7 +4,7 @@
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import { collectTicketFiles, findTicketViolations, type TicketFile } from '../tickets'
+import { AREAS, collectTicketFiles, findTicketViolations, type TicketFile } from '../tickets'
 
 const frontmatter = (overrides: Record<string, string> = {}) => {
   const fields: Record<string, string> = {
@@ -12,7 +12,9 @@ const frontmatter = (overrides: Record<string, string> = {}) => {
     category: 'bug',
     size: 'S',
     triage: 'ready-for-agent',
-    source: '"[[2026-09-10-full-review]]"',
+    origin: 'agent',
+    filed: '2026-11-02',
+    from: '"[[2026-09-10-full-review]]"',
     blocked_by: '[]',
     ...overrides,
   }
@@ -21,16 +23,18 @@ const frontmatter = (overrides: Record<string, string> = {}) => {
     .join('\n')
 }
 
+const idOf = (file: string) => path.basename(file).split('-').slice(0, 2).join('-')
+
 const ticket = (
-  name = 'ERR-7-dangling-link.md',
+  file = 'map/T-7-dangling-link.md',
   fields: Record<string, string> = {},
-  heading = `# ${name.split('-').slice(0, 2).join('-')}: a title`,
-): TicketFile => ({ name, content: `---\n${frontmatter(fields)}\n---\n${heading}\n\nBody.\n` })
+  heading = `# ${idOf(file)}: a title`,
+): TicketFile => ({ path: file, content: `---\n${frontmatter(fields)}\n---\n${heading}\n\nBody.\n` })
 
 const problems = (files: TicketFile[]) => findTicketViolations(files).map((v) => v.problem)
 
 describe('worklist ticket conventions', () => {
-  test('every ticket in docs/reviews/open-work follows the conventions', () => {
+  test('every ticket in docs/tickets follows the conventions', () => {
     const violations = findTicketViolations(collectTicketFiles())
     const report = violations.map((v) => `  ${v.file}: ${v.problem}`).join('\n')
     expect(
@@ -42,41 +46,58 @@ describe('worklist ticket conventions', () => {
     expect(findTicketViolations([ticket()])).toEqual([])
   })
 
-  test('accepts empty severity, size and triage', () => {
-    expect(problems([ticket(undefined, { severity: '', size: '', triage: '' })])).toEqual([])
+  test('accepts empty severity, size, triage and from', () => {
+    expect(problems([ticket(undefined, { severity: '', size: '', triage: '', from: '' })])).toEqual([])
   })
 
   test('accepts an empty folder', () => {
     expect(findTicketViolations([])).toEqual([])
   })
 
-  test.each([
-    'tickets.md',
-    'ERR-7.md',
-    'BUG-1-something.md',
-    'ERR-x-something.md',
-    'ERR-7-Has_Caps.md',
-  ])('flags the file name %s', (name) => {
-    expect(problems([ticket(name, {}, '# ERR-7: a title')])).toContainEqual(
-      expect.stringContaining('file name'),
-    )
+  test('accepts every declared area', () => {
+    expect(findTicketViolations(AREAS.map((area, n) => ticket(`${area}/T-${n}-x.md`)))).toEqual([])
   })
 
-  test('flags two files sharing an ID', () => {
-    const files = [ticket('ERR-7-one.md'), ticket('ERR-7-two.md')]
-    expect(problems(files).filter((p) => p.includes('ERR-7'))).toHaveLength(1)
+  test('ignores a non-ticket file at the root, such as the README', () => {
+    expect(findTicketViolations([{ path: 'README.md', content: '# Tickets\n' }])).toEqual([])
+  })
+
+  test('flags a ticket left at the root', () => {
+    expect(problems([ticket('T-7-x.md')])).toContainEqual(expect.stringContaining('area'))
+  })
+
+  test('flags a ticket in an unknown area', () => {
+    expect(problems([ticket('kitchen/T-7-x.md')])).toContainEqual(expect.stringContaining('kitchen'))
+  })
+
+  test('flags a ticket nested below an area', () => {
+    expect(problems([ticket('map/sub/T-7-x.md')])).toContainEqual(expect.stringContaining('area'))
+  })
+
+  test.each(['tickets.md', 'T-7.md', 'ERR-7-something.md', 'T-x-something.md', 'T-7-Has_Caps.md', '7-slug.md'])(
+    'flags the file name %s',
+    (name) => {
+      expect(problems([ticket(`map/${name}`, {}, '# T-7: a title')])).toContainEqual(
+        expect.stringContaining('file name'),
+      )
+    },
+  )
+
+  test('flags two files sharing an ID, even across areas', () => {
+    const files = [ticket('map/T-7-one.md'), ticket('trails/T-7-two.md')]
+    expect(problems(files).filter((p) => p.includes('T-7'))).toHaveLength(1)
   })
 
   test('flags a file with no frontmatter', () => {
-    expect(problems([{ name: 'ERR-7-x.md', content: '# ERR-7: a title\n' }])).toContainEqual(
+    expect(problems([{ path: 'map/T-7-x.md', content: '# T-7: a title\n' }])).toContainEqual(
       expect.stringContaining('frontmatter'),
     )
   })
 
   test('reports malformed YAML instead of throwing, and still checks the other files', () => {
-    const broken = { name: 'ERR-7-x.md', content: '---\nseverity: [unclosed\n---\n# ERR-7: t\n' }
-    const violations = findTicketViolations([broken, ticket('ERR-8-y.md', { category: 'chore' })])
-    expect(violations.map((v) => v.file)).toEqual(['ERR-7-x.md', 'ERR-8-y.md'])
+    const broken = { path: 'map/T-7-x.md', content: '---\nseverity: [unclosed\n---\n# T-7: t\n' }
+    const violations = findTicketViolations([broken, ticket('map/T-8-y.md', { category: 'chore' })])
+    expect(violations.map((v) => v.file)).toEqual(['map/T-7-x.md', 'map/T-8-y.md'])
   })
 
   test('flags an unknown key, as when Obsidian adds a property', () => {
@@ -98,50 +119,60 @@ describe('worklist ticket conventions', () => {
     ['size', 'XL'],
     ['triage', 'wontfix'],
     ['triage', 'done'],
-    ['source', ''],
-    ['blocked_by', '"[[ERR-3-x]]"'],
+    ['origin', 'review'],
+    ['origin', ''],
+    ['filed', ''],
+    ['filed', '02/11/2026'],
+    ['filed', '2026-13-40'],
+    ['filed', '"2026-11-02T10:00"'],
+    ['from', '""'],
+    ['blocked_by', '"[[T-3-x]]"'],
   ])('flags %s: %s', (key, value) => {
     expect(problems([ticket(undefined, { [key]: value })])).toContainEqual(expect.stringContaining(key))
   })
 
-  test('accepts blocked_by links to tickets in the folder', () => {
-    const files = [ticket('ERR-7-a.md', { blocked_by: '["[[ERR-8-b]]"]' }), ticket('ERR-8-b.md')]
+  test.each(['bug', 'enhancement', 'refactor', 'docs', 'tests'])('accepts category %s', (category) => {
+    expect(problems([ticket(undefined, { category })])).toEqual([])
+  })
+
+  test('accepts an idea with no triage', () => {
+    expect(problems([ticket(undefined, { category: 'idea', triage: '', severity: '', size: '' })])).toEqual([])
+  })
+
+  test('flags an idea that carries a triage role', () => {
+    expect(problems([ticket(undefined, { category: 'idea', triage: 'needs-triage' })])).toContainEqual(
+      expect.stringContaining('idea'),
+    )
+  })
+
+  test('accepts blocked_by links to tickets anywhere in the tree', () => {
+    const files = [ticket('map/T-7-a.md', { blocked_by: '["[[T-8-b]]"]' }), ticket('trails/T-8-b.md')]
     expect(findTicketViolations(files)).toEqual([])
   })
 
   test('accepts a block-style blocked_by list, as Obsidian writes it', () => {
-    const files = [ticket('ERR-7-a.md', { blocked_by: '\n  - "[[ERR-8-b]]"' }), ticket('ERR-8-b.md')]
+    const files = [ticket('map/T-7-a.md', { blocked_by: '\n  - "[[T-8-b]]"' }), ticket('map/T-8-b.md')]
     expect(findTicketViolations(files)).toEqual([])
   })
 
   test('flags a blocked_by link to a ticket that does not exist', () => {
-    const files = [ticket('ERR-7-a.md', { blocked_by: '["[[ERR-3-closed]]"]' })]
-    expect(problems(files)).toContainEqual(expect.stringContaining('ERR-3-closed'))
+    const files = [ticket('map/T-7-a.md', { blocked_by: '["[[T-3-closed]]"]' })]
+    expect(problems(files)).toContainEqual(expect.stringContaining('T-3-closed'))
   })
 
   test('flags a blocked_by entry that is not a wikilink', () => {
-    const files = [ticket('ERR-7-a.md', { blocked_by: '["ERR-8-b"]' }), ticket('ERR-8-b.md')]
+    const files = [ticket('map/T-7-a.md', { blocked_by: '["T-8-b"]' }), ticket('map/T-8-b.md')]
     expect(problems(files)).toContainEqual(expect.stringContaining('blocked_by'))
   })
 
-  test('accepts an IDEA ticket proposed by the owner', () => {
-    expect(problems([ticket('IDEA-43-a.md', { source: '"owner, 2026-10-26"' })])).toEqual([])
-  })
-
-  test('flags an IDEA ticket whose source is not the owner', () => {
-    expect(problems([ticket('IDEA-43-a.md', { source: '"device check, 2026-10-26"' })])).toContainEqual(
-      expect.stringContaining('IDEA'),
-    )
-  })
-
   test('flags a heading that does not start with the ID', () => {
-    expect(problems([ticket('ERR-7-a.md', {}, '# ERR-8: wrong id')])).toContainEqual(
+    expect(problems([ticket('map/T-7-a.md', {}, '# T-8: wrong id')])).toContainEqual(
       expect.stringContaining('heading'),
     )
   })
 
   test('flags a ticket with no heading', () => {
-    expect(problems([ticket('ERR-7-a.md', {}, 'No heading here.')])).toContainEqual(
+    expect(problems([ticket('map/T-7-a.md', {}, 'No heading here.')])).toContainEqual(
       expect.stringContaining('heading'),
     )
   })
@@ -154,14 +185,19 @@ describe('collectTicketFiles', () => {
   })
   afterEach(() => fs.rmSync(dir, { recursive: true, force: true }))
 
-  test('reads the .md files and ignores the rest', () => {
-    fs.mkdirSync(path.join(dir, 'open-work'))
-    fs.writeFileSync(path.join(dir, 'open-work', 'ERR-7-a.md'), 'x')
-    fs.writeFileSync(path.join(dir, 'open-work', 'notes.txt'), 'x')
-    expect(collectTicketFiles('open-work', dir)).toEqual([{ name: 'ERR-7-a.md', content: 'x' }])
+  test('reads the .md files at the root and in subfolders, ignores the rest', () => {
+    fs.mkdirSync(path.join(dir, 'tickets', 'map'), { recursive: true })
+    fs.writeFileSync(path.join(dir, 'tickets', 'README.md'), 'r')
+    fs.writeFileSync(path.join(dir, 'tickets', 'tickets.base'), 'b')
+    fs.writeFileSync(path.join(dir, 'tickets', 'map', 'T-7-a.md'), 'x')
+    fs.writeFileSync(path.join(dir, 'tickets', 'map', 'notes.txt'), 'x')
+    expect(collectTicketFiles('tickets', dir)).toEqual([
+      { path: 'README.md', content: 'r' },
+      { path: 'map/T-7-a.md', content: 'x' },
+    ])
   })
 
   test('throws when the folder is missing', () => {
-    expect(() => collectTicketFiles('open-work', dir)).toThrow(/open-work/)
+    expect(() => collectTicketFiles('tickets', dir)).toThrow(/tickets/)
   })
 })

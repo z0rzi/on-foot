@@ -76,3 +76,20 @@ _Avoid_: pending fix, suspect
 A fix farther from the previous point of its segment than a walker could have gone in the time
 elapsed.
 _Avoid_: spike, glitch, teleport
+
+### Work
+
+**Ticket**:
+One open unit of internal work, in the worklist. It exists while the work is open and is deleted
+when the work lands or is ruled out.
+_Avoid_: issue (reserved for outside reports), task, item, finding (once filed)
+
+**Area**:
+The product surface a ticket belongs to — map, recording, trails, activities, elevation, offline,
+settings, app shell. Exactly one per ticket.
+_Avoid_: project, module, component, domain
+
+**Idea**:
+A ticket that is a parked wish, not committed work: it may be promoted into work, dropped, or sit.
+Nobody is waiting on it.
+_Avoid_: feature request, backlog item, todo, wish

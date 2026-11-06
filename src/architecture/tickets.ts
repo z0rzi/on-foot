@@ -3,7 +3,8 @@ import * as path from 'node:path'
 import { parse } from 'yaml'
 
 export interface TicketFile {
-  name: string
+  /** Path relative to the tickets folder, e.g. `map/T-4-progressive-route-rendering.md`. */
+  path: string
   content: string
 }
 
@@ -12,47 +13,80 @@ export interface TicketViolation {
   problem: string
 }
 
-const PREFIXES = ['FIELD', 'ERR', 'ARCH', 'DEAD', 'DOC', 'DUP', 'TEST', 'PERF', 'PROP', 'IDEA']
-const FILE_NAME = new RegExp(`^((?:${PREFIXES.join('|')})-\\d+)-[a-z0-9]+(?:-[a-z0-9]+)*\\.md$`)
+export const AREAS = [
+  'map',
+  'recording',
+  'trails',
+  'activities',
+  'elevation',
+  'offline',
+  'settings',
+  'app-shell',
+] as const
+
+const TICKET_LIKE = /^T-/
+const FILE_NAME = /^(T-\d+)-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/
 const FRONTMATTER = /^---\n([\s\S]*?)\n---\n/
 const WIKILINK = /^\[\[([^\]]+)\]\]$/
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
 // `null` admits an empty value. `wontfix` is absent on purpose: a ruled-out item is deleted.
 const ENUMS: Record<string, (string | null)[]> = {
   severity: ['should-fix', 'minor', 'investigate', null],
-  category: ['bug', 'enhancement'],
+  category: ['bug', 'enhancement', 'refactor', 'docs', 'tests', 'idea'],
   size: ['S', 'M', 'L', null],
   triage: ['needs-triage', 'needs-info', 'ready-for-agent', 'ready-for-human', null],
+  origin: ['owner', 'agent'],
 }
-const KEYS = [...Object.keys(ENUMS), 'source', 'blocked_by']
+const KEYS = ['severity', 'category', 'size', 'triage', 'origin', 'filed', 'from', 'blocked_by']
 
-export function collectTicketFiles(
-  dir: string = 'docs/reviews/open-work',
-  rootDir: string = process.cwd(),
-): TicketFile[] {
+const isCalendarDate = (value: string) => {
+  if (!ISO_DATE.test(value)) return false
+  const parsed = new Date(`${value}T00:00:00Z`)
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(value)
+}
+
+export function collectTicketFiles(dir: string = 'docs/tickets', rootDir: string = process.cwd()): TicketFile[] {
   const abs = path.join(rootDir, dir)
-  if (!fs.existsSync(abs)) throw new Error(`worklist folder ${dir} is missing`)
-  return fs
-    .readdirSync(abs, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
-    .map((entry) => ({ name: entry.name, content: fs.readFileSync(path.join(abs, entry.name), 'utf8') }))
+  if (!fs.existsSync(abs)) throw new Error(`tickets folder ${dir} is missing`)
+  const files: TicketFile[] = []
+  const walk = (sub: string) => {
+    for (const entry of fs.readdirSync(path.join(abs, sub), { withFileTypes: true })) {
+      const rel = sub ? `${sub}/${entry.name}` : entry.name
+      if (entry.isDirectory()) walk(rel)
+      else if (entry.isFile() && entry.name.endsWith('.md')) {
+        files.push({ path: rel, content: fs.readFileSync(path.join(abs, rel), 'utf8') })
+      }
+    }
+  }
+  walk('')
+  return files
 }
 
 export function findTicketViolations(files: TicketFile[]): TicketViolation[] {
   const violations: TicketViolation[] = []
-  const known = new Set(files.map((f) => f.name.replace(/\.md$/, '')))
+  const tickets = files.filter((f) => f.path.includes('/') || TICKET_LIKE.test(f.path))
+  const known = new Set(tickets.map((f) => path.basename(f.path, '.md')))
   const seenIds = new Map<string, string>()
 
-  for (const file of files) {
-    const report = (problem: string) => violations.push({ file: file.name, problem })
+  for (const file of tickets) {
+    const report = (problem: string) => violations.push({ file: file.path, problem })
+    const segments = file.path.split('/')
+    const name = segments[segments.length - 1]
 
-    const id = FILE_NAME.exec(file.name)?.[1]
+    if (segments.length !== 2) {
+      report(`a ticket lives in exactly one area folder, one of ${AREAS.join(', ')}`)
+    } else if (!(AREAS as readonly string[]).includes(segments[0])) {
+      report(`unknown area ${segments[0]}, expected one of ${AREAS.join(', ')}`)
+    }
+
+    const id = FILE_NAME.exec(name)?.[1]
     if (!id) {
-      report(`file name must be <PREFIX>-<n>-<kebab-slug>.md, PREFIX one of ${PREFIXES.join(', ')}`)
+      report('file name must be T-<n>-<kebab-slug>.md')
     } else if (seenIds.has(id)) {
       report(`ID ${id} is already used by ${seenIds.get(id)}`)
     } else {
-      seenIds.set(id, file.name)
+      seenIds.set(id, file.path)
     }
 
     const fm = FRONTMATTER.exec(file.content)
@@ -85,10 +119,14 @@ export function findTicketViolations(files: TicketFile[]): TicketViolation[] {
         report(`${key} is ${JSON.stringify(fields[key])}, expected ${shown}`)
       }
     }
-    if ('source' in fields && (typeof fields.source !== 'string' || fields.source.trim() === '')) {
-      report('source must be a non-empty string')
-    } else if (id?.startsWith('IDEA-') && !String(fields.source).startsWith('owner')) {
-      report('an IDEA ticket is the owner\'s own proposal: source must start with "owner"')
+    if (fields.category === 'idea' && fields.triage != null) {
+      report('an idea is not triaged: either empty its triage or promote its category')
+    }
+    if ('filed' in fields && !(typeof fields.filed === 'string' && isCalendarDate(fields.filed))) {
+      report(`filed is ${JSON.stringify(fields.filed)}, expected a YYYY-MM-DD date`)
+    }
+    if ('from' in fields && fields.from != null && !(typeof fields.from === 'string' && fields.from.trim())) {
+      report('from is either empty or a non-empty string')
     }
     if ('blocked_by' in fields) {
       const blockers = fields.blocked_by
