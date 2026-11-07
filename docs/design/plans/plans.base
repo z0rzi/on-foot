@@ -1,0 +1,59 @@
+filters:
+  and:
+    - file.folder.contains("plans/")
+    - file.ext == "md"
+    - file.name != "plan.md"
+formulas:
+  plan: file.folder.split("/").reverse()[0]
+properties:
+  file.name:
+    displayName: Item
+  formula.plan:
+    displayName: Plan
+  status:
+    displayName: Status
+  blocked_by:
+    displayName: Blocked by
+  closes:
+    displayName: Closes
+views:
+  - type: table
+    name: By plan
+    groupBy:
+      property: formula.plan
+      direction: DESC
+    order:
+      - file.name
+      - status
+      - blocked_by
+      - closes
+    sort:
+      - property: file.name
+        direction: ASC
+  - type: table
+    name: Frontier
+    filters:
+      and:
+        - status == "open"
+        - blocked_by.isEmpty()
+    groupBy:
+      property: formula.plan
+      direction: DESC
+    order:
+      - file.name
+      - closes
+    sort:
+      - property: file.name
+        direction: ASC
+  - type: table
+    name: Claimed
+    filters:
+      and:
+        - status == "claimed"
+    order:
+      - file.name
+      - formula.plan
+      - blocked_by
+    sort:
+      - property: file.name
+        direction: ASC

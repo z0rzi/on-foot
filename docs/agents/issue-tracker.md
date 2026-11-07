@@ -34,13 +34,55 @@ the end of this file.
   rows hold the evidence and are ticked in place, and a ticket file from it links back with
   `from: "[[2026-09-10-full-review]]"`.
 - **Specs and plans** — `docs/design/specs/YYYY-MM-DD-<slug>-design.md` and
-  `docs/design/plans/YYYY-MM-DD-<slug>.md`. `AGENTS.md` requires features to go
-  brainstorm → spec → plan; every spec carries an `## Existing shape` and a `## Failure modes`
-  section.
+  `docs/design/plans/YYYY-MM-DD-<slug>/`, a folder: `plan.md` and one **work item** file per
+  slice of the build (below). Older plans are single files; they stay. `AGENTS.md` requires
+  features to go brainstorm → spec → plan; every spec carries an `## Existing shape` and a
+  `## Failure modes` section.
 
 Those three are the only homes. Do not create a fourth. `.scratch/` is the gitignored agent
 scratchpad, not a tracker: the upstream skills' `.scratch/<feature>/` spec and ticket layout does
-not apply here, and wayfinder maps live under `docs/design/` (below).
+not apply here; a plan's items live in its folder and wayfinder maps under `docs/design/` (below).
+
+## Plan work items
+
+A **work item** is one slice of a plan: born when `/to-tickets` breaks a spec down, claimed by one
+worker, gone when its merge lands. It is not a ticket. It takes no `T-n` number, never enters
+`docs/tickets/`, and is found through its plan, never by area. The tracker receives from a build
+only what outlives it: a follow-up filed with `from: "[[the-spec]]"`, or what the spec defers as
+"ticket later".
+
+The plan is the folder `docs/design/plans/YYYY-MM-DD-<slug>/`:
+
+- `plan.md` — the overview, the item table (number, title, blocked by, closes) and anything the
+  build needs that the spec does not say. It is the record that survives the build; it is not
+  ticked or edited as items land.
+- `NN-<slug>.md` — one per item, numbered from `01` in dependency order, blockers first. Addressed
+  as `<slug>/NN` in prose (`hiking-ux/03`), `(<slug> NN)` in a commit trailer; the worker branch is
+  `<slug>-NN`, the integration branch `<slug>`.
+
+```markdown
+---
+status: open             # open | claimed; a landed item is deleted, not marked
+blocked_by: []           # wikilinks to items of this plan: ["[[01-status-pill]]"]
+closes: []               # wikilinks to open tracker tickets this item retires: ["[[T-14-hiking-ux-without-nav-bar]]"]
+---
+# 03: the elevation graph is the sheet's header
+
+**What to build:** the end-to-end behaviour, from the user's side.
+
+- [ ] Acceptance criterion
+- [ ] `npm run verify` green
+```
+
+A worker sets `status: claimed` before starting. The merge that lands an item deletes its file and
+every ticket its `closes` names, and drops the item from its siblings' `blocked_by`. A folder with
+only `plan.md` left is a built effort; the spec's status line says so. `plans.base` beside the
+folders is the Obsidian view: by plan, the frontier (open and unblocked), the claimed.
+
+`src/architecture/__tests__/planItems.test.ts` enforces the folder shape (`plan.md` present, item
+names, numbers unique within a plan, nothing nested), the three keys, `blocked_by` resolving
+within the plan and `closes` resolving to an open ticket, and the heading. It shares its core with
+the ticket check (`src/architecture/markdownItems.ts`).
 
 ## Ideas
 
@@ -89,6 +131,21 @@ drop it from any other ticket's `blocked_by`. Its history is in git.
 A feature-sized request is not a worklist entry: it goes brainstorm → spec → plan under
 `docs/design/`, and the worklist entry, if any, just points at the spec through `from`.
 
+## When `/to-tickets` breaks a spec into work
+
+The tickets it produces are **work items**, not worklist tickets. Publish them as the plan folder
+above: create `docs/design/plans/YYYY-MM-DD-<slug>/plan.md` with the item table, then one
+`NN-<slug>.md` per item in dependency order, using the item template, with `closes` naming every
+open worklist ticket the item retires. Nothing goes to `docs/tickets/`.
+
+## When `/implement-spec` or `/implement` takes an item
+
+Read the plan folder; the frontier is every `status: open` item whose `blocked_by` is empty. Claim
+it by setting `status: claimed` in a commit on the worker branch `<slug>-NN`. Resolve it the way
+the tracker closes work: the merge into the integration branch deletes the item file and the
+tickets it closes. A worker that passes a ticket reference (`T-n`) instead works a worklist ticket
+on `ticket/T-n` as before.
+
 ## When a skill says "fetch the relevant ticket"
 
 Read `docs/tickets/*/T-<n>-*.md`. If it came from a review, also read that finding's row in the
@@ -107,7 +164,8 @@ labels.
 ## Wayfinding operations
 
 Used by `/wayfinder`. The **map** is a file with one **child** file per ticket, under
-`docs/design/wayfinder/<effort>/`.
+`docs/design/wayfinder/<effort>/`: the same shape as a plan folder, for decisions instead of
+slices.
 
 - **Map**: `docs/design/wayfinder/<effort>/map.md` (the Notes / Decisions-so-far / Fog body).
 - **Child ticket**: `docs/design/wayfinder/<effort>/issues/NN-<slug>.md`, numbered from `01`, with

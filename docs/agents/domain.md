@@ -24,7 +24,7 @@ suggest filling it in upfront.
 ├── docs/
 │   ├── adr/                           ← exists
 │   ├── architecture/                  ← exists: seams, debug log, native patches
-│   ├── design/                        ← every feature's spec and plan
+│   ├── design/                        ← every feature's spec and plan; a plan folder holds its work items
 │   ├── reviews/                       ← review reports
 │   └── tickets/                       ← the worklist, one file per ticket, by area
 └── src/

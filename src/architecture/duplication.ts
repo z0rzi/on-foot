@@ -35,11 +35,22 @@ export interface SignificantLine {
 const PUNCTUATION_ONLY = /^[\s{}()[\];,]*$/
 const COMMENT = /^(\/\/|\/\*|\*)/
 const IMPORT_OR_REEXPORT = /^(import\b|export\s.*\sfrom\s)/
+const OPENS_SPECIFIER_LIST = /^(import|export)\s*(type\s*)?\{[^}]*$/
+const CLOSES_SPECIFIER_LIST = /^\}\s*from\s/
 
 export function significantLines(content: string): SignificantLine[] {
   const out: SignificantLine[] = []
+  let inSpecifierList = false
   content.split('\n').forEach((raw, index) => {
     const text = raw.trim()
+    if (inSpecifierList) {
+      if (CLOSES_SPECIFIER_LIST.test(text)) inSpecifierList = false
+      return
+    }
+    if (OPENS_SPECIFIER_LIST.test(text)) {
+      inSpecifierList = true
+      return
+    }
     if (!text || PUNCTUATION_ONLY.test(text) || COMMENT.test(text) || IMPORT_OR_REEXPORT.test(text)) return
     out.push({ line: index + 1, text })
   })

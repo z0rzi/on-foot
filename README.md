@@ -60,7 +60,7 @@ entry with a rationale. Lint rules are heuristics and may instead be answered by
 | `src/log/` | The in-app debug log — the first place to look for a bug reported from the field |
 | `src/architecture/` | The gates above, and `seams.ts`, which declares the boundaries |
 | `docs/architecture/` | Why the seams, the lint policy, and the debug log are the way they are |
-| `docs/design/` | Every feature's spec and plan; features go brainstorm → spec → plan, not straight to code |
+| `docs/design/` | Every feature's spec and plan; features go brainstorm → spec → plan, not straight to code. A plan is a folder: `plan.md` plus one file per work item, deleted as it lands |
 | `docs/reviews/` | Whole-codebase reviews, dated snapshots; the 2026-09-10 one stays authoritative for its findings |
 | `docs/tickets/` | The worklist: one file per open ticket, in a folder per product area; `tickets.base` is the Obsidian view |
 
