@@ -93,3 +93,8 @@ _Avoid_: project, module, component, domain
 A ticket that is a parked wish, not committed work: it may be promoted into work, dropped, or sit.
 Nobody is waiting on it.
 _Avoid_: feature request, backlog item, todo, wish
+
+**Work item**:
+One slice of a plan, built by one worker and gone when it lands. It belongs to its plan, not to
+the worklist, and has no number of its own beyond its place in the plan.
+_Avoid_: ticket (for a plan's slice), task, sub-issue, step

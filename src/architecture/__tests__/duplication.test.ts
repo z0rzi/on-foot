@@ -63,6 +63,23 @@ describe('verbatim duplication', () => {
     expect(findDuplicateBlocks(files, 3, [])).toHaveLength(0)
   })
 
+  test('a multi-line import or re-export does not count, down to its closing line', () => {
+    const content = [
+      'import {',
+      '  checkEnums,',
+      '  type ItemFile,',
+      "} from './markdownItems'",
+      'export {',
+      '  a,',
+      "} from './a'",
+      'export {',
+      '  b,',
+      '}',
+      'const one = 1',
+    ].join('\n')
+    expect(significantLines(content)).toEqual([{ line: 11, text: 'const one = 1' }])
+  })
+
   test('reports a block repeated within one file, but never a window against itself', () => {
     const files = [{ path: 'src/a.ts', content: `${tenLines}\nconst gap = 0\n${tenLines}` }]
     const blocks = findDuplicateBlocks(files, 8, [])

@@ -93,7 +93,8 @@ or longitude. See `docs/architecture/debug-log.md`.
 ## Issue tracker
 
 In-repo markdown: the worklist is one file per ticket in `docs/tickets/<area>/` (read them
-all before filing one), with specs and plans under `docs/design/`. GitHub Issues is reserved for
+all before filing one), with specs and plans under `docs/design/`. A plan's work items live in
+the plan's own folder, not in the worklist. GitHub Issues is reserved for
 reports from **outside** the development process and holds nothing today. The split is by
 **source**, not by user impact: a user-visible bug found by the owner or an agent is still an
 internal finding and goes in the worklist. Never run `gh issue create` for internal work. See `docs/agents/issue-tracker.md`.
