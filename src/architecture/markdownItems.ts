@@ -13,10 +13,10 @@ export interface ItemViolation {
   problem: string
 }
 
-export type Report = (problem: string) => void
-export type Fields = Record<string, unknown>
+type Report = (problem: string) => void
+type Fields = Record<string, unknown>
 /** `null` in an enum admits an empty value. */
-export type Enums = Record<string, (string | null)[]>
+type Enums = Record<string, (string | null)[]>
 
 const FRONTMATTER = /^---\n([\s\S]*?)\n---\n/
 const WIKILINK = /^\[\[([^\]]+)\]\]$/

@@ -53,9 +53,9 @@ only what outlives it: a follow-up filed with `from: "[[the-spec]]"`, or what th
 
 The plan is the folder `docs/design/plans/YYYY-MM-DD-<slug>/`:
 
-- `plan.md` — the overview, the item table (number, title, blocked by, closes) and anything the
+- `plan.md` — the overview, the item list (number, title, what it delivers) and anything the
   build needs that the spec does not say. It is the record that survives the build; it is not
-  ticked or edited as items land.
+  ticked or edited as items land. Blocking and `closes` live in the items only, never here.
 - `NN-<slug>.md` — one per item, numbered from `01` in dependency order, blockers first. Addressed
   as `<slug>/NN` in prose (`hiking-ux/03`), `(<slug> NN)` in a commit trailer; the worker branch is
   `<slug>-NN`, the integration branch `<slug>`.
@@ -76,7 +76,8 @@ closes: []               # wikilinks to open tracker tickets this item retires: 
 
 A worker sets `status: claimed` before starting. The merge that lands an item deletes its file and
 every ticket its `closes` names, and drops the item from its siblings' `blocked_by`. A folder with
-only `plan.md` left is a built effort; the spec's status line says so. `plans.base` beside the
+only `plan.md` left is a built effort; the spec's status line says so (`**Status:** Built,
+[[2026-11-06-hiking-ux]]`). `plans.base` beside the
 folders is the Obsidian view: by plan, the frontier (open and unblocked), the claimed.
 
 `src/architecture/__tests__/planItems.test.ts` enforces the folder shape (`plan.md` present, item
@@ -164,8 +165,8 @@ labels.
 ## Wayfinding operations
 
 Used by `/wayfinder`. The **map** is a file with one **child** file per ticket, under
-`docs/design/wayfinder/<effort>/`: the same shape as a plan folder, for decisions instead of
-slices.
+`docs/design/wayfinder/<effort>/`: a sibling of the plan folder (a map instead of a plan, decisions
+instead of slices, `Status:` lines instead of frontmatter), not gated.
 
 - **Map**: `docs/design/wayfinder/<effort>/map.md` (the Notes / Decisions-so-far / Fog body).
 - **Child ticket**: `docs/design/wayfinder/<effort>/issues/NN-<slug>.md`, numbered from `01`, with

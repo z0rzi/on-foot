@@ -72,9 +72,12 @@ describe('verbatim duplication', () => {
       'export {',
       '  a,',
       "} from './a'",
+      'export {',
+      '  b,',
+      '}',
       'const one = 1',
     ].join('\n')
-    expect(significantLines(content)).toEqual([{ line: 8, text: 'const one = 1' }])
+    expect(significantLines(content)).toEqual([{ line: 11, text: 'const one = 1' }])
   })
 
   test('reports a block repeated within one file, but never a window against itself', () => {

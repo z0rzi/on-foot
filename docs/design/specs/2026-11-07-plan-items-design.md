@@ -1,6 +1,6 @@
 # Plan work items live with their plan
 
-A spec goes through `/to-tickets` and `/implement-spec`: the breakdown becomes tickets, workers take
+A spec goes through `/to-tickets` and `/implement-spec` (or `/implement` for one worker): the breakdown becomes tickets, workers take
 them in worktrees, each merge into the integration branch closes one. On 2026-11-06 the hiking UX
 spec became sixteen tracker tickets, T-50 to T-65, spread over five area folders beside month-old
 ideas and review findings. They were never the tracker's kind of thing: born from one spec, owned by
@@ -12,13 +12,15 @@ one worker for a day, dead at merge. Decided with the owner on 2026-11-07 in a g
    owned by nobody in particular, found by area. A **work item** is one slice of a plan, claimed by
    one worker, gone when its merge lands. Items are not tickets: they consume no `T-n` number and
    never enter `docs/tickets/`.
-2. **A plan is a folder**: `docs/design/plans/<date>-<slug>/` holding `plan.md` (the overview, the
-   item table with its blocking graph, what each item closes in the tracker) and one
+2. **A plan is a folder**: `docs/design/plans/<date>-<slug>/` holding `plan.md` (the overview and the
+   item list: number, title, what it delivers; blocking and `closes` live in the items only, so
+   the two never diverge) and one
    `NN-<slug>.md` per item, numbered in dependency order as `/to-tickets` already does. `plan.md` is
    the record that survives. The flat plans already under `docs/design/plans/` stay as they are.
 3. **Items die at merge**: the merge that lands an item deletes its file, the rule tickets follow.
    No `done` status and no ticking in `plan.md`; a folder with only `plan.md` left is a built
-   effort, and the spec's status line says so.
+   effort, and the spec's status line says so. The merge also drops the item from its siblings'
+   `blocked_by`, as a ticket's close does.
 4. **Naming**: `hiking-ux/03` in prose, commit trailer `(hiking-ux 03)`, worker branch
    `hiking-ux-03`, integration branch `hiking-ux`. A slash-namespaced item branch is impossible
    beside an integration branch of the same name. `ticket/T-n` stays for durable tickets.
@@ -43,11 +45,13 @@ shared core is extracted into `src/architecture/markdownItems.ts`: the recursive
 `readFrontmatter`, `checkKeys`, `checkEnums`, `checkLinks`, `checkHeading`. `tickets.ts` keeps only
 what is a ticket's: areas, `T-n`, the date, the idea invariant. `planItems.ts` keeps only what is a
 plan's: `plan.md`, `NN` numbering per folder, `closes` against the worklist. The wayfinder layout in
-`issue-tracker.md` is the same shape in prose and now points at it.
+`issue-tracker.md` is a sibling (a map, decisions, `Status:` lines) and stays ungated; the doc
+says so.
 
 The duplication gate did not see through a multi-line import: its import exclusion matched the
 first line only, so the two identical specifier lists read as nine duplicated lines. Fixed at the
-gate, with a unit case, rather than by reshaping the imports.
+gate, with a unit case, rather than by reshaping the imports; a bare `export { … }` closes on its
+`}` too, so no list can swallow the rest of a file.
 
 ## Failure modes
 
@@ -61,7 +65,9 @@ gate, with a unit case, rather than by reshaping the imports.
 - **A worker merges without deleting its item**: the item stays `claimed` and shows in the
   Claimed view; nothing mechanical catches it, as nothing catches an undeleted ticket today.
 - **The folder `docs/design/plans/` missing**: the real-tree test fails, as for the worklist.
-- **Two plans with the same slug on different dates**: distinct folders, no collision.
+- **Two plans with the same slug on different dates**: distinct folders, no collision (tested).
+- **`blocked_by` naming `plan.md` or a nested file, `closes` naming a worklist file that is not a
+  ticket** (`README`): violation; only items of the plan and `T-n` files are link targets.
 
 ## Docs
 

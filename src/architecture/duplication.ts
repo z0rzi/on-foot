@@ -36,7 +36,7 @@ const PUNCTUATION_ONLY = /^[\s{}()[\];,]*$/
 const COMMENT = /^(\/\/|\/\*|\*)/
 const IMPORT_OR_REEXPORT = /^(import\b|export\s.*\sfrom\s)/
 const OPENS_SPECIFIER_LIST = /^(import|export)\s*(type\s*)?\{[^}]*$/
-const CLOSES_SPECIFIER_LIST = /^\}\s*from\s/
+const CLOSES_SPECIFIER_LIST = /^\}/
 
 export function significantLines(content: string): SignificantLine[] {
   const out: SignificantLine[] = []
