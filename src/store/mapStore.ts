@@ -201,6 +201,10 @@ interface MapStore {
   quickSwitchMapStyle: (styles: StyleChoice[]) => void
   select: (kind: 'trail' | 'activity', id: number) => void
   clearSelection: () => void
+  // Drops the selection only when it shows this entity, as after the entity is deleted.
+  forgetEntity: (kind: 'trail' | 'activity', id: number) => void
+  // A recording started over an activity view replaces it; a shown trail stays, as the followed trail.
+  endActivityView: () => void
   clearPendingFit: () => void
   recenter: () => void
   setCameraPitch: (p: number) => void
@@ -211,6 +215,9 @@ interface MapStore {
   startFollow: (mode: FollowUserMode, from?: CameraFraming) => void
   failHydration: (errorClass: string) => void
 }
+
+// Nothing shown, and no framing left pending for what was.
+const NO_SELECTION: Pick<MapStore, 'selection' | 'pendingFit'> = { selection: null, pendingFit: null }
 
 type PersistedMapState = Pick<MapStore, 'mapStyleId' | 'selection' | 'followMode' | 'lastCamera'>
 
@@ -279,7 +286,11 @@ export const useMapStore: MapStoreHook = create<MapStore>()(
           cameraPitch: MapTokens.pitchMin,
           pitchAnimated: true,
         }),
-      clearSelection: () => set({ selection: null, pendingFit: null }),
+      clearSelection: () => set(NO_SELECTION),
+      forgetEntity: (kind, id) =>
+        set((s) => (s.selection?.kind === kind && s.selection.id === id ? NO_SELECTION : {})),
+      endActivityView: () =>
+        set((s) => (s.selection?.kind === 'activity' ? NO_SELECTION : {})),
       clearPendingFit: () => set({ pendingFit: null }),
       recenter: () =>
         set((s) =>

@@ -152,3 +152,127 @@ describe('offlineStore ownership', () => {
     expect(useOfflineStore.getState().progress[id]).toBeUndefined()
   })
 })
+
+describe('offlineStore settled downloads', () => {
+  beforeEach(() => useOfflineStore.setState({ settled: [] }))
+
+  test('a trail\'s download settles once, after every pack', async () => {
+    const a = packId(1, 'a')
+    const b = packId(1, 'b')
+    const finish: Record<string, (i: OfflinePackInfo) => void> = {}
+    const controller = makeController({ onSubscribe: (id, onProgress) => { finish[id] = onProgress } })
+    useOfflineStore.getState().download(controller, descriptor(a))
+    useOfflineStore.getState().download(controller, descriptor(b))
+    await flush()
+    finish[a](info(a, 'complete', 100))
+    await flush()
+    expect(useOfflineStore.getState().settled).toEqual([])
+    finish[b](info(b, 'complete', 100))
+    await flush()
+    expect(useOfflineStore.getState().settled).toEqual([{ trailId: 1, failed: false }])
+  })
+
+  test('one failed pack makes the trail\'s download failed', async () => {
+    const a = packId(1, 'a')
+    const b = packId(1, 'b')
+    const controller = makeController({
+      onSubscribe: (id, onProgress, onError) =>
+        id === a ? onProgress(info(id, 'complete', 100)) : onError(id, 'boom'),
+    })
+    useOfflineStore.getState().download(controller, descriptor(a))
+    useOfflineStore.getState().download(controller, descriptor(b))
+    await flush()
+    expect(useOfflineStore.getState().settled).toEqual([{ trailId: 1, failed: true }])
+  })
+
+  test('a completion seen by both the progress callback and the reconcile counts once', async () => {
+    const a = packId(1, 'a')
+    const controller = makeController({
+      packs: [info(a, 'complete', 100)],
+      onSubscribe: (id, onProgress) => onProgress(info(id, 'complete', 100)),
+    })
+    useOfflineStore.getState().download(controller, descriptor(a))
+    await flush()
+    await flush()
+    expect(useOfflineStore.getState().settled).toEqual([{ trailId: 1, failed: false }])
+  })
+
+  test('a failed kickoff settles the download as failed', async () => {
+    const a = packId(1, 'a')
+    const controller = makeController()
+    controller.downloadPack = async () => { throw new Error('offline') }
+    useOfflineStore.getState().download(controller, descriptor(a))
+    await flush()
+    expect(useOfflineStore.getState().settled).toEqual([{ trailId: 1, failed: true }])
+  })
+
+  test('canceling a download settles nothing', async () => {
+    const a = packId(1, 'a')
+    const controller = makeController({ onSubscribe: (id, onProgress) => onProgress(info(id, 'incomplete', 30)) })
+    useOfflineStore.getState().download(controller, descriptor(a))
+    await flush()
+    await useOfflineStore.getState().removeForTrail(controller, 1)
+    expect(useOfflineStore.getState().settled).toEqual([])
+  })
+
+  const partlyFinished = async () => {
+    const a = packId(1, 'a')
+    const b = packId(1, 'b')
+    const controller = makeController({
+      onSubscribe: (id, onProgress) => onProgress(info(id, id === a ? 'complete' : 'incomplete', id === a ? 100 : 30)),
+    })
+    useOfflineStore.getState().download(controller, descriptor(a))
+    useOfflineStore.getState().download(controller, descriptor(b))
+    await flush()
+    expect(useOfflineStore.getState().settled).toEqual([])
+    return { a, b, controller }
+  }
+
+  test('removing the last pending layer settles nothing: the remove shows its own toast', async () => {
+    const { b, controller } = await partlyFinished()
+    await useOfflineStore.getState().remove(controller, [b])
+    expect(useOfflineStore.getState().settled).toEqual([])
+  })
+
+  test.each([
+    ['finished layer first', true],
+    ['pending layer first', false],
+  ])('canceling a partly finished download settles nothing (%s)', async (_, finishedFirst) => {
+    const { a, b, controller } = await partlyFinished()
+    await useOfflineStore.getState().remove(controller, finishedFirst ? [a, b] : [b, a])
+    expect(useOfflineStore.getState().settled).toEqual([])
+  })
+
+  test('a layer removed mid-download leaves the rest of the download to settle on its own', async () => {
+    const a = packId(1, 'a')
+    const b = packId(1, 'b')
+    const finish: Record<string, (i: OfflinePackInfo) => void> = {}
+    const controller = makeController({ onSubscribe: (id, onProgress) => { finish[id] = onProgress } })
+    useOfflineStore.getState().download(controller, descriptor(a))
+    useOfflineStore.getState().download(controller, descriptor(b))
+    await flush()
+    await useOfflineStore.getState().remove(controller, [a])
+    finish[b](info(b, 'complete', 100))
+    await flush()
+    expect(useOfflineStore.getState().settled).toEqual([{ trailId: 1, failed: false }])
+  })
+
+  test('downloads of two trails settle separately', async () => {
+    const controller = makeController({ onSubscribe: (id, onProgress) => onProgress(info(id, 'complete', 100)) })
+    useOfflineStore.getState().download(controller, descriptor(packId(1, 'a')))
+    useOfflineStore.getState().download(controller, descriptor(packId(2, 'a')))
+    await flush()
+    expect(useOfflineStore.getState().settled).toEqual([
+      { trailId: 1, failed: false },
+      { trailId: 2, failed: false },
+    ])
+  })
+
+  test('dismissSettled drops only the events it is given', async () => {
+    const first = { trailId: 1, failed: false }
+    const second = { trailId: 2, failed: true }
+    useOfflineStore.setState({ settled: [first, second] })
+    useOfflineStore.getState().dismissSettled([first])
+    expect(useOfflineStore.getState().settled).toEqual([second])
+  })
+})

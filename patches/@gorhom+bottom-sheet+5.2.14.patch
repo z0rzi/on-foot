@@ -1,0 +1,26 @@
+diff --git a/node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheetContent.tsx b/node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheetContent.tsx
+index 4a69a68..4afc1ff 100644
+--- a/node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheetContent.tsx
++++ b/node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheetContent.tsx
+@@ -38,6 +38,7 @@ function BottomSheetContentComponent({
+   accessibilityLabel,
+   accessibilityHint,
+   accessibilityRole,
++  pointerEvents,
+   children,
+ }: BottomSheetContent) {
+   //#region hooks
+@@ -242,6 +243,7 @@ function BottomSheetContentComponent({
+       accessibilityLabel={accessibilityLabel}
+       accessibilityHint={accessibilityHint}
+       accessibilityRole={accessibilityRole}
++      pointerEvents={pointerEvents}
+       style={contentContainerStyle}
+     >
+       {children}
+@@ -251,4 +253,4 @@ function BottomSheetContentComponent({
+ }
+ 
+ export const BottomSheetContent = memo(BottomSheetContentComponent);
+-BottomSheetContent.displayName = 'BottomSheetContent';
++BottomSheetContent.displayName = 'BottomSheetContent [onfoot-patch]';

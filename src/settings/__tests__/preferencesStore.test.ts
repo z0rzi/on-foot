@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { nextPaceSpeedMode, usePreferencesStore, ELEVATION_SMOOTHING_PRESETS } from '../preferencesStore'
 
 describe('nextPaceSpeedMode', () => {
@@ -7,7 +8,7 @@ describe('nextPaceSpeedMode', () => {
   })
 })
 
-beforeEach(() => usePreferencesStore.setState({ elevationSmoothingMeters: 50, elevationGraphPlacement: 'floating' }))
+beforeEach(() => usePreferencesStore.setState({ elevationSmoothingMeters: 50 }))
 
 describe('elevation smoothing preference', () => {
   it('defaults to 50 m', () => {
@@ -23,14 +24,12 @@ describe('elevation smoothing preference', () => {
   })
 })
 
-describe('elevation graph placement preference', () => {
-  it('defaults to floating', () => {
-    expect(usePreferencesStore.getState().elevationGraphPlacement).toBe('floating')
-  })
-  it('setElevationGraphPlacement switches to in-sheet and back', () => {
-    usePreferencesStore.getState().setElevationGraphPlacement('inSheet')
-    expect(usePreferencesStore.getState().elevationGraphPlacement).toBe('inSheet')
-    usePreferencesStore.getState().setElevationGraphPlacement('floating')
-    expect(usePreferencesStore.getState().elevationGraphPlacement).toBe('floating')
+describe('persisted state', () => {
+  it('a write stores the pace/speed mode and the smoothing, nothing else', () => {
+    jest.mocked(AsyncStorage.setItem).mockClear()
+    usePreferencesStore.getState().setElevationSmoothing(100)
+    const [key, json] = jest.mocked(AsyncStorage.setItem).mock.calls.at(-1)!
+    expect(key).toBe('onfoot-preferences')
+    expect(JSON.parse(json).state).toEqual({ paceSpeedMode: 'pace', elevationSmoothingMeters: 100 })
   })
 })

@@ -69,9 +69,11 @@ export function accumulateGainLoss(eles: number[], deadbandMeters: number): Elev
   return { gainMeters, lossMeters }
 }
 
+// A run's elevations as stored gain and loss read them.
+export function storedElevationSeries(samples: ElevationPoint[]): number[] {
+  return smoothElevationSeries(samples, ELEVATION_SMOOTHING_WINDOW_METERS)
+}
+
 export function elevationChange(samples: ElevationPoint[]): ElevationChange {
-  return accumulateGainLoss(
-    smoothElevationSeries(samples, ELEVATION_SMOOTHING_WINDOW_METERS),
-    ELEVATION_DEADBAND_METERS,
-  )
+  return accumulateGainLoss(storedElevationSeries(samples), ELEVATION_DEADBAND_METERS)
 }

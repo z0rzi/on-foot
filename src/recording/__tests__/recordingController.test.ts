@@ -26,8 +26,11 @@ jest.mock('../../data/activities', () => ({
     getSessionPoints: jest.fn(),
     getLastSegmentPoint: jest.fn(),
     appendPoints: jest.fn(),
+    listSummaries: jest.fn(),
+    getActivity: jest.fn(),
   },
 }))
+jest.mock('../personalFactor', () => ({ historyActivityIds: () => [], historyFactor: () => 1.5 }))
 
 import * as locationPort from '../../location'
 import * as appActivity from '../appActivity'
@@ -84,6 +87,7 @@ beforeEach(() => {
     stream: { kind: 'stopped' },
     resumeSettled: false,
     interruption: null,
+    historyFactor: 1,
   })
 
   repo.getActiveSession.mockImplementation(async () => row)
@@ -104,6 +108,7 @@ beforeEach(() => {
     row = null
   })
   repo.getSessionPoints.mockResolvedValue([])
+  repo.listSummaries.mockResolvedValue([])
 
   port.requestForegroundAccess.mockResolvedValue(true)
   port.requestBackgroundAccess.mockResolvedValue(true)
@@ -585,5 +590,41 @@ describe('finishRecording', () => {
     mockSaveActivity.mockRejectedValue(new Error('db gone'))
     await expect(finishRecording(7, input)).rejects.toThrow('db gone')
     expect(useRecordingStore.getState().stream).toEqual({ kind: 'stopped' })
+  })
+})
+
+describe('the history factor', () => {
+  const historyFactor = () => useRecordingStore.getState().historyFactor
+
+  it('is read when a recording starts', async () => {
+    await startRecording()
+    await settle()
+    expect(historyFactor()).toBe(1.5)
+  })
+
+  it('is read again when a recording resumes', async () => {
+    row = paused
+    useRecordingStore.setState({ session: paused })
+    await resumeRecording()
+    await settle()
+    expect(historyFactor()).toBe(1.5)
+  })
+
+  it.each([
+    ['recording', recording],
+    ['paused', paused],
+  ])('is read when a relaunch finds a %s session', async (_, session) => {
+    row = session
+    await resumeIfActive()
+    await settle()
+    expect(historyFactor()).toBe(1.5)
+  })
+
+  it('is not read for a session the running process already holds', async () => {
+    row = recording
+    useRecordingStore.setState({ session: recording })
+    await resumeIfActive()
+    await settle()
+    expect(historyFactor()).toBe(1)
   })
 })

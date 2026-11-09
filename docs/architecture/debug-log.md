@@ -30,7 +30,8 @@ write is swallowed; the next entry still gets its turn.
 ## Areas
 
 - **`recording`** — the recording lifecycle: start, pause, resume, segment boundaries, discard,
-  finish, and refusals (e.g. "start already-active").
+  finish, refusals (e.g. "start already-active"), and a failed read of the personal factor's
+  history (`recordingStore`; the times fall back to factor 1).
 - **`capture`** — the location stream: start/stop, permission and location-off refusals, each fix
   batch (`fixBatchSummary`), and interruption recovery decisions.
 - **`launch`** — cold start, the action `useResumeRecording` took, an interruption it detects

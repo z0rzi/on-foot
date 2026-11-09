@@ -1,11 +1,11 @@
 import { useCallback, useState } from 'react'
 import { Alert } from 'react-native'
 import { Difficulty, TrailMetrics } from '../data/trails/types'
-import { formatDistance, formatElevation } from '../format/units'
 import { EnumSelector } from '../components/EnumSelector'
 import { MetricsGrid } from '../components/MetricsGrid'
 import { FormField, FormScreen, FormTextInput, SubmitButton } from '../components/form'
 import { difficultyField } from './difficulty'
+import { trailMetricTiles } from './format'
 import { logEvent } from '../log'
 
 export interface TrailFormValues {
@@ -54,13 +54,7 @@ export function TrailForm({
 
   return (
     <FormScreen>
-      <MetricsGrid
-        items={[
-          { label: 'Distance', value: formatDistance(metrics.distanceMeters) },
-          { label: 'Elevation Gain', value: formatElevation(metrics.elevationGainMeters) },
-          { label: 'Elevation Loss', value: formatElevation(metrics.elevationLossMeters) },
-        ]}
-      />
+      <MetricsGrid items={trailMetricTiles(metrics)} />
 
       <FormField label="Name *">
         <FormTextInput value={name} onChangeText={setName} placeholder="Trail name" />

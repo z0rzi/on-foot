@@ -1,21 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
-import { BackHandler } from 'react-native'
+import { useCallback, useState } from 'react'
+import { modalSheetOpen } from './sheetBack'
+import { useBackDismiss } from './useBackDismiss'
 
-// gorhom's BottomSheetModal (v5) renders through a JS portal, not a native Modal, so it does not
-// intercept the Android hardware back button. Without this, back falls through to navigation and
-// exits the app while a sheet is open. Registers a back handler that dismisses the open sheet and
-// consumes the event; wire the returned handler to the modal's onChange prop.
+// useBackDismiss for a modal sheet, open from its onChange index: wire the returned handler to the
+// sheet's onChange prop.
 export function useSheetBackDismiss(dismiss: () => void): (index: number) => void {
-  const [open, setOpen] = useState(false)
-
-  useEffect(() => {
-    if (!open) return
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      dismiss()
-      return true
-    })
-    return () => sub.remove()
-  }, [open, dismiss])
-
-  return useCallback((index: number) => setOpen(index >= 0), [])
+  const [index, setIndex] = useState(-1)
+  useBackDismiss(dismiss, { open: modalSheetOpen(index) })
+  return useCallback((next: number) => setIndex(next), [])
 }

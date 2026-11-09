@@ -1,4 +1,5 @@
-import type { CaptureFault, RecordingPhase, StreamStatus } from './recordingStore'
+import type { RecordingPhase } from './recordingPhase'
+import type { CaptureFault, StreamStatus } from './recordingStore'
 
 export type RecordingHealth =
   | { kind: 'idle' }
@@ -7,7 +8,7 @@ export type RecordingHealth =
   | { kind: 'not-capturing'; fault: CaptureFault }
   | { kind: 'recording' }
 
-// What the recording sheet may claim, from facts the app observed rather than inferred from GPS
+// What the recording's status may claim, from facts the app observed rather than inferred from GPS
 // silence. A missing provider names the cause of not capturing, so it outranks a capture fault.
 export function recordingHealthFor(input: {
   phase: RecordingPhase
@@ -21,19 +22,28 @@ export function recordingHealthFor(input: {
   return { kind: 'recording' }
 }
 
-export function recordingStatusText(health: RecordingHealth): { title: string; detail: string | null } {
+export interface RecordingWarning {
+  text: string
+  // Capture stopped while the session records, so asking for it again can bring it back.
+  retry: boolean
+}
+
+// What is wrong with capture while recording, as one line; null when there is nothing to say.
+export function recordingWarning(health: RecordingHealth): RecordingWarning | null {
   switch (health.kind) {
     case 'idle':
-    case 'recording':
-      return { title: '● Recording', detail: null }
     case 'paused':
-      return { title: '⏸ Paused', detail: null }
+    case 'recording':
+      return null
     case 'location-off':
-      return { title: 'Location is off', detail: "Recording continues when it's back on." }
+      return { text: "Location is off · Recording continues when it's back on.", retry: false }
     case 'not-capturing':
       return {
-        title: 'Not recording location',
-        detail: health.fault === 'permission-missing' ? 'Allow location access for On Foot in Settings.' : null,
+        text:
+          health.fault === 'permission-missing'
+            ? 'Not recording location · Allow location access for On Foot in Settings.'
+            : 'Not recording location',
+        retry: true,
       }
   }
 }

@@ -11,6 +11,7 @@ import { groupPacksByTrail, totalOfflineBytes } from './grouping'
 import { formatBytes } from '../../format/units'
 import { packId } from './packId'
 import { showToast } from '../../components/toast'
+import { useShowTrail } from '../../trails/useShowTrail'
 
 export function OfflineMapsList() {
   const c = useTheme()
@@ -22,6 +23,7 @@ export function OfflineMapsList() {
   const remove = useOfflineStore((s) => s.remove)
   const trails = useTrailsStore((s) => s.trails)
   const loadTrails = useTrailsStore((s) => s.loadTrails)
+  const showTrail = useShowTrail()
   const reloadPacks = useCallback(() => reload(controller), [reload, controller])
 
   useRefreshOnFocus(loadTrails, TRAILS_REFRESH_FAILURE)
@@ -59,13 +61,20 @@ export function OfflineMapsList() {
       ) : (
         groups.map((g) => (
           <View key={g.trailId} style={[styles.group, { backgroundColor: c.surface }]}>
-            <View style={styles.groupHead}>
+            <Pressable
+              accessibilityLabel={g.trailName != null ? `Show ${g.trailName} on the map` : undefined}
+              disabled={g.trailName == null}
+              onPress={() => {
+                if (g.trailName != null) showTrail({ id: g.trailId, name: g.trailName })
+              }}
+              style={styles.groupHead}
+            >
               <Ionicons name="trail-sign" size={16} color={c.trailLine} />
               <Text style={{ color: c.onSurface, fontWeight: '700', flex: 1 }} numberOfLines={1}>
                 {g.trailName ?? 'Unknown trail'}
               </Text>
               <Text style={{ color: c.onSurfaceVariant, fontSize: 11 }}>{formatBytes(g.totalBytes)}</Text>
-            </View>
+            </Pressable>
             {g.layers.map((l) => (
               <View key={l.styleId} style={[styles.layer, { borderTopColor: c.panelDivider }]}>
                 <Text style={{ color: c.onSurface, fontSize: 13, flex: 1 }}>{labelFor(l.styleId)}</Text>

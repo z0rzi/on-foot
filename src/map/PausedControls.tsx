@@ -1,6 +1,5 @@
 import { useCallback } from 'react'
 import { Alert, StyleSheet } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated'
 import { useRouter } from 'expo-router'
 import { useTheme } from '../theme/useTheme'
@@ -13,10 +12,9 @@ import { ControlButton } from '../components/ControlButton'
 import { PlayIcon } from '../assets/icons/play'
 import { StopIcon } from '../assets/icons/stop'
 
-export function PausedControls({ animatedBottom }: { animatedBottom?: SharedValue<number> }) {
+export function PausedControls({ animatedBottom }: { animatedBottom: SharedValue<number> }) {
   const c = useTheme()
   const router = useRouter()
-  const insets = useSafeAreaInsets()
 
   const onResume = useCallback(async () => {
     try {
@@ -44,16 +42,16 @@ export function PausedControls({ animatedBottom }: { animatedBottom?: SharedValu
   }, [router])
 
   const anchorStyle = useAnimatedStyle(() => ({
-    bottom: animatedBottom ? animatedBottom.value : insets.bottom + MapTokens.overlayPadding,
+    bottom: animatedBottom.value,
   }))
 
   return (
     <Animated.View style={[styles.anchor, { left: MapTokens.overlayPadding }, anchorStyle]}>
-      <ControlButton accessibilityLabel="Resume recording" onPress={onResume}>
-        <PlayIcon size={MapTokens.controlIconSize} color={c.recordingLine} />
+      <ControlButton accessibilityLabel="Resume recording" onPress={onResume} size={MapTokens.recordButtonSize}>
+        <PlayIcon size={MapTokens.recordIconSize} color={c.recordingLine} />
       </ControlButton>
-      <ControlButton accessibilityLabel="Stop and save recording" onPress={onStop}>
-        <StopIcon size={MapTokens.controlIconSize} color={c.recordingLine} />
+      <ControlButton accessibilityLabel="Stop and save recording" onPress={onStop} size={MapTokens.recordButtonSize}>
+        <StopIcon size={MapTokens.recordIconSize} color={c.recordingLine} />
       </ControlButton>
     </Animated.View>
   )

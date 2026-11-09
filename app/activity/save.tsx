@@ -4,15 +4,15 @@ import { RecordingSession, TrackPoint, activitiesRepository } from '../../src/da
 import { activityMetricsFromSegments, buildNewActivityInput, groupPointsBySegment, lastTrackPoint } from '../../src/data/activities/mapping'
 import { discardRecording, finishRecording } from '../../src/recording/recordingController'
 import { ActivityForm } from '../../src/activities/ActivityForm'
-import { useGoBackOrHome } from '../../src/components/useGoBackOrHome'
-import { ScreenHeader } from '../../src/components/ScreenHeader'
+import { useReturnToMap } from '../../src/components/useReturnToMap'
 import { LoadingScreen } from '../../src/components/LoadingScreen'
+import { showToast } from '../../src/components/toast'
+import { useMapStore } from '../../src/store/mapStore'
 import { logEvent } from '../../src/log'
 
 export default function SaveActivityScreen() {
-  // This screen is pushed over the map, so return by popping back to the existing map instance —
-  // replacing the root would mount a second map on top of the live one (stacking, camera reset).
-  const goToMap = useGoBackOrHome()
+  const goToMap = useReturnToMap()
+  const select = useMapStore((s) => s.select)
 
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState<RecordingSession | null>(null)
@@ -53,22 +53,22 @@ export default function SaveActivityScreen() {
   const metrics = activityMetricsFromSegments(segments, session.startedAt, endedAt, session.pausedMs)
 
   return (
-    <>
-      <ScreenHeader title="Save activity" />
-      <ActivityForm
-        metrics={metrics}
-        initialName=""
-        initialEffort={null}
-        initialComments=""
-        onSave={async ({ name, effort, comments }) => {
-          await finishRecording(session.id, buildNewActivityInput(session, segments, { name, effort, comments }))
-          goToMap()
-        }}
-        onDiscard={async () => {
-          await discardRecording(session.id)
-          goToMap()
-        }}
-      />
-    </>
+    <ActivityForm
+      metrics={metrics}
+      initialName=""
+      initialEffort={null}
+      initialComments=""
+      onSave={async ({ name, effort, comments }) => {
+        const activityId = await finishRecording(session.id, buildNewActivityInput(session, segments, { name, effort, comments }))
+        select('activity', activityId)
+        goToMap()
+        showToast('Activity saved')
+      }}
+      onDiscard={async () => {
+        await discardRecording(session.id)
+        goToMap()
+        showToast('Recording discarded')
+      }}
+    />
   )
 }

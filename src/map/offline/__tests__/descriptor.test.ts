@@ -1,6 +1,6 @@
 import { packDescriptor } from '../descriptor'
 
-const style = { id: 'outdoors', label: 'Outdoors', url: 'mapbox://styles/x/outdoors', preview: 0 }
+const style = { id: 'outdoors', label: 'Outdoors', url: 'mapbox://styles/x/outdoors', preview: 0, tone: 'light' as const }
 const bounds = { ne: [6.9, 45.9] as [number, number], sw: [6.8, 45.8] as [number, number] }
 
 describe('packDescriptor', () => {

@@ -1,4 +1,4 @@
-import { recordingHealthFor, recordingStatusText } from '../streamHealth'
+import { recordingHealthFor, recordingWarning } from '../streamHealth'
 
 describe('recordingHealthFor', () => {
   it('claims idle or paused, whatever was observed', () => {
@@ -19,26 +19,28 @@ describe('recordingHealthFor', () => {
   })
 })
 
-describe('recordingStatusText', () => {
-  it('keeps the idle, paused and recording labels', () => {
-    expect(recordingStatusText({ kind: 'idle' })).toEqual({ title: '● Recording', detail: null })
-    expect(recordingStatusText({ kind: 'paused' })).toEqual({ title: '⏸ Paused', detail: null })
-    expect(recordingStatusText({ kind: 'recording' })).toEqual({ title: '● Recording', detail: null })
+describe('recordingWarning', () => {
+  it('says nothing while all is well, idle or paused', () => {
+    expect(recordingWarning({ kind: 'idle' })).toBeNull()
+    expect(recordingWarning({ kind: 'paused' })).toBeNull()
+    expect(recordingWarning({ kind: 'recording' })).toBeNull()
   })
-  it('explains location off', () => {
-    expect(recordingStatusText({ kind: 'location-off' })).toEqual({
-      title: 'Location is off',
-      detail: "Recording continues when it's back on.",
+  it('explains location off, with nothing to retry', () => {
+    expect(recordingWarning({ kind: 'location-off' })).toEqual({
+      text: "Location is off · Recording continues when it's back on.",
+      retry: false,
     })
   })
-  it('explains a missing permission, and gives no detail for a failed start', () => {
-    expect(recordingStatusText({ kind: 'not-capturing', fault: 'permission-missing' })).toEqual({
-      title: 'Not recording location',
-      detail: 'Allow location access for On Foot in Settings.',
+  it('explains a missing permission, and offers a retry', () => {
+    expect(recordingWarning({ kind: 'not-capturing', fault: 'permission-missing' })).toEqual({
+      text: 'Not recording location · Allow location access for On Foot in Settings.',
+      retry: true,
     })
-    expect(recordingStatusText({ kind: 'not-capturing', fault: 'start-failed' })).toEqual({
-      title: 'Not recording location',
-      detail: null,
+  })
+  it('names no cause for a failed start, and offers a retry', () => {
+    expect(recordingWarning({ kind: 'not-capturing', fault: 'start-failed' })).toEqual({
+      text: 'Not recording location',
+      retry: true,
     })
   })
 })

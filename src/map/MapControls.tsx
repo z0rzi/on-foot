@@ -1,6 +1,5 @@
 import React, { useMemo, useRef } from 'react'
 import { StyleSheet, View, Text } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated'
 import { Ionicons } from '@expo/vector-icons'
@@ -21,12 +20,10 @@ export function MapControls({
 }: {
   onOpenLayers: () => void
   onFrameRoute?: () => void
-  // When set (a selection is active), the cluster tracks the sheet's animated top edge so it rides
-  // above the variable-height sheet. Otherwise it sits above the static overlay.
-  animatedBottom?: SharedValue<number>
+  // The cluster's bottom, riding the card's live top edge.
+  animatedBottom: SharedValue<number>
 }) {
   const c = useTheme()
-  const insets = useSafeAreaInsets()
   const caps = useMapCapabilities()
   const followMode = useMapStore((s) => s.followMode)
   const cycleFollowMode = useMapStore((s) => s.cycleFollowMode)
@@ -108,7 +105,7 @@ export function MapControls({
   )
 
   const containerStyle = useAnimatedStyle(() => ({
-    bottom: animatedBottom ? animatedBottom.value : insets.bottom + MapTokens.overlayPadding,
+    bottom: animatedBottom.value,
   }))
 
   return (

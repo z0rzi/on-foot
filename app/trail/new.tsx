@@ -9,7 +9,7 @@ import { TrailGeometry, TrailMetrics } from '../../src/data/trails/types'
 import { TrailForm } from '../../src/trails/TrailForm'
 import { classifyGpxFailure, GpxImportFailure, gpxImportAlert } from '../../src/trails/importAlerts'
 import { useGoBackOrHome } from '../../src/components/useGoBackOrHome'
-import { ScreenHeader } from '../../src/components/ScreenHeader'
+import { useShowTrail } from '../../src/trails/useShowTrail'
 import { LoadingScreen } from '../../src/components/LoadingScreen'
 import { logEvent } from '../../src/log'
 
@@ -23,7 +23,8 @@ const IMPORT_FAILURE_LOG_PHRASE: Record<GpxImportFailure, string> = {
 export default function NewTrailScreen() {
   const params = useLocalSearchParams<{ uri?: string; name?: string }>()
   const addTrail = useTrailsStore((s) => s.addTrail)
-  const leave = useGoBackOrHome('/trails')
+  const leave = useGoBackOrHome()
+  const showTrail = useShowTrail()
 
   const [loading, setLoading] = useState(true)
   const [metrics, setMetrics] = useState<TrailMetrics | null>(null)
@@ -75,19 +76,16 @@ export default function NewTrailScreen() {
   if (loading || !metrics || !geometry) return <LoadingScreen />
 
   return (
-    <>
-      <ScreenHeader title="New Trail" onBack={leave} />
-      <TrailForm
-        metrics={metrics}
-        initialName={name}
-        initialDifficulty={null}
-        initialDescription=""
-        submitLabel="I'm done"
-        onSubmit={async ({ name: submittedName, difficulty, description }) => {
-          await addTrail({ name: submittedName, difficulty, description, metrics, geometry })
-          leave()
-        }}
-      />
-    </>
+    <TrailForm
+      metrics={metrics}
+      initialName={name}
+      initialDifficulty={null}
+      initialDescription=""
+      submitLabel="I'm done"
+      onSubmit={async ({ name: submittedName, difficulty, description }) => {
+        const id = await addTrail({ name: submittedName, difficulty, description, metrics, geometry })
+        showTrail({ id, name: submittedName }, { added: true })
+      }}
+    />
   )
 }

@@ -55,3 +55,57 @@ prefix; see `README.md`.
   save-activity screen open while free → the map comes back on the last camera; the North button
   still appears after a rotation and resets. Unobserved by construction: the bounded wait's `warn`
   line (`map store hydration timed out` / `failed`), which needs a broken AsyncStorage.
+- **T-76, the trail's specs on the recording card** ([[2026-11-06-hiking-ux-design]], D81) was
+  checked on the device on 2026-11-09, both schemes, with the recording card and the trail card. One
+  fragment stays unobserved: the trail card swapping its badge for the download progress, since no
+  download ran.
+- **T-74, the route tiers** (D83, [[2026-11-06-hiking-ux-design]]) was checked on the device on
+  2026-11-09, release build. Confirmed: after a cold-start relaunch mid-recording (`launch action
+  resume`), and after switching Outdoors → Default → Outdoors, the recorded track's line covers the
+  trail's line and casing (slope-coloured; the plain line too, seen without a relaunch); a trail
+  shown alone draws its casing, arrows and both endpoints. Contradicted: the trail's direction
+  arrows draw above the recorded track wherever they overlap, before and after the relaunch and on
+  both layers.
+- **T-77, T-80, T-81 and T-82, the ahead lines on the recording card** ([[2026-11-06-hiking-ux-design]],
+  D81; [[2026-11-09-walking-time-ahead-design]], D84, D85, D86, D87; review rulings D89, D91, D92)
+  were checked on the device on 2026-11-09, release build of `1b6fdcf`, with mocked GPS replays
+  along synthetic test trails, both schemes. Confirmed: under the Along row, two lines behind the
+  flag and mountain icons, "2.0 km · 27 min left" over "Next climb in 400 m · 5 min · 40 m up",
+  then "Climbing · 38 m up · 6 min to the top" on the climb and "No climb left" past it, following
+  the graph's puck with every time shrinking; at the trail's end "0 m left" with no time; off the
+  trail the one line "Not on the trail" behind its marker, back on → the two lines; a trail with no
+  elevation profile shows no ahead lines. The personal factor: three saved 2.4 km activities walked
+  at 2.5 m/s (factor 0.56) made a 1.7 km trail's start read "13 min left" and "7 min" to the next
+  climb where Tobler alone gives 23 and 12, unchanged after a pause and resume, after a relaunch
+  from recents and after a cold relaunch mid-recording (both logged `launch action resume`), with
+  no `personal factor history read failed` line in the debug log; the owner's own history had read
+  "27 min" where Tobler alone gives 26. The lines sit up to 10 m behind a walker who stops (the
+  recording's 10 m minimum distance), so a stop 5 m short of the end reads "5 m · 1 min left".
+  Unobserved: a fresh install reading Tobler's times (it needs an empty activity list).
+- **T-79, durations in "min" and "h"** (D88, [[2026-11-09-walking-time-ahead-design]]) was checked
+  on the device on 2026-11-09. Confirmed: the save-activity screen's Duration reads "3 min 02 s" and
+  "20 min 46 s", the activity card's "3 min 02 s" and "4 h 14", the Activities list's lines
+  "134 m · 3 min 02 s" and "16.2 km · 4 h 14", while the pill's stopwatch reads "3:01" and "16:16"
+  and the banner's "Recording · 27:17". Unobserved: a stopwatch past an hour ("1:02:00"), as no
+  recording ran an hour.
+- **T-90, climbs from steep stretches** (D93, [[2026-11-09-walking-time-ahead-design]]) was checked
+  on the device on 2026-11-09, with the T-77 replays. Confirmed: on a trail climbing 40 m at 10 %
+  from 400 m then rising 16 m at 2 % over 800 m, "Next climb in 400 m · … · 40 m up", "Climbing ·
+  21 m up" at 600 m and "No climb left" at 860 m, on the gentle rise; on a trail with a lone 10 m
+  step at 300 m and a 40 m climb at 1000 m, "Next climb in 988 m · … · 39 m up" from the start and
+  "Next climb in 649 m" on the step itself, "Climbing · 30 m up" at 1100 m, "No climb left" past
+  1400 m.
+- **T-91, T-92, T-93 and T-94** ([[2026-11-06-hiking-ux-design]], D94–D101, §4.4): T-91 to T-93 were
+  seen by the owner on 2026-11-09 along `DEVCHECK climb` (T-94 came of it); T-94's summary row,
+  divider and tighter title were seen on the device the same day; the D99 climbing line and the D100
+  end line are unit-tested, never seen on a device. Owed, both schemes: recording along a trail with
+  the card open, the Along row with the summary row tight under it on one line ("Easy · 2.0 km · 56
+  m gain"), the ahead lines in the primary text with "Trail end in 16 min (1.3 km)", "Next climb in
+  12 min (1.2 km) · 340 m to climb" and "Climbing · 10 min to the top (43 m up)", then the
+  description behind a divider in the secondary text, and no metrics grid, while the trail card
+  keeps its grid and the Trails and Activities rows lead their summary with the badge on one line
+  (Verification 21); the graph puck's centre on the line at the profile's lowest and highest points
+  and its first and last metre, whole, reaching into the card's margin, the scrub cursor passing
+  under it (Verification 24); along `.scratch/device-checks/2026-11-07-hiking-ux-feedback/climb.gpx`
+  (146–202 m, the profile the overlap was seen on, not the 155–211 m first reported) the y-axis
+  reads "180 m" and "160 m", apart, with no label over the top 20 m.

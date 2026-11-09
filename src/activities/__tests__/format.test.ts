@@ -1,23 +1,5 @@
-import { formatCalendarClockSeconds, formatClockSeconds, formatClockTime, formatDuration, formatActivityDate, formatActivitySummary, formatPace, formatSpeed, formatStopwatch } from '../format'
+import { formatCalendarClockSeconds, formatClockSeconds, formatClockTime, formatActivityDate, formatActivitySummary, formatAveragePace, formatPace, formatSpeed, formatStopwatch } from '../format'
 import { ActivityMetrics } from '../../data/activities/types'
-
-describe('formatDuration', () => {
-  it('formats seconds under a minute', () => {
-    expect(formatDuration(45)).toBe('45s')
-  })
-  it('formats whole minutes', () => {
-    expect(formatDuration(600)).toBe('10m')
-  })
-  it('formats minutes + seconds', () => {
-    expect(formatDuration(125)).toBe('2m 5s')
-  })
-  it('formats hours + minutes', () => {
-    expect(formatDuration(3720)).toBe('1h 2m')
-  })
-  it('clamps negatives to 0s', () => {
-    expect(formatDuration(-5)).toBe('0s')
-  })
-})
 
 describe('formatActivityDate', () => {
   test('formats a timestamp as "Mon D, YYYY" in local time', () => {
@@ -36,10 +18,25 @@ describe('formatActivitySummary', () => {
     distanceMeters, durationSeconds, elevationGainMeters: null, elevationLossMeters: null,
   })
   test('joins distance and duration with a middot', () => {
-    expect(formatActivitySummary(metrics(4200, 3900))).toBe('4.2 km · 1h 5m')
+    expect(formatActivitySummary(metrics(4200, 3900))).toBe('4.2 km · 1 h 05')
   })
   test('sub-kilometre distance and short duration', () => {
-    expect(formatActivitySummary(metrics(850, 90))).toBe('850 m · 1m 30s')
+    expect(formatActivitySummary(metrics(850, 90))).toBe('850 m · 1 min 30 s')
+  })
+})
+
+describe('formatAveragePace', () => {
+  const metrics = (distanceMeters: number, durationSeconds: number): ActivityMetrics => ({
+    distanceMeters, durationSeconds, elevationGainMeters: null, elevationLossMeters: null,
+  })
+  test('minutes per kilometre over the whole activity, with its unit', () => {
+    expect(formatAveragePace(metrics(4000, 3000))).toBe('12:30 /km')
+  })
+  test('no distance: a dash, no unit', () => {
+    expect(formatAveragePace(metrics(0, 3000))).toBe('—')
+  })
+  test('no duration: a dash, no unit', () => {
+    expect(formatAveragePace(metrics(4000, 0))).toBe('—')
   })
 })
 

@@ -1,11 +1,12 @@
 import { create } from 'zustand'
-import { NewTrailInput, TrailSummary, TrailUpdate, trailsRepository } from '../data/trails'
+import { NewTrailInput, Trail, TrailSummary, TrailUpdate, trailsRepository } from '../data/trails'
 import { useActivitiesStore } from './activitiesStore'
 
 interface TrailsStore {
   trails: TrailSummary[]
   version: number
   loadTrails: () => Promise<void>
+  getTrail: (id: number) => Promise<Trail | null>
   addTrail: (input: NewTrailInput) => Promise<number>
   updateTrail: (id: number, update: TrailUpdate) => Promise<void>
   removeTrail: (id: number) => Promise<void>
@@ -26,6 +27,7 @@ export const useTrailsStore = create<TrailsStore>((set, get) => {
     loadTrails: async () => {
       set({ trails: await trailsRepository.listSummaries() })
     },
+    getTrail: (id) => trailsRepository.getTrail(id),
     addTrail: async (input) => {
       const id = await trailsRepository.createTrail(input)
       await commit()

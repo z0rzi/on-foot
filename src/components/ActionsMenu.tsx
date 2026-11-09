@@ -1,27 +1,60 @@
-import { Dimensions, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import { useState } from 'react'
+import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../theme/useTheme'
 import type { ActionItem } from './actionItem'
+import { menuPlacement } from './menuPlacement'
 
-// Rendered in a Modal so it escapes the bottom sheet and the tab bar (neither can clip it), then
-// positioned so its bottom-right sits just above the anchor (the ⋮ button) — the menu opens upward.
+// The ⋮ button's frame in window coordinates: its right edge, top and bottom.
+export interface MenuAnchor {
+  right: number
+  top: number
+  bottom: number
+}
+
+const GAP = 6
+
+// Rendered in a Modal so it escapes the bottom sheet and any list (neither can clip it). It lays
+// out hidden once to learn its height, then opens up or down from the anchor to fit on screen.
 export function ActionsMenu({
   items,
   anchor,
   onClose,
 }: {
   items: ActionItem[]
-  anchor: { x: number; y: number }
+  anchor: MenuAnchor
   onClose: () => void
 }) {
   const c = useTheme()
-  const win = Dimensions.get('window')
+  const win = useWindowDimensions()
+  const insets = useSafeAreaInsets()
+  const [menuHeight, setMenuHeight] = useState<number | null>(null)
+  const placement =
+    menuHeight == null
+      ? null
+      : menuPlacement({
+          anchorTop: anchor.top,
+          anchorBottom: anchor.bottom,
+          menuHeight,
+          windowHeight: win.height,
+          gap: GAP,
+          marginTop: insets.top + GAP,
+          marginBottom: insets.bottom + GAP,
+        })
   return (
     <Modal transparent visible animationType="fade" onRequestClose={onClose}>
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close menu" />
       <View
+        onLayout={(e) => setMenuHeight(e.nativeEvent.layout.height)}
         style={[
           styles.menu,
-          { backgroundColor: c.surface, borderColor: c.panelDivider, right: win.width - anchor.x, bottom: win.height - anchor.y + 6 },
+          {
+            backgroundColor: c.surface,
+            borderColor: c.panelDivider,
+            right: win.width - anchor.right,
+            top: placement?.top ?? 0,
+            opacity: placement ? 1 : 0,
+          },
         ]}
       >
         {items.map((item) => (
@@ -34,7 +67,7 @@ export function ActionsMenu({
             }}
             style={styles.item}
           >
-            <Text style={{ color: item.danger ? c.danger : c.panelContent, fontSize: 13 }}>{item.label}</Text>
+            <Text style={{ color: item.danger ? c.danger : c.panelContent, fontSize: 15 }}>{item.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -44,8 +77,8 @@ export function ActionsMenu({
 
 const styles = StyleSheet.create({
   menu: {
-    position: 'absolute', minWidth: 190, borderWidth: 1, borderRadius: 10, paddingVertical: 4,
+    position: 'absolute', minWidth: 200, borderWidth: 1, borderRadius: 10, paddingVertical: 4,
     elevation: 8, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
   },
-  item: { paddingVertical: 10, paddingHorizontal: 14 },
+  item: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14 },
 })

@@ -11,10 +11,10 @@ const trailArrow = require('../assets/trail-arrow.png')
 
 export type OverlayRoute = { segments: GpxPoint[][]; kind: 'trail' | 'activity' }
 
-// The map's data overlays in a fixed painter's order: the route (trail or activity) beneath, the
-// live recording track above it. The z-order lives here so the "recording line above the trail
-// line" invariant is structural — callers choose what to show, not how the layers stack. The
-// colouring only ever reaches the route overlay; the live track keeps its own colour.
+// The map's data overlays: the route (trail or activity) and the live recording track. Each names
+// its tier on the port, and the provider stacks the live track above the route whatever order they
+// mount in, so callers choose what to show, not how the layers stack. The colouring only ever
+// reaches the route overlay; the live track keeps its own colour.
 export function MapOverlays({
   route,
   liveSegments,
@@ -47,7 +47,7 @@ export function MapOverlays({
     <>
       {routeLines && routeConnectors && routeEndpoints && routeLines.length > 0 && (
         <RouteOverlay
-          idPrefix="trail"
+          tier="route"
           lines={routeLines}
           connectors={routeConnectors}
           connectorDashArray={[...MapTokens.connectorDashArray]}
@@ -66,7 +66,7 @@ export function MapOverlays({
       )}
       {showLiveTrack && (
         <RouteOverlay
-          idPrefix="route"
+          tier="liveTrack"
           lines={liveLines}
           connectors={liveConnectors}
           connectorDashArray={[...MapTokens.connectorDashArray]}

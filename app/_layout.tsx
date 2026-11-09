@@ -11,11 +11,14 @@ import { MapLaunchGate } from '../src/map/MapLaunchGate'
 import { useMapStore } from '../src/store/mapStore'
 import { mapboxProvider } from '../src/map/providers/mapbox'
 import { ErrorBoundary } from '../src/components/ErrorBoundary'
+import { AppHeader } from '../src/components/AppHeader'
 import { useOfflineStore } from '../src/map/offline/offlineStore'
+import { useDownloadSettledToast } from '../src/map/offline/useDownloadSettledToast'
 import { useDatabaseMigrations } from '../src/data/db/useDatabaseMigrations'
 import '../src/recording/locationTask'
 import { useResumeRecording } from '../src/recording/useResumeRecording'
 import { useRecordingStream } from '../src/recording/useRecordingStream'
+import { useAlongTrailLog } from '../src/recording/useAlongTrailLog'
 import { useIncomingShare } from '../src/trails/useIncomingShare'
 import { getNavigationTheme } from '../src/theme/navigationTheme'
 import { installGlobalErrorHandler, logEvent, useLogRetention } from '../src/log'
@@ -40,6 +43,11 @@ function RecordingStreamHandler() {
   return null
 }
 
+function AlongTrailLogHandler() {
+  useAlongTrailLog()
+  return null
+}
+
 function OfflineInitHandler() {
   const controller = useOfflineController()
   const reload = useOfflineStore((s) => s.reload)
@@ -48,6 +56,11 @@ function OfflineInitHandler() {
       logEvent('warn', 'map', 'loading offline packs at launch failed', { error: String(error) }),
     )
   }, [reload, controller])
+  return null
+}
+
+function DownloadSettledToastHandler() {
+  useDownloadSettledToast()
   return null
 }
 
@@ -79,11 +92,27 @@ export default function RootLayout() {
               <MapProviderProvider provider={mapboxProvider}>
                 <MapLaunchGate>
                   <BottomSheetModalProvider>
-                    <Stack screenOptions={{ headerShown: false }} />
+                    <Stack screenOptions={{ header: (props) => <AppHeader {...props} /> }}>
+                      <Stack.Screen name="index" options={{ headerShown: false }} />
+                      <Stack.Screen name="trails" options={{ title: 'Trails' }} />
+                      <Stack.Screen name="activities" options={{ title: 'Activities' }} />
+                      <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />
+                      <Stack.Screen name="settings/offline" options={{ title: 'Offline maps' }} />
+                      <Stack.Screen name="settings/log" options={{ title: 'Debug log' }} />
+                      <Stack.Screen name="trail/new" options={{ title: 'New trail' }} />
+                      <Stack.Screen name="trail/[id]/edit" options={{ title: 'Edit trail' }} />
+                      <Stack.Screen
+                        name="activity/save"
+                        // The end of the recording, so it carries no banner back to it.
+                        options={{ title: 'Save activity', header: (props) => <AppHeader {...props} recordingBanner={false} /> }}
+                      />
+                    </Stack>
                     <ShareIntentHandler />
                     <ResumeRecordingHandler />
                     <RecordingStreamHandler />
+                    <AlongTrailLogHandler />
                     <OfflineInitHandler />
+                    <DownloadSettledToastHandler />
                     <LogRetentionHandler />
                   </BottomSheetModalProvider>
                 </MapLaunchGate>

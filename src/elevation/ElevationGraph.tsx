@@ -1,62 +1,70 @@
 import { useCallback, useMemo, useState } from 'react'
-import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native'
-import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { LayoutChangeEvent, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
-import Svg, { Defs, LinearGradient, Line, Path, Stop } from 'react-native-svg'
+import Svg, { Defs, Line, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg'
 import { useTheme } from '../theme/useTheme'
-import { MapTokens } from '../theme/tokens'
 import { formatDistance, formatElevation } from '../format/units'
-import { GradeBand, sampleAt } from './profile'
-import { areaPaths, buildBandTops, linePaths } from './svg'
-import { slopeBandColour } from './slopeColour'
+import { sampleAt } from './profile'
+import { areaPaths, buildBandTops, linePaths, projectPoint } from './svg'
 import { bandLineContrast, bandLineWidth } from './bandStyle'
+import { graphLook } from './graphLook'
+import { elevationAxis } from './elevationAxis'
+import { axisLayout } from './axisLayout'
 import { useScrubStore } from './scrubStore'
 import type { RouteDisplay } from './routeDisplay'
+import { GRAPH_HEIGHT, scrubShowsOnTouch } from './graphGeometry'
 
-const PLOT_HEIGHT = 62
-const LABEL_ROW = 16
-export const GRAPH_HEIGHT = PLOT_HEIGHT + LABEL_ROW
-
-const BAND_KEYS: GradeBand[] = ['steep', 'rough', 'uphill', 'flat', 'downhill']
-
-// The graph overlays the map, which does not follow the app's light/dark theme, so its line and
-// halo are theme-independent: a dark line on a light halo reads over any map style or sheet.
-const GRAPH_LINE = '#1C1B1F'
-const GRAPH_HALO = '#FFFFFF'
+const PUCK_SIZE = 12
+const PUCK_RING = 2
+const AXIS_GRID_OPACITY = 0.25
+const AXIS_LABEL_SIZE = 11
+const AXIS_LABEL_INSET = 4
 
 interface Cursor { x: number; label: string }
 
+// The elevation graph, the card's header under the pip row, in its draggable content, as wide as the
+// card's content: the y-axis's labels sit in the plot at its left edge, behind the bands and the line.
+// A horizontal drag on the plot scrubs, its tooltip floating over the plot's top; a vertical one is
+// left to the sheet, whose grab area the graph is part of.
 export function ElevationGraph({
   display,
-  placement,
-  animatedBottom,
+  puck = null,
+  coveredTop,
 }: {
   display: RouteDisplay
-  placement: 'floating' | 'inSheet'
-  animatedBottom?: SharedValue<number>
+  // The you-are-here position as a profile distance; null draws none.
+  puck?: number | null
+  // The band at the plot's top under the touch target of a control above it.
+  coveredTop: number
 }) {
   const { profile, smoothed, bands } = display
   const c = useTheme()
-  const insets = useSafeAreaInsets()
+  const look = graphLook(c)
   const setPoint = useScrubStore((s) => s.setPoint)
   const [width, setWidth] = useState(0)
   const [cursor, setCursor] = useState<Cursor | null>(null)
-  const floating = placement === 'floating'
+
+  const labelSize = AXIS_LABEL_SIZE * useWindowDimensions().fontScale
+  const axis = useMemo(
+    () => axisLayout(elevationAxis(profile.minEle, profile.maxEle), labelSize, GRAPH_HEIGHT),
+    [profile, labelSize],
+  )
+  const gridlines = axis.labels
+  const scale = useMemo(() => ({ width, y: axis.y }), [width, axis])
 
   // Both path sets are built from the same projected tops, so the samples are resolved and
   // projected once per layout rather than once per path set.
   const tops = useMemo(
-    () => (width === 0 ? [] : buildBandTops(profile, bands, { width, height: PLOT_HEIGHT })),
-    [profile, bands, width],
+    () => (scale.width === 0 ? [] : buildBandTops(profile, bands, scale)),
+    [profile, bands, scale],
   )
-  const areas = useMemo(() => areaPaths(tops, PLOT_HEIGHT), [tops])
+  const areas = useMemo(() => areaPaths(tops, GRAPH_HEIGHT), [tops])
   const bandLines = useMemo(() => linePaths(tops), [tops])
-
-  // Fill colour per band. Floating overlays the map, so flat is a theme-independent light grey;
-  // in-sheet flat uses the sheet colour so it blends into the (theme-aware) sheet.
-  const fillColour = (band: GradeBand): string =>
-    band === 'flat' && !floating ? c.panelBackground : slopeBandColour(band, c)
+  // Drawn over the plot rather than in its Svg, so at an edge the puck reaches whole into the card's margin.
+  const puckAt = useMemo(
+    () => (puck === null || scale.width === 0 ? null : projectPoint(puck, profile, scale)),
+    [puck, profile, scale],
+  )
 
   const scrubTo = useCallback(
     (px: number) => {
@@ -77,71 +85,62 @@ export function ElevationGraph({
   const pan = useMemo(
     () =>
       Gesture.Pan()
-        // Only claim horizontal drags so a vertical drag still moves the bottom sheet.
+        // Claims horizontal drags only; a vertical one fails it and moves the sheet instead.
         .activeOffsetX([-10, 10])
-        .onBegin((e) => scrubTo(e.x))
+        .failOffsetY([-10, 10])
+        .onBegin((e) => {
+          if (scrubShowsOnTouch(e.y, coveredTop)) scrubTo(e.x)
+        })
+        .onStart((e) => scrubTo(e.x))
         .onUpdate((e) => scrubTo(e.x))
         .onFinalize(() => {
           setCursor(null)
           setPoint(null)
         })
         .runOnJS(true),
-    [scrubTo, setPoint],
+    [scrubTo, setPoint, coveredTop],
   )
 
-  const floatingStyle = useAnimatedStyle(() => ({
-    bottom: animatedBottom ? animatedBottom.value : insets.bottom + MapTokens.overlayPadding,
-  }))
-
-  const content = (
-    <>
-      <View style={styles.labelRow}>
-        {cursor && (
-          <View style={styles.tooltipPill}>
-            <Text style={styles.tooltipText}>{cursor.label}</Text>
-          </View>
-        )}
-      </View>
+  return (
+    <View style={styles.graph}>
       <GestureDetector gesture={pan}>
         <View style={styles.plot} onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}>
           {width > 0 && (
-            <Svg width={width} height={PLOT_HEIGHT}>
-              {floating && (
-                <Defs>
-                  {BAND_KEYS.map((b) => (
-                    <LinearGradient key={`grad-${b}`} id={`grad-${b}`} x1="0" y1="0" x2="0" y2="1">
-                      <Stop offset="0" stopColor={fillColour(b)} stopOpacity={1} />
-                      <Stop offset="0.6" stopColor={fillColour(b)} stopOpacity={0.45} />
-                      <Stop offset="1" stopColor={fillColour(b)} stopOpacity={0} />
-                    </LinearGradient>
-                  ))}
-                </Defs>
-              )}
-              {areas.map((a, i) =>
-                floating ? (
-                  <Path key={`area-${i}`} d={a.d} fill={`url(#grad-${a.band})`} />
-                ) : (
-                  <Path key={`area-${i}`} d={a.d} fill={fillColour(a.band)} fillOpacity={0.7} />
-                ),
-              )}
-              {floating &&
-                bandLines.map((l, i) => (
-                  <Path
-                    key={`halo-${i}`}
-                    d={l.d}
-                    stroke={GRAPH_HALO}
-                    strokeOpacity={0.6}
-                    strokeWidth={bandLineWidth(l.band) + 2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    fill="none"
-                  />
+            <Svg width={width} height={GRAPH_HEIGHT}>
+              {gridlines.map((g) => (
+                <Line
+                  key={`grid-${g.label}`}
+                  x1={0}
+                  y1={g.y}
+                  x2={width}
+                  y2={g.y}
+                  stroke={look.axis}
+                  strokeOpacity={AXIS_GRID_OPACITY}
+                  strokeWidth={1}
+                />
+              ))}
+              {gridlines.map((g) => (
+                <SvgText key={`label-${g.label}`} x={AXIS_LABEL_INSET} y={g.baseline} fontSize={labelSize} fill={look.axis}>
+                  {g.label}
+                </SvgText>
+              ))}
+              <Defs>
+                {areas.map((a, i) => (
+                  <LinearGradient key={`fade-${i}`} id={`fade-${i}`} x1="0" y1="0" x2="0" y2="1">
+                    {look.fade.map((stop) => (
+                      <Stop key={stop.offset} offset={stop.offset} stopColor={look.fill(a.band)} stopOpacity={stop.opacity} />
+                    ))}
+                  </LinearGradient>
                 ))}
+              </Defs>
+              {areas.map((a, i) => (
+                <Path key={`area-${i}`} d={a.d} fill={`url(#fade-${i})`} />
+              ))}
               {bandLines.map((l, i) => (
                 <Path
                   key={`line-${i}`}
                   d={l.d}
-                  stroke={floating ? GRAPH_LINE : c.onSurface}
+                  stroke={look.line}
                   strokeOpacity={bandLineContrast(l.band)}
                   strokeWidth={bandLineWidth(l.band)}
                   strokeLinecap="round"
@@ -150,32 +149,53 @@ export function ElevationGraph({
                 />
               ))}
               {cursor && (
-                <Line x1={cursor.x} y1={0} x2={cursor.x} y2={PLOT_HEIGHT} stroke={c.controlAccent} strokeWidth={1.5} />
+                <Line x1={cursor.x} y1={0} x2={cursor.x} y2={GRAPH_HEIGHT} stroke={c.controlAccent} strokeWidth={1.5} />
               )}
             </Svg>
           )}
+          {puckAt && (
+            <View
+              style={[
+                styles.puck,
+                {
+                  left: puckAt.x - PUCK_SIZE / 2,
+                  top: puckAt.y - PUCK_SIZE / 2,
+                  backgroundColor: c.userPuck,
+                  borderColor: c.userPuckRing,
+                },
+              ]}
+              pointerEvents="none"
+            />
+          )}
+          {cursor && (
+            <View style={styles.tooltipPill} pointerEvents="none">
+              <Text style={styles.tooltipText}>{cursor.label}</Text>
+            </View>
+          )}
         </View>
       </GestureDetector>
-    </>
-  )
-
-  return floating ? (
-    <Animated.View style={[styles.floating, floatingStyle]}>{content}</Animated.View>
-  ) : (
-    <View style={styles.inSheet}>{content}</View>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  floating: {
+  graph: { height: GRAPH_HEIGHT },
+  puck: {
     position: 'absolute',
-    left: MapTokens.overlayPadding,
-    right: MapTokens.overlayPadding,
-    height: GRAPH_HEIGHT,
+    width: PUCK_SIZE,
+    height: PUCK_SIZE,
+    borderRadius: PUCK_SIZE / 2,
+    borderWidth: PUCK_RING,
   },
-  inSheet: { height: GRAPH_HEIGHT },
-  labelRow: { height: LABEL_ROW, justifyContent: 'center', alignItems: 'flex-start' },
-  tooltipPill: { backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1 },
+  tooltipPill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
   tooltipText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
-  plot: { height: PLOT_HEIGHT },
+  plot: { flex: 1, height: GRAPH_HEIGHT },
 })

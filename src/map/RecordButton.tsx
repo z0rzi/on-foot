@@ -1,13 +1,14 @@
 import React, { useCallback, useMemo, useRef } from 'react'
 import { Alert, StyleSheet } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, { runOnJS, useAnimatedProps, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated'
 import Svg, { Circle } from 'react-native-svg'
 import { useRouter } from 'expo-router'
 import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
-import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
+import { useRecordingStore } from '../recording/recordingStore'
+import { recordingPhase } from '../recording/recordingPhase'
+import { useMapStore } from '../store/mapStore'
 import { startRecording, pauseRecording } from '../recording/recordingController'
 import { captureRefusalAlert } from '../recording/captureAlerts'
 import { showToast } from '../components/toast'
@@ -18,20 +19,19 @@ import { PauseIcon } from '../assets/icons/pause'
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 
-const SIZE = MapTokens.controlSize
+const SIZE = MapTokens.recordButtonSize
 const RING = MapTokens.recordRingWidth
 const R = (SIZE - RING) / 2
 const CENTER = SIZE / 2
 const CIRCUMFERENCE = 2 * Math.PI * R
-// The button stays small (discreet) but takes touches from a larger area, and jumps larger while
-// pressed so the press registers visibly past the thumb covering it (the ring shows hold progress).
+// The button takes touches from a larger area, and jumps larger while pressed so the press
+// registers visibly past the thumb covering it (the ring shows hold progress).
 const HITSLOP = 10
 const HOLD_SCALE = 0.25
 
-export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<number> }) {
+export function RecordButton({ animatedBottom }: { animatedBottom: SharedValue<number> }) {
   const c = useTheme()
   const router = useRouter()
-  const insets = useSafeAreaInsets()
   const phase = useRecordingStore((s) => recordingPhase(s.session))
   const resumeSettled = useRecordingStore((s) => s.resumeSettled)
   const progress = useSharedValue(0)
@@ -41,9 +41,11 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
   const onPlay = useCallback(async () => {
     try {
       const result = await startRecording()
-      if (result === 'already-active') {
+      if (result === 'started') {
+        useMapStore.getState().endActivityView()
+      } else if (result === 'already-active') {
         router.push('/activity/save')
-      } else if (result !== 'started') {
+      } else {
         const { title, message } = captureRefusalAlert(result, 'start')
         Alert.alert(title, message)
       }
@@ -99,7 +101,7 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
   }))
 
   const anchorStyle = useAnimatedStyle(() => ({
-    bottom: animatedBottom ? animatedBottom.value : insets.bottom + MapTokens.overlayPadding,
+    bottom: animatedBottom.value,
   }))
 
   const holdScaleStyle = useAnimatedStyle(() => ({
@@ -116,7 +118,7 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
         <GestureDetector gesture={hold}>
           <Animated.View
             accessibilityLabel="Pause recording (press and hold)"
-            style={[controlSurfaceStyle, { backgroundColor: c.controlSurface }, holdScaleStyle]}
+            style={[recordSurface, { backgroundColor: c.controlSurface }, holdScaleStyle]}
           >
             <Svg width={SIZE} height={SIZE} style={StyleSheet.absoluteFill}>
               <AnimatedCircle
@@ -132,17 +134,19 @@ export function RecordButton({ animatedBottom }: { animatedBottom?: SharedValue<
                 transform={`rotate(-90 ${CENTER} ${CENTER})`}
               />
             </Svg>
-            <PauseIcon size={MapTokens.controlIconSize} color={c.recordingLine} />
+            <PauseIcon size={MapTokens.recordIconSize} color={c.recordingLine} />
           </Animated.View>
         </GestureDetector>
       ) : (
-        <ControlButton accessibilityLabel="Start recording" onPress={onPlay}>
-          <PlayIcon size={MapTokens.controlIconSize} color={c.recordingLine} />
+        <ControlButton accessibilityLabel="Start recording" onPress={onPlay} size={SIZE}>
+          <PlayIcon size={MapTokens.recordIconSize} color={c.recordingLine} />
         </ControlButton>
       )}
     </Animated.View>
   )
 }
+
+const recordSurface = controlSurfaceStyle(SIZE)
 
 const styles = StyleSheet.create({
   anchor: { position: 'absolute' },

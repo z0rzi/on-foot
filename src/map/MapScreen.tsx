@@ -1,6 +1,9 @@
-import { useEffect, useRef } from 'react'
-import { View } from 'react-native'
-import { useSharedValue, useDerivedValue } from 'react-native-reanimated'
+import { useEffect, useRef, useState } from 'react'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { StatusBar } from 'expo-status-bar'
+import { useIsFocused } from 'expo-router'
+import { StyleSheet, View } from 'react-native'
+import { runOnJS, useAnimatedReaction, useDerivedValue, useSharedValue } from 'react-native-reanimated'
 import { BottomSheetModal } from '@gorhom/bottom-sheet'
 import { MapCanvas } from './MapCanvas'
 import { MapInfoSheet } from './MapInfoSheet'
@@ -8,27 +11,36 @@ import { MapControls } from './MapControls'
 import { RecordButton } from './RecordButton'
 import { PausedControls } from './PausedControls'
 import { LayersSheet } from './LayersSheet'
-import { MapModeChip } from './MapModeChip'
+import { MapStatusPill } from './MapStatusPill'
+import { pillContent } from './pillContent'
+import { cameraPadding, type PillMeasure } from './cameraPadding'
+import { sheetRest } from './sheetRest'
+import { SHEET_NAV_ROW_HEIGHT } from './SheetNavRow'
 import { ActivityInfoSheet } from './ActivityInfoSheet'
+import { HideableOverlay } from './HideableOverlay'
 import { useLocationPermission } from './useLocationPermission'
 import { useSelectedTrail } from './useSelectedTrail'
 import { useSelectedActivity } from './useSelectedActivity'
 import { TrailInfoSheet } from '../trails/TrailInfoSheet'
 import { RecordingInfoSheet } from '../recording/RecordingInfoSheet'
 import { useMapStore, mapMode, trailToShow } from '../store/mapStore'
-import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
-import { useTheme } from '../theme/useTheme'
-import { MapTokens } from '../theme/tokens'
-import { ElevationGraph, GRAPH_HEIGHT } from '../elevation/ElevationGraph'
-import { usePreferencesStore } from '../settings/preferencesStore'
+import { useRecordingStore } from '../recording/recordingStore'
+import { recordingPhase } from '../recording/recordingPhase'
+import { recordingHealthFor } from '../recording/streamHealth'
 import { useRouteDisplay } from './useRouteDisplay'
+import { useGraphPuck } from './useGraphPuck'
 import { logEvent } from '../log'
 import { useSheetGeometryLog } from './useSheetGeometryLog'
+import { overlayBottom, overlaysHidden, sheetHeightAbove } from './overlayGeometry'
+import { statusBarStyleOverMap } from './statusBarOverMap'
+import { useCurrentMapStyle } from './useCurrentMapStyle'
 
 export function MapScreen() {
   const sheetRef = useRef<BottomSheetModal>(null)
   useLocationPermission()
-  const c = useTheme()
+  const focused = useIsFocused()
+  const mapStyle = useCurrentMapStyle()
+  const insets = useSafeAreaInsets()
   const trail = useSelectedTrail()
   const activity = useSelectedActivity()
   const select = useMapStore((s) => s.select)
@@ -38,35 +50,40 @@ export function MapScreen() {
   const phase = useRecordingStore((s) => recordingPhase(s.session))
   const recording = phase !== 'idle'
   const mode = mapMode({ recording, selection })
-  // Root height + the selected sheet's live top edge drive the controls' bottom while a trail or
-  // activity is selected, so the cluster rides continuously above the variable-height sheet.
+  // Root height + the card's live top edge drive the overlays' bottom, so they ride continuously on
+  // the card's top edge.
   const rootHeight = useSharedValue(0)
   const sheetTop = useSharedValue(0)
-  // The sheet's live top edge, as a bottom offset; the fundamental quantity everything below rides on.
-  // sheetTop is 0 while no sheet is mounted or before it has laid out, and the container height
-  // while parked at its pre-layout position; neither is an edge to ride, so both fall back to the
-  // root's own bottom rather than pushing the graph and controls off the screen.
-  const graphBottom = useDerivedValue(() =>
-    rootHeight.value === 0 || sheetTop.value === 0 || sheetTop.value >= rootHeight.value
-      ? 0
-      : rootHeight.value - sheetTop.value,
-  )
-  const baseControlsBottom = useDerivedValue(() =>
-    graphBottom.value === 0 ? 0 : graphBottom.value + MapTokens.controlsSpacing,
+  // The card's live height above the root's bottom, its margin included: the edge the overlays ride on.
+  const sheetHeight = useDerivedValue(() => sheetHeightAbove(rootHeight.value, sheetTop.value))
+  const controlsBottom = useDerivedValue(() => overlayBottom(sheetHeight.value))
+  const [hideOverlays, setHideOverlays] = useState(false)
+  useAnimatedReaction(
+    () => overlaysHidden(sheetHeight.value, rootHeight.value),
+    (hidden, previous) => {
+      if (hidden !== previous) runOnJS(setHideOverlays)(hidden)
+    },
   )
   const livePoints = useRecordingStore((s) => s.livePoints)
-  const graphPlacement = usePreferencesStore((s) => s.elevationGraphPlacement)
 
   const display = useRouteDisplay(mode, trail, activity, livePoints)
+  const puck = useGraphPuck(mode, display, livePoints)
 
-  // The graph either floats over the map (flush on the sheet's top edge) or lives inside the sheet.
-  const showFloatingGraph = graphPlacement === 'floating' && display != null
-  const sheetDisplay = graphPlacement === 'inSheet' ? display : null
-  // Lift the controls above the floating graph so it doesn't cover them; sit them flush on the
-  // graph's top edge (stuck to it). Otherwise ride the sheet top.
-  const controlsBottom = useDerivedValue(() =>
-    showFloatingGraph ? graphBottom.value + GRAPH_HEIGHT : baseControlsBottom.value,
-  )
+  const locationAvailable = useRecordingStore((s) => s.locationAvailable)
+  const stream = useRecordingStore((s) => s.stream)
+  const pill = pillContent({ mode, health: recordingHealthFor({ phase, locationAvailable, stream }), trail, activity })
+  const [pillMeasure, setPillMeasure] = useState<PillMeasure | null>(null)
+  const rest = sheetRest({
+    mode,
+    graphShown: display !== null,
+    navRowHeight: SHEET_NAV_ROW_HEIGHT,
+    systemInset: insets.bottom,
+  })
+  const camera = cameraPadding({
+    topInset: insets.top,
+    pill: { kind: pill.kind, measured: pillMeasure },
+    sheet: rest,
+  })
 
   // One sheet instance for the life of the screen, its content switched by mode. Three sheets that
   // mounted and unmounted as the mode changed could hand over mid-animation: the outgoing one left
@@ -74,74 +91,65 @@ export function MapScreen() {
   // resumed on launch showed no sheet at all until the app was restarted (FIELD-2).
   const sheetContent =
     mode === 'trail' && trail ? (
-      <TrailInfoSheet trail={trail} display={sheetDisplay} />
+      <TrailInfoSheet trail={trail} />
     ) : mode === 'activity' && activity ? (
       <ActivityInfoSheet
         activity={activity}
-        display={sheetDisplay}
         onViewLinkedTrail={(id) => select('trail', id)}
       />
-    ) : mode === 'recording' ? (
-      <RecordingInfoSheet
-        followedTrailName={trail?.name ?? null}
-        display={sheetDisplay}
-        onRemoveTrail={clearSelection}
-      />
+    ) : mode === 'recording' && trail ? (
+      <RecordingInfoSheet trail={trail} display={display} puck={puck} onRemoveTrail={clearSelection} />
     ) : null
 
   useEffect(() => {
     logEvent('info', 'map', 'map mode', { mode })
   }, [mode])
 
-  useSheetGeometryLog({ mode, sheetTop, rootHeight, graphBottom })
+  useSheetGeometryLog({ mode, sheetTop, rootHeight, sheetHeight })
 
   return (
     <>
-      <View style={{ flex: 1 }} onLayout={(e) => { rootHeight.value = e.nativeEvent.layout.height }}>
-        <MapCanvas trail={trailToShow(mode, trail)} activity={mode === 'activity' ? activity : null} display={display} />
-        {mode !== 'activity' && phase !== 'paused' && (
-          <RecordButton animatedBottom={mode === 'trail' || mode === 'recording' ? controlsBottom : undefined} />
-        )}
-        {phase === 'paused' && (
-          <PausedControls animatedBottom={mode === 'recording' ? controlsBottom : undefined} />
-        )}
-        <MapControls
-          onOpenLayers={() => sheetRef.current?.present()}
-          onFrameRoute={selection ? recenter : undefined}
-          animatedBottom={mode !== 'free' ? controlsBottom : undefined}
+      {/* Mounted only while the Map is focused: it sits on top of the root's status bar style, which
+          the pushed screens get back. */}
+      {focused ? <StatusBar style={statusBarStyleOverMap(mapStyle.tone)} /> : null}
+      <View style={{ flex: 1 }} onLayout={(e) => rootHeight.set(e.nativeEvent.layout.height)}>
+        <MapCanvas
+          trail={trailToShow(mode, trail)}
+          activity={mode === 'activity' ? activity : null}
+          display={display}
+          camera={camera}
         />
-        {mode === 'trail' && trail && (
-          <MapModeChip
-            icon="trail-sign"
-            color={c.trailLine}
-            label={`Viewing trail · ${trail.name}`}
-            onExit={clearSelection}
-            exitAccessibilityLabel="Exit trail view"
+        <HideableOverlay hidden={hideOverlays} style={StyleSheet.absoluteFill}>
+          {phase !== 'paused' && (
+            <RecordButton animatedBottom={controlsBottom} />
+          )}
+          {phase === 'paused' && (
+            <PausedControls animatedBottom={controlsBottom} />
+          )}
+          <MapControls
+            onOpenLayers={() => sheetRef.current?.present()}
+            onFrameRoute={selection ? recenter : undefined}
+            animatedBottom={controlsBottom}
+          />
+        </HideableOverlay>
+        {pill.kind !== 'none' && (
+          <MapStatusPill
+            key={pill.kind}
+            content={pill}
+            onClear={clearSelection}
+            onMeasure={(bottom) => setPillMeasure({ kind: pill.kind, bottom })}
           />
         )}
-        {mode === 'activity' && activity && (
-          <MapModeChip
-            icon="walk"
-            color={c.activityLine}
-            label={`Viewing activity · ${activity.name}`}
-            onExit={clearSelection}
-            exitAccessibilityLabel="Exit activity view"
-          />
-        )}
-        {mode === 'recording' && phase === 'paused' && (
-          <MapModeChip icon="pause" color={c.recordingLine} label="Paused" />
-        )}
-        {sheetContent && (
-          <MapInfoSheet
-            animatedPosition={sheetTop}
-            onIndexChange={(index) => logEvent('info', 'map', 'sheet settled', { mode, index })}
-          >
-            {sheetContent}
-          </MapInfoSheet>
-        )}
-        {showFloatingGraph && (
-          <ElevationGraph display={display} placement="floating" animatedBottom={graphBottom} />
-        )}
+        <MapInfoSheet
+          mode={mode}
+          rest={rest}
+          display={display}
+          puck={puck}
+          animatedPosition={sheetTop}
+          onIndexChange={(index) => logEvent('info', 'map', 'sheet settled', { mode, index })}
+        >
+          {sheetContent}
+        </MapInfoSheet>
       </View>
       <LayersSheet ref={sheetRef} />
     </>

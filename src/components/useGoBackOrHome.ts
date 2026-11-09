@@ -1,13 +1,14 @@
 import { useCallback } from 'react'
-import { Href, useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
+import { useReturnToMap } from './useReturnToMap'
 
-// A route can be entered with no history behind it (a system "Open with" cold start via
-// app/+native-intent.ts, which routes straight to /trail/new), so a bare back() would strand
-// the user. `fallback` is where that case lands instead of the default home route.
-export function useGoBackOrHome(fallback: Extract<Href, string> = '/'): () => void {
+// One level back, or to the Map when there is no history behind the screen (a cold-start
+// "Open with", app/+native-intent.ts), where a bare back() would strand the user.
+export function useGoBackOrHome(): () => void {
   const router = useRouter()
+  const returnToMap = useReturnToMap()
   return useCallback(
-    () => (router.canGoBack() ? router.back() : router.replace(fallback)),
-    [router, fallback],
+    () => (router.canGoBack() ? router.back() : returnToMap()),
+    [router, returnToMap],
   )
 }

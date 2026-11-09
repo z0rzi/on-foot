@@ -14,26 +14,39 @@ export function haversineMeters(aLat: number, aLng: number, bLat: number, bLng: 
   return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)))
 }
 
-export function computeMetrics(points: GpxPoint[]): TrailMetrics {
+interface ElevatedPoint<P extends GpxPoint> extends ElevationPoint { point: P }
+
+interface ElevatedRuns<P extends GpxPoint> {
+  distanceMeters: number
+  runs: ElevatedPoint<P>[][]
+}
+
+// Runs of consecutive points that carry elevation, each point at its distance along the track. A
+// point without elevation breaks the run: bridging the gap would invent gain over ground whose
+// profile is unknown.
+export function elevatedRuns<P extends GpxPoint>(points: P[]): ElevatedRuns<P> {
   let distanceMeters = 0
-  // Runs of consecutive points that carry elevation. A point without elevation breaks the run:
-  // bridging the gap would invent gain over ground whose profile is unknown.
-  const runs: ElevationPoint[][] = []
-  let run: ElevationPoint[] = []
+  const runs: ElevatedPoint<P>[][] = []
+  let run: ElevatedPoint<P>[] = []
   for (let i = 0; i < points.length; i++) {
     if (i > 0) {
       const prev = points[i - 1]
       distanceMeters += haversineMeters(prev.lat, prev.lng, points[i].lat, points[i].lng)
     }
-    const { ele } = points[i]
-    if (ele === null) {
+    const point = points[i]
+    if (point.ele === null) {
       if (run.length > 0) runs.push(run)
       run = []
       continue
     }
-    run.push({ distance: distanceMeters, ele })
+    run.push({ point, distance: distanceMeters, ele: point.ele })
   }
   if (run.length > 0) runs.push(run)
+  return { distanceMeters, runs }
+}
+
+export function computeMetrics(points: GpxPoint[]): TrailMetrics {
+  const { distanceMeters, runs } = elevatedRuns(points)
   if (runs.length === 0) {
     return { distanceMeters, elevationGainMeters: null, elevationLossMeters: null }
   }

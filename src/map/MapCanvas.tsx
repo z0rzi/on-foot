@@ -1,15 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { useMapProvider, useMapCapabilities } from './provider'
-import type { CameraController } from './provider/types'
+import type { CameraController, EdgePadding } from './provider/types'
 import { useMapStore, followCameraProps } from '../store/mapStore'
-import { useRecordingStore, recordingPhase } from '../recording/recordingStore'
+import { useRecordingStore } from '../recording/recordingStore'
+import { recordingPhase } from '../recording/recordingPhase'
 import { MapTokens } from '../theme/tokens'
 import { Trail } from '../data/trails'
 import { Activity } from '../data/activities/types'
 import { groupPointsBySegment } from '../data/activities/mapping'
 import { boundsForPoints, flattenSegments } from './geo'
 import { MapOverlays, type OverlayRoute } from './MapOverlays'
+import { useCurrentMapStyle } from './useCurrentMapStyle'
 import { ScrubMarkerLayer } from './ScrubMarkerLayer'
 import { useRouteColouring } from '../elevation/useRouteColouring'
 import type { RouteDisplay } from '../elevation/routeDisplay'
@@ -25,15 +27,18 @@ export function MapCanvas({
   trail,
   activity,
   display,
+  camera,
 }: {
   trail: Trail | null
   activity: Activity | null
   display: RouteDisplay | null
+  // The room the overlays leave the camera for fitting and following (cameraPadding); a fit waits
+  // until it is settled.
+  camera: { padding: EdgePadding; settled: boolean }
 }) {
   const { components } = useMapProvider()
   const caps = useMapCapabilities()
-  const styleId = useMapStore((s) => s.mapStyleId)
-  const style = caps.styles.find((s) => s.id === styleId) ?? caps.styles[0]
+  const style = useCurrentMapStyle()
   const { View: MapView, Camera, Terrain, UserPuck } = components
 
   // The camera is driven declaratively from the store. When a follow mode is active, rnmapbox
@@ -95,6 +100,8 @@ export function MapCanvas({
   // a sound effect dependency. pendingFit is cleared only after the deferred fit fires (not
   // before), so the effect cleanup can't cancel its own pending frame. A restored selection leaves
   // pendingFit null, so it never fits: the camera follows the user or stays on the restored camera.
+  // The fit also waits for the padding to settle: the entity's pill mounts with it and is measured
+  // a frame later.
   const fitSegments =
     pendingFit?.kind === 'trail' && trail?.id === pendingFit.id
       ? trail.geometry.segments
@@ -102,19 +109,23 @@ export function MapCanvas({
         ? activity.geometry.segments
         : null
 
+  const [padTop, padRight, padBottom, padLeft] = camera.padding
+  const padding = useMemo((): EdgePadding => [padTop, padRight, padBottom, padLeft], [padTop, padRight, padBottom, padLeft])
+  const paddingSettled = camera.settled
+
   useEffect(() => {
-    if (fitSegments == null) return
+    if (fitSegments == null || !paddingSettled) return
     const flat = flattenSegments(fitSegments)
     if (flat.length < 2) return
     const bounds = boundsForPoints(flat)
     if (!bounds) return
-    const { top, sides, bottom } = MapTokens.cameraPadding
     const id = requestAnimationFrame(() => {
-      cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [top, sides, bottom, sides], MapTokens.trailFitDurationMs, cameraPitch)
+      const { cameraHeading } = useMapStore.getState()
+      cameraRef.current?.fitBounds(bounds.ne, bounds.sw, padding, MapTokens.trailFitDurationMs, cameraPitch, cameraHeading)
       clearPendingFit()
     })
     return () => cancelAnimationFrame(id)
-  }, [fitSegments, clearPendingFit, cameraPitch])
+  }, [fitSegments, paddingSettled, padding, clearPendingFit, cameraPitch])
 
   const follow = followCameraProps(followMode)
   const manualPitch =
@@ -136,6 +147,7 @@ export function MapCanvas({
         ref={cameraRef}
         initialCamera={initialCamera}
         {...follow}
+        followPadding={padding}
         {...manualPitch}
         // A manual pan/zoom/tilt cancels rnmapbox tracking; drop our follow mode to match so the
         // camera stays where the user left it (mirrors the Kotlin gesture listeners).

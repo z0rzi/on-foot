@@ -267,6 +267,30 @@ describe('store actions', () => {
     expect(useMapStore.getState().pendingFit).toBeNull()
     expect(useMapStore.getState().followMode).toBe('position')
   })
+  test('forgetEntity clears the selection when it shows that entity', () => {
+    useMapStore.setState({ selection: { kind: 'trail', id: 7 }, pendingFit: { kind: 'trail', id: 7 } })
+    useMapStore.getState().forgetEntity('trail', 7)
+    expect(useMapStore.getState().selection).toBeNull()
+    expect(useMapStore.getState().pendingFit).toBeNull()
+  })
+  test('forgetEntity leaves another entity shown', () => {
+    useMapStore.setState({ selection: { kind: 'trail', id: 7 }, pendingFit: null })
+    useMapStore.getState().forgetEntity('trail', 8)
+    useMapStore.getState().forgetEntity('activity', 7)
+    expect(useMapStore.getState().selection).toEqual({ kind: 'trail', id: 7 })
+  })
+  test('endActivityView clears a shown activity and its pending fit', () => {
+    useMapStore.setState({ selection: { kind: 'activity', id: 4 }, pendingFit: { kind: 'activity', id: 4 } })
+    useMapStore.getState().endActivityView()
+    expect(useMapStore.getState().selection).toBeNull()
+    expect(useMapStore.getState().pendingFit).toBeNull()
+  })
+  test('endActivityView leaves a shown trail, the one a recording follows, in place', () => {
+    useMapStore.setState({ selection: { kind: 'trail', id: 7 }, pendingFit: { kind: 'trail', id: 7 } })
+    useMapStore.getState().endActivityView()
+    expect(useMapStore.getState().selection).toEqual({ kind: 'trail', id: 7 })
+    expect(useMapStore.getState().pendingFit).toEqual({ kind: 'trail', id: 7 })
+  })
   test('clearPendingFit clears the pending fit without touching the selection', () => {
     useMapStore.setState({ selection: { kind: 'trail', id: 7 }, pendingFit: { kind: 'trail', id: 7 } })
     useMapStore.getState().clearPendingFit()

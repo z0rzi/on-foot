@@ -1,6 +1,14 @@
-import { recordingPhase, useRecordingStore } from '../recordingStore'
+jest.mock('../../log', () => ({ logEvent: jest.fn() }))
+jest.mock('../../data/activities', () => ({
+  activitiesRepository: { listSummaries: jest.fn(), getActivity: jest.fn() },
+}))
+
+import { recordingPhase } from '../recordingPhase'
+import { useRecordingStore } from '../recordingStore'
 import { LiveTrackPoint, RecordingSession, TrackPoint } from '../../data/activities/types'
 import { groupPointsBySegment } from '../../data/activities/mapping'
+import { activitiesRepository, type Activity } from '../../data/activities'
+import { logEvent } from '../../log'
 
 const p = (t: number): TrackPoint => ({ lat: 0, lng: t, ele: null, t })
 const lp = (t: number, segment: number): LiveTrackPoint => ({ ...p(t), segment })
@@ -12,6 +20,7 @@ const pausedSession: RecordingSession = {
 }
 
 beforeEach(() => {
+  jest.mocked(activitiesRepository).listSummaries.mockResolvedValue([])
   useRecordingStore.setState({
     session: null,
     livePoints: [],
@@ -19,18 +28,7 @@ beforeEach(() => {
     stream: { kind: 'stopped' },
     resumeSettled: false,
     interruption: null,
-  })
-})
-
-describe('recordingPhase', () => {
-  it('no session → idle', () => {
-    expect(recordingPhase(null)).toBe('idle')
-  })
-  it('open session (no pausedAt) → recording', () => {
-    expect(recordingPhase(recordingSession)).toBe('recording')
-  })
-  it('session with pausedAt → paused', () => {
-    expect(recordingPhase(pausedSession)).toBe('paused')
+    historyFactor: 1,
   })
 })
 
@@ -120,5 +118,90 @@ describe('stream state', () => {
     useRecordingStore.getState().announceInterruption({ since: 1000, until: 2000 })
     useRecordingStore.getState().reset()
     expect(useRecordingStore.getState().interruption).toBeNull()
+  })
+})
+
+describe('history factor', () => {
+  const repo = jest.mocked(activitiesRepository)
+  const METERS_PER_DEGREE_AT_EQUATOR = (6371000 * Math.PI) / 180
+  // Tobler's flat speed (Tobler, 1993): 6 · e^(−0.175) km/h.
+  const toblerFlatSecondsPer50m = (0.05 / (6 * Math.exp(-0.175))) * 3600
+
+  // A saved 3 km flat hike walked at `factor` times Tobler's time, a point every 50 m.
+  const hike = (id: number, factor: number): Activity => ({
+    id,
+    name: `Hike ${id}`,
+    effort: 'moderate',
+    comments: null,
+    linkedTrailId: null,
+    metrics: { distanceMeters: 3000, durationSeconds: 3600, elevationGainMeters: 0, elevationLossMeters: 0 },
+    geometry: {
+      segments: [Array.from({ length: 61 }, (_, i) => ({
+        lat: 0,
+        lng: (i * 50) / METERS_PER_DEGREE_AT_EQUATOR,
+        ele: 500,
+        t: i * toblerFlatSecondsPer50m * factor * 1000,
+      }))],
+    },
+    startedAt: id,
+    createdAt: id,
+    endedAt: id + 1,
+  })
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    repo.listSummaries.mockResolvedValue([hike(1, 1.5)])
+    repo.getActivity.mockImplementation(async (id) => hike(id, 1.5))
+  })
+
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
+  const factor = () => useRecordingStore.getState().historyFactor
+
+  it('is 1 before anything is read', () => {
+    expect(factor()).toBe(1)
+  })
+  it('is read from the saved activities when a session begins', async () => {
+    useRecordingStore.getState().beginSession(recordingSession)
+    await settle()
+    expect(factor()).toBeCloseTo(1.5, 3)
+  })
+  it('is read when a relaunch hydrates a session', async () => {
+    useRecordingStore.getState().hydrate(pausedSession, [])
+    await settle()
+    expect(factor()).toBeCloseTo(1.5, 3)
+  })
+  it('is read again when the session\'s next segment begins', async () => {
+    useRecordingStore.getState().hydrate(pausedSession, [])
+    await settle()
+    useRecordingStore.getState().setSession({ ...pausedSession, pausedAt: null, currentSegment: 2 })
+    await settle()
+    expect(repo.listSummaries).toHaveBeenCalledTimes(2)
+  })
+  it('is not read again when the session changes within its segment', async () => {
+    useRecordingStore.getState().beginSession(recordingSession)
+    await settle()
+    useRecordingStore.getState().setSession({ ...recordingSession, linkedTrailId: 3 })
+    useRecordingStore.getState().setSession({ ...recordingSession, linkedTrailId: 3, pausedAt: 4000 })
+    await settle()
+    expect(repo.listSummaries).toHaveBeenCalledTimes(1)
+  })
+  it('falls back to 1 and logs a warning when the read fails', async () => {
+    repo.listSummaries.mockRejectedValue(new Error('database is locked'))
+    useRecordingStore.getState().beginSession(recordingSession)
+    await settle()
+    expect(factor()).toBe(1)
+    expect(logEvent).toHaveBeenCalledWith('warn', 'recording', 'personal factor history read failed', { error: 'Error: database is locked' })
+  })
+  it('is dropped with the recording', async () => {
+    useRecordingStore.getState().beginSession(recordingSession)
+    await settle()
+    useRecordingStore.getState().reset()
+    expect(factor()).toBe(1)
+  })
+  it('ignores a read that resolves after its recording ended', async () => {
+    useRecordingStore.getState().beginSession(recordingSession)
+    useRecordingStore.getState().reset()
+    await settle()
+    expect(factor()).toBe(1)
   })
 })

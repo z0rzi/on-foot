@@ -3,7 +3,6 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export type PaceSpeedMode = 'pace' | 'speed'
-export type ElevationGraphPlacement = 'floating' | 'inSheet'
 
 // Display only: widens the slope-colour bands on the elevation graph and the map route. It never
 // reaches stored metrics (see elevation/slope.ts displaySlopeBands, architecture/importRules).
@@ -18,8 +17,6 @@ interface PreferencesStore {
   togglePaceSpeed: () => void
   elevationSmoothingMeters: number
   setElevationSmoothing: (meters: number) => void
-  elevationGraphPlacement: ElevationGraphPlacement
-  setElevationGraphPlacement: (placement: ElevationGraphPlacement) => void
 }
 
 export const usePreferencesStore = create<PreferencesStore>()(
@@ -29,8 +26,6 @@ export const usePreferencesStore = create<PreferencesStore>()(
       togglePaceSpeed: () => set((s) => ({ paceSpeedMode: nextPaceSpeedMode(s.paceSpeedMode) })),
       elevationSmoothingMeters: 50,
       setElevationSmoothing: (meters) => set({ elevationSmoothingMeters: meters }),
-      elevationGraphPlacement: 'floating',
-      setElevationGraphPlacement: (placement) => set({ elevationGraphPlacement: placement }),
     }),
     {
       name: 'onfoot-preferences',
@@ -38,7 +33,6 @@ export const usePreferencesStore = create<PreferencesStore>()(
       partialize: (s) => ({
         paceSpeedMode: s.paceSpeedMode,
         elevationSmoothingMeters: s.elevationSmoothingMeters,
-        elevationGraphPlacement: s.elevationGraphPlacement,
       }),
     },
   ),

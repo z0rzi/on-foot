@@ -4,9 +4,9 @@ import { trailsRepository } from '../../../src/data/trails'
 import { useTrailsStore } from '../../../src/store/trailsStore'
 import { TrailForm } from '../../../src/trails/TrailForm'
 import { useGoBackOrHome } from '../../../src/components/useGoBackOrHome'
-import { ScreenHeader } from '../../../src/components/ScreenHeader'
 import { LoadingScreen } from '../../../src/components/LoadingScreen'
 import { useLoadedEntity } from '../../../src/components/useLoadedEntity'
+import { showToast } from '../../../src/components/toast'
 
 export default function EditTrailScreen() {
   const leave = useGoBackOrHome()
@@ -30,19 +30,17 @@ export default function EditTrailScreen() {
   const trail = loaded.entity
 
   return (
-    <>
-      <ScreenHeader title="Edit Trail" onBack={leave} />
-      <TrailForm
-        metrics={trail.metrics}
-        initialName={trail.name}
-        initialDifficulty={trail.difficulty}
-        initialDescription={trail.description ?? ''}
-        submitLabel="Save changes"
-        onSubmit={async ({ name, difficulty, description }) => {
-          await updateTrail(id, { name, difficulty, description })
-          leave()
-        }}
-      />
-    </>
+    <TrailForm
+      metrics={trail.metrics}
+      initialName={trail.name}
+      initialDifficulty={trail.difficulty}
+      initialDescription={trail.description ?? ''}
+      submitLabel="Save changes"
+      onSubmit={async ({ name, difficulty, description }) => {
+        await updateTrail(id, { name, difficulty, description })
+        leave()
+        showToast('Trail saved')
+      }}
+    />
   )
 }

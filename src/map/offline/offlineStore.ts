@@ -2,10 +2,14 @@ import { create } from 'zustand'
 import type { OfflineController, OfflinePackDescriptor, OfflinePackInfo } from '../provider/types'
 import type { LiveProgress } from './types'
 import { parsePackId } from './packId'
+import { createDownloadBatches, type DownloadSettled } from './downloadBatches'
 
 interface OfflineStore {
   packs: OfflinePackInfo[]
   progress: Record<string, LiveProgress>
+  // Trails whose download has settled, oldest first, until a listener dismisses them.
+  settled: DownloadSettled[]
+  dismissSettled: (events: DownloadSettled[]) => void
   reload: (controller: OfflineController) => Promise<void>
   download: (controller: OfflineController, descriptor: OfflinePackDescriptor) => void
   resume: (controller: OfflineController, id: string) => void
@@ -32,6 +36,10 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
       delete next[id]
       return { progress: next }
     })
+  const batches = createDownloadBatches()
+  const publish = (event: DownloadSettled | null) => {
+    if (event) set((s) => ({ settled: [...s.settled, event] }))
+  }
   const reload = async (controller: OfflineController) => {
     set({ packs: await controller.listPacks() })
   }
@@ -40,6 +48,7 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
   const track = (controller: OfflineController, id: string, kickoff: () => Promise<void>) => {
     stopTracking(id)
     setProgress(id, 0, false)
+    batches.start(id)
     kickoff()
       .then(async () => {
         const unsub = controller.subscribe(
@@ -49,12 +58,14 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
             if (info.state === 'complete') {
               clearProgress(id)
               stopTracking(id)
+              publish(batches.settle(id, false))
               void reload(controller)
             }
           },
           () => {
             setProgress(id, 0, true)
             stopTracking(id)
+            publish(batches.settle(id, true))
           },
         )
         // Tear down any subscription a concurrent track for this id registered while our kickoff
@@ -69,6 +80,7 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
           if (get().packs.some((p) => p.id === id && p.state === 'complete')) {
             clearProgress(id)
             stopTracking(id)
+            publish(batches.settle(id, false))
           }
         } catch {
           // ignore — the active subscription will still report completion
@@ -77,12 +89,15 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
       .catch(() => {
         setProgress(id, 0, true)
         stopTracking(id)
+        publish(batches.settle(id, true))
       })
   }
 
   return {
     packs: [],
     progress: {},
+    settled: [],
+    dismissSettled: (events) => set((s) => ({ settled: s.settled.filter((e) => !events.includes(e)) })),
     reload,
     download: (controller, descriptor) =>
       track(controller, descriptor.id, () => controller.downloadPack(descriptor)),
@@ -93,6 +108,7 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
     remove: async (controller, ids) => {
       ids.forEach(stopTracking)
       ids.forEach(clearProgress)
+      ids.forEach(batches.drop)
       await Promise.allSettled(ids.map((id) => controller.deletePack(id)))
       try {
         await reload(controller)

@@ -46,6 +46,22 @@ The provider's unit of offline download — the tiles for one trail on one layer
 `offline:<trailId>:<layerId>`; the provider owns the bytes and is the only source of what exists.
 _Avoid_: region, cache, tile set
 
+**Card**:
+The floating panel at the bottom of the map, with a margin from the screen edges. The *graph card*
+when a trail, activity or recording is shown: it holds the elevation graph and is pulled up for the
+details and the nav row. The *nav card* when nothing is shown and the user is idle: it holds the
+nav row only and does not move.
+_Avoid_: sheet, bottom sheet, panel, drawer
+
+**Pill**:
+The status strip at the top of the map naming what is shown, with its figures and its close
+button.
+_Avoid_: banner, header chip, title bar
+
+**Nav row**:
+The three entries to the rest of the app — Trails, Activities, Settings.
+_Avoid_: tab bar, bottom nav, toolbar
+
 ### Recording
 
 **Fix**:
@@ -76,6 +92,24 @@ _Avoid_: pending fix, suspect
 A fix farther from the previous point of its segment than a walker could have gone in the time
 elapsed.
 _Avoid_: spike, glitch, teleport
+
+### Elevation
+
+**Climb**:
+A stretch of trail rising at least 20 m at an average of at least 4 %, made of steep stretches (4 %
+or more) joined across short flats or dips: under 300 m, never more than 10 m below its top so far.
+It runs from the foot of its first steep stretch to the top of its last; a long gentle rise is not
+one and never extends one.
+_Avoid_: ascent, uphill (a slope band), hill
+
+**Walking time**:
+The estimated moving time over a stretch of trail, breaks excluded.
+_Avoid_: ETA, duration, time left
+
+**Personal factor**:
+How much slower or faster than the standard hiking formula someone walks: from their recent saved
+activities at the start of a recording, then from the recording in progress.
+_Avoid_: pace (minutes per km), speed, fitness
 
 ### Work
 

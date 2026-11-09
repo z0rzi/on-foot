@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from 'react'
 import { AppState } from 'react-native'
 
 export function isAppActive(): boolean {
@@ -15,4 +16,13 @@ export function whenAppActive(): Promise<void> {
       resolve()
     })
   })
+}
+
+function subscribeToAppState(onChange: () => void): () => void {
+  const subscription = AppState.addEventListener('change', onChange)
+  return () => subscription.remove()
+}
+
+export function useAppActive(): boolean {
+  return useSyncExternalStore(subscribeToAppState, isAppActive)
 }

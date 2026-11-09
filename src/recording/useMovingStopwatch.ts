@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { RecordingSession } from '../data/activities/types'
-import { recordingPhase } from './recordingStore'
+import { recordingPhase } from './recordingPhase'
 import { movingElapsedMs } from './session'
 
 // Live moving-elapsed time (ms) for a recording session: advances each second while recording,

@@ -1,11 +1,16 @@
 import React from 'react'
 import type { StyleProp, ViewStyle } from 'react-native'
+import type { RouteTier } from './routeTiers'
+
+// How light a layer's tiles are, as seen by what is drawn straight on them (the status bar's icons).
+export type MapTone = 'light' | 'dark'
 
 export interface StyleDescriptor {
   id: string
   label: string
   url: string
   preview: number
+  tone: MapTone
   // Semantic marker: this style is the provider's satellite/aerial-imagery layer. Declared on
   // the port so provider-agnostic code (the store's quick-switch logic) can identify it without
   // hardcoding a provider-specific style id. A future provider marks its own imagery style.
@@ -33,12 +38,17 @@ export interface CameraFraming {
 // heading. Each provider translates it to its own tracking mode.
 export type FollowUserMode = 'position' | 'positionAndBearing'
 
+// Insets in points, [top, right, bottom, left].
+export type EdgePadding = [number, number, number, number]
+
 export interface CameraProps {
   pitch?: number
   followUserLocation?: boolean
   followUserMode?: FollowUserMode
   followZoomLevel?: number
   followPitch?: number
+  // Where the followed puck sits: centred in the map minus these insets.
+  followPadding?: EdgePadding
   animationDuration?: number
   // The starting framing, read once at mount and applied without animation before the first
   // rendered frame. Later changes are ignored, so it can never move the camera.
@@ -54,8 +64,9 @@ export interface ColouredLine {
 }
 
 export interface RouteOverlayProps {
-  // Layer-id prefix, so two overlays can coexist on one map.
-  idPrefix: string
+  // Where the overlay stacks among the route overlays (see ROUTE_TIERS). One overlay per tier, so
+  // the tier also tells the overlays apart on the map.
+  tier: RouteTier
   // Track segments as a MultiLineString: each entry is one segment's [lng, lat] pairs, in order.
   lines: [number, number][][]
   // Dashed connectors bridging consecutive segment endpoints; carry no distance.
@@ -119,16 +130,19 @@ export interface MapViewProps {
 export interface CameraController {
   resetNorth(animated: boolean): void
   // One-shot fit to a geographic box (used to frame a selected trail). padding is
-  // [top, right, bottom, left] in points; duration in ms. Like resetNorth, only meaningful
-  // when follow is off (an imperative camera move is a no-op while rnmapbox is following).
-  // pitch travels with the fit: a bounds-only camera stop keeps whatever pitch the native camera
+  // [top, right, bottom, left] in points, the whole room left around the box, whatever padding the
+  // camera holds from following; duration in ms. Like resetNorth, only meaningful when follow is
+  // off (an imperative camera move is a no-op while rnmapbox is following).
+  // pitch travels with the fit: a camera stop without one keeps whatever pitch the native camera
   // has, and being the later op it would override the declarative pitch the store just set.
+  // heading is the camera's current one, kept: the box is framed as it turns on screen.
   fitBounds(
     ne: [number, number],
     sw: [number, number],
-    padding: [number, number, number, number],
+    padding: EdgePadding,
     duration: number,
     pitch: number,
+    heading: number,
   ): void
 }
 

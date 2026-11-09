@@ -1,4 +1,5 @@
 import React, { createContext, forwardRef, useContext, useImperativeHandle, useRef, useState } from 'react'
+import { StyleSheet, View as RNView } from 'react-native'
 import Mapbox, { type MapState } from '@rnmapbox/maps'
 import type {
   MapProvider, MapViewProps, CameraProps, TerrainProps, CameraController, RouteOverlayProps,
@@ -7,9 +8,11 @@ import type {
 import { mapboxCapabilities } from './capabilities'
 import { mapboxOfflineController } from './offline'
 import { trackingModeFor } from './followMode'
-import { cameraStopFor, framingFromMapState } from './camera'
+import { cameraPaddingFor, cameraStopFor, fitCameraFor, framingFromMapState, type ViewSize } from './camera'
 import { TERRAIN_DEM } from './styles'
+import { TIER_ANCHORS, anchorLayerIdFor } from './tiers'
 import { MAPBOX_ACCESS_TOKEN } from './token'
+import { logEvent } from '../../../log'
 
 void Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN)
 
@@ -18,31 +21,56 @@ const TRAIL_CASING = '#333333'
 // Whether the map has finished loading once; the Camera holds follow until then.
 const MapLoadedContext = createContext(false)
 
-// Before the map has loaded, rnmapbox's Android map reports the camera it holds before the initial
-// camera is applied (the style's default), and reports no change when the initial camera lands. So
-// camera changes are only forwarded once the map has loaded: earlier ones describe a camera nobody
-// sees, and would overwrite the heading and the last camera with it.
+// The map view's size in dp once laid out; the Camera sizes its fits from it. rnmapbox's MapView
+// keeps its own layout to itself, so the View measures a wrapper of the same size.
+const MapSizeContext = createContext<React.RefObject<ViewSize | null>>({ current: null })
+
 const View = ({ styleURL, onCameraChanged, onMapLoaded, style, children }: MapViewProps) => {
   const [loaded, setLoaded] = useState(false)
+  const size = useRef<ViewSize | null>(null)
   return (
-    <Mapbox.MapView
+    <RNView
       style={style}
-      styleURL={styleURL}
-      scaleBarEnabled={false}
-      logoEnabled={false}
-      attributionEnabled={false}
-      compassEnabled={false}
-      onCameraChanged={(e: MapState) => {
-        const framing = framingFromMapState(e)
-        if (framing && loaded) onCameraChanged?.(framing)
-      }}
-      onDidFinishLoadingMap={() => {
-        setLoaded(true)
-        onMapLoaded?.()
+      onLayout={(e) => {
+        size.current = { width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height }
       }}
     >
-      <MapLoadedContext.Provider value={loaded}>{children}</MapLoadedContext.Provider>
-    </Mapbox.MapView>
+      <Mapbox.MapView
+        style={StyleSheet.absoluteFill}
+        styleURL={styleURL}
+        scaleBarEnabled={false}
+        logoEnabled={false}
+        attributionEnabled={false}
+        compassEnabled={false}
+        onCameraChanged={(e: MapState) => {
+          // Before the map has loaded, rnmapbox's Android map reports the camera it holds before
+          // the initial camera is applied (the style's default), and reports no change when the
+          // initial camera lands. So camera changes are only forwarded once the map has loaded:
+          // earlier ones describe a camera nobody sees, and would overwrite the heading and the
+          // last camera with it.
+          const framing = framingFromMapState(e)
+          if (framing && loaded) onCameraChanged?.(framing)
+        }}
+        onDidFinishLoadingMap={() => {
+          setLoaded(true)
+          onMapLoaded?.()
+        }}
+      >
+        {/* rnmapbox adds a layer on top of the stack as it mounts once the style has loaded,
+            unless it is given an aboveLayerID, belowLayerID or layerIndex; child order only
+            orders the layers queued before the style loads. So the route tiers are held by one
+            invisible anchor layer per tier, mounted in tier order as the map's first children,
+            and every route overlay layer is inserted below its tier's anchor (belowLayerID,
+            which waits for the anchor if it is not on the map yet). On a style reload rnmapbox
+            re-adds the map's children in child order, so the anchors come back first, in order. */}
+        {TIER_ANCHORS.map((id) => (
+          <Mapbox.BackgroundLayer key={id} id={id} style={{ visibility: 'none' }} />
+        ))}
+        <MapLoadedContext.Provider value={loaded}>
+          <MapSizeContext.Provider value={size}>{children}</MapSizeContext.Provider>
+        </MapLoadedContext.Provider>
+      </Mapbox.MapView>
+    </RNView>
   )
 }
 
@@ -57,21 +85,33 @@ const View = ({ styleURL, onCameraChanged, onMapLoaded, style, children }: MapVi
 // is lost. So with an initial camera, follow is held off until the map has loaded (the view is
 // attached by then), and the follow transition starts from the initial camera.
 const Camera = forwardRef<CameraController, CameraProps>(
-  ({ followUserMode, onUserTrackingModeChange, initialCamera, followUserLocation, ...rest }, ref) => {
+  ({ followUserMode, onUserTrackingModeChange, initialCamera, followUserLocation, followPadding, ...rest }, ref) => {
     const inner = useRef<Mapbox.Camera>(null)
     const [defaultSettings] = useState(() => initialCamera && cameraStopFor(initialCamera))
     const mapLoaded = useContext(MapLoadedContext)
+    const mapSize = useContext(MapSizeContext)
     const holdFollow = defaultSettings != null && !mapLoaded
     useImperativeHandle(ref, () => ({
       resetNorth: (animated: boolean) =>
         inner.current?.setCamera({ heading: 0, animationDuration: animated ? 300 : 0 }),
-      fitBounds: (ne, sw, [paddingTop, paddingRight, paddingBottom, paddingLeft], duration, pitch) =>
+      // The padding travels with the stop, so the camera ends holding exactly the padding it was
+      // framed for.
+      fitBounds: (ne, sw, padding, duration, pitch, heading) => {
+        const size = mapSize.current
+        if (!size) {
+          logEvent('warn', 'map', 'fit dropped: map view not laid out yet')
+          return
+        }
+        const { center, zoom } = fitCameraFor({ ne, sw, size, padding, heading, maxZoom: mapboxCapabilities.maxZoom })
         inner.current?.setCamera({
-          bounds: { ne, sw },
-          padding: { paddingTop, paddingRight, paddingBottom, paddingLeft },
+          centerCoordinate: center,
+          zoomLevel: zoom,
+          heading,
+          padding: cameraPaddingFor(padding),
           pitch,
           animationDuration: duration,
-        }),
+        })
+      },
     }))
     return (
       <Mapbox.Camera
@@ -82,6 +122,7 @@ const Camera = forwardRef<CameraController, CameraProps>(
         minZoomLevel={mapboxCapabilities.minZoom}
         maxZoomLevel={mapboxCapabilities.maxZoom}
         followUserMode={followUserMode && trackingModeFor(followUserMode)}
+        followPadding={followPadding && cameraPaddingFor(followPadding)}
         onUserTrackingModeChange={
           onUserTrackingModeChange
             ? (e) => onUserTrackingModeChange(!!e?.nativeEvent?.payload?.followUserLocation)
@@ -104,7 +145,7 @@ const Terrain = ({ exaggeration }: TerrainProps) => (
 // mirroring the Kotlin app's LocationPuck2D bearing arrow. The image is high-resolution and
 // scaled down so it stays crisp. Once any puck image is custom, rnmapbox hands Mapbox no image
 // for the unset slots and Mapbox logs an error per re-render, so top and shadow are filled with
-// a transparent pixel.
+// a transparent pixel. The image is drawn in the theme's `userPuck` and `userPuckRing`.
 const puckBearingArrow = require('./puck-bearing-arrow.png')
 const puckTransparent = require('./puck-transparent.png')
 
@@ -133,14 +174,16 @@ const multiLine = (lines: [number, number][][]) => ({
 })
 
 const RouteOverlay = ({
-  idPrefix, lines, connectors, connectorDashArray, color, lineWidth, colouredLines, casing,
+  tier, lines, connectors, connectorDashArray, color, lineWidth, colouredLines, casing,
   arrowImage, arrowSpacing, arrowSize, endpoints,
 }: RouteOverlayProps) => {
+  const belowLayerID = anchorLayerIdFor(tier)
   const arrowsLayer =
     arrowImage != null ? (
       <Mapbox.SymbolLayer
         key="arrows"
-        id={`${idPrefix}-arrows`}
+        id={`${tier}-arrows`}
+        belowLayerID={belowLayerID}
         style={{
           symbolPlacement: 'line',
           symbolSpacing: arrowSpacing,
@@ -164,18 +207,20 @@ const RouteOverlay = ({
     <>
       {arrowImage != null && <Mapbox.Images images={{ 'trail-arrow': arrowImage }} />}
       {useColoured ? (
-        <Mapbox.ShapeSource id={`${idPrefix}-slope-source`} shape={slopeShape}>
+        <Mapbox.ShapeSource id={`${tier}-slope-source`} shape={slopeShape}>
           {[
             casing && (
               <Mapbox.LineLayer
                 key="slope-casing"
-                id={`${idPrefix}-slope-casing`}
+                id={`${tier}-slope-casing`}
+                belowLayerID={belowLayerID}
                 style={{ lineColor: TRAIL_CASING, lineWidth: lineWidth + 3, lineCap: 'round', lineJoin: 'round' }}
               />
             ),
             <Mapbox.LineLayer
               key="slope-line"
-              id={`${idPrefix}-slope-line`}
+              id={`${tier}-slope-line`}
+              belowLayerID={belowLayerID}
               style={{ lineColor: ['get', 'color'], lineWidth, lineCap: 'round', lineJoin: 'round' }}
             />,
             arrowsLayer,
@@ -183,18 +228,20 @@ const RouteOverlay = ({
         </Mapbox.ShapeSource>
       ) : (
         lines.length > 0 && (
-          <Mapbox.ShapeSource id={`${idPrefix}-line-source`} shape={multiLine(lines)}>
+          <Mapbox.ShapeSource id={`${tier}-line-source`} shape={multiLine(lines)}>
             {[
               casing && (
                 <Mapbox.LineLayer
                   key="casing"
-                  id={`${idPrefix}-line-casing`}
+                  id={`${tier}-line-casing`}
+                  belowLayerID={belowLayerID}
                   style={{ lineColor: TRAIL_CASING, lineWidth: lineWidth + 3, lineCap: 'round', lineJoin: 'round' }}
                 />
               ),
               <Mapbox.LineLayer
                 key="line"
-                id={`${idPrefix}-line`}
+                id={`${tier}-line`}
+                belowLayerID={belowLayerID}
                 style={{ lineColor: color, lineWidth, lineCap: 'round', lineJoin: 'round' }}
               />,
               arrowsLayer,
@@ -203,16 +250,17 @@ const RouteOverlay = ({
         )
       )}
       {connectors.length > 0 && (
-        <Mapbox.ShapeSource id={`${idPrefix}-connector-source`} shape={multiLine(connectors)}>
+        <Mapbox.ShapeSource id={`${tier}-connector-source`} shape={multiLine(connectors)}>
           <Mapbox.LineLayer
-            id={`${idPrefix}-connector`}
+            id={`${tier}-connector`}
+            belowLayerID={belowLayerID}
             style={{ lineColor: color, lineWidth, lineDasharray: connectorDashArray, lineCap: 'round' }}
           />
         </Mapbox.ShapeSource>
       )}
       {endpoints && (
         <Mapbox.ShapeSource
-          id={`${idPrefix}-endpoints-source`}
+          id={`${tier}-endpoints-source`}
           shape={{
             type: 'FeatureCollection' as const,
             features: endpoints.points.map((coord) => ({
@@ -223,7 +271,8 @@ const RouteOverlay = ({
           }}
         >
           <Mapbox.CircleLayer
-            id={`${idPrefix}-endpoints`}
+            id={`${tier}-endpoints`}
+            belowLayerID={belowLayerID}
             style={{
               circleColor: color,
               circleRadius: endpoints.radius,

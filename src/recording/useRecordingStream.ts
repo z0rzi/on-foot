@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { AppState } from 'react-native'
 import { ensureStreaming } from './recordingController'
-import { recordingPhase, useRecordingStore } from './recordingStore'
+import { recordingPhase } from './recordingPhase'
+import { useRecordingStore } from './recordingStore'
 
 function recover() {
   ensureStreaming().catch(() => {

@@ -29,8 +29,19 @@ test('onControlAccent matches surface in both themes', () => {
   expect(darkColors.onControlAccent).toBe(darkColors.surface)
 })
 
+test('onRecording matches surface in both themes', () => {
+  expect(lightColors.onRecording).toBe(lightColors.surface)
+  expect(darkColors.onRecording).toBe(darkColors.surface)
+})
+
 test('danger color is defined in both themes', () => {
   for (const c of [lightColors, darkColors]) {
     expect(c.danger).toMatch(/^#/)
   }
+})
+
+test('the user puck is the same in both themes, matching the map provider\'s puck image', () => {
+  expect(lightColors.userPuck).toBe('#2196F3')
+  expect(darkColors.userPuck).toBe(lightColors.userPuck)
+  expect(darkColors.userPuckRing).toBe(lightColors.userPuckRing)
 })

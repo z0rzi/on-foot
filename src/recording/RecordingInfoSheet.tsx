@@ -1,113 +1,87 @@
-import { useEffect, useMemo } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import { useTheme } from '../theme/useTheme'
-import { useRecordingStore, recordingPhase } from './recordingStore'
-import { usePreferencesStore } from '../settings/preferencesStore'
-import { metricsForSegments } from '../data/geo/metrics'
-import { formatDistance, formatElevation } from '../format/units'
-import { groupPointsBySegment } from '../data/activities/mapping'
-import { formatPace, formatSpeed, formatStopwatch } from '../activities/format'
-import { MetricsGrid } from '../components/MetricsGrid'
-import { AccentButton } from '../components/AccentButton'
-import { ElevationGraph } from '../elevation/ElevationGraph'
+import { StyleSheet, Text, View } from 'react-native'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { Trail } from '../data/trails/types'
 import type { RouteDisplay } from '../elevation/routeDisplay'
-import { useMovingStopwatch } from './useMovingStopwatch'
-import { ensureStreaming } from './recordingController'
-import { recordingHealthFor, recordingStatusText } from './streamHealth'
-import { logEvent } from '../log'
+import { trailAhead } from '../elevation/trailAhead'
+import { useTheme } from '../theme/useTheme'
+import { IconButton } from '../components/IconButton'
+import { showToast } from '../components/toast'
+import { TrailDescription } from '../trails/TrailDescription'
+import { TrailSummaryRow } from '../trails/TrailSummaryRow'
+import { formatTrailAhead, type AheadLineKind } from '../trails/format'
+import { usePersonalFactor } from './usePersonalFactor'
 
+const AHEAD_ICONS: Record<AheadLineKind, keyof typeof MaterialCommunityIcons.glyphMap> = {
+  end: 'flag-checkered',
+  climb: 'image-filter-hdr',
+  offTrail: 'map-marker-off',
+}
+
+// The open sheet's details while recording along a trail: that trail with its summary as the Trails
+// list shows it and a way to end it, what is ahead on it from the graph's puck, and its description
+// set apart. The figures and the location state are the top pill's. A trail with no elevation
+// profile has no route display, so no ahead lines; with a display but no puck, the one line says
+// the walk is not on the trail. Their icons are decorative, out of the accessibility tree: the text
+// carries the meaning.
 export function RecordingInfoSheet({
-  followedTrailName,
+  trail,
   display,
+  puck,
   onRemoveTrail,
 }: {
-  followedTrailName: string | null
+  trail: Trail
   display: RouteDisplay | null
+  puck: number | null
   onRemoveTrail: () => void
 }) {
-  useEffect(() => {
-    logEvent('info', 'map', 'recording sheet mounted')
-  }, [])
-
   const c = useTheme()
-  const session = useRecordingStore((s) => s.session)
-  const livePoints = useRecordingStore((s) => s.livePoints)
-  const locationAvailable = useRecordingStore((s) => s.locationAvailable)
-  const stream = useRecordingStore((s) => s.stream)
-  const paceSpeedMode = usePreferencesStore((s) => s.paceSpeedMode)
-  const togglePaceSpeed = usePreferencesStore((s) => s.togglePaceSpeed)
-
-  const phase = recordingPhase(session)
-  const health = recordingHealthFor({ phase, locationAvailable, stream })
-  const status = recordingStatusText(health)
-  const durationSeconds = useMovingStopwatch(session) / 1000
-  // useMovingStopwatch re-renders this sheet every second, so without the memo a long recording
-  // re-measures its whole track — haversine plus elevation smoothing — once per tick.
-  const metrics = useMemo(() => metricsForSegments(groupPointsBySegment(livePoints)), [livePoints])
-
-  const paceSpeedTile =
-    paceSpeedMode === 'pace'
-      ? { label: 'Pace (min/km)', value: formatPace(metrics.distanceMeters, durationSeconds) }
-      : { label: 'Speed (km/h)', value: formatSpeed(metrics.distanceMeters, durationSeconds) }
-
+  const personalFactor = usePersonalFactor()
   return (
     <>
-      <View style={styles.header}>
-        <Text style={[styles.recording, { color: c.recordingLine }]}>{status.title}</Text>
-        {followedTrailName != null && (
-          <Pressable
-            onPress={onRemoveTrail}
-            accessibilityLabel="Stop following trail"
-            hitSlop={8}
-            style={styles.following}
-          >
-            <Text style={[styles.followingText, { color: c.onSurfaceVariant }]} numberOfLines={1}>
-              Following · {followedTrailName}
-            </Text>
-            <Ionicons name="close" size={14} color={c.onSurfaceVariant} />
-          </Pressable>
-        )}
+      <View style={styles.along}>
+        <View style={styles.trail}>
+          <Text style={[styles.alongText, { color: c.onSurface }]}>
+            Along {trail.name}
+          </Text>
+          <TrailSummaryRow trail={trail} />
+        </View>
+        <IconButton
+          icon="close"
+          color={c.onSurfaceVariant}
+          accessibilityLabel="Stop recording along this trail"
+          onPress={() => {
+            onRemoveTrail()
+            showToast('Recording without a trail')
+          }}
+        />
       </View>
 
-      {(status.detail != null || health.kind === 'not-capturing') && (
-        <View style={styles.fault}>
-          {status.detail != null && (
-            <Text style={[styles.faultText, { color: c.onSurfaceVariant }]}>{status.detail}</Text>
-          )}
-          {health.kind === 'not-capturing' && (
-            <AccentButton
-              label="Retry"
-              accessibilityLabel="Retry location capture"
-              onPress={() => {
-                ensureStreaming().catch(() => {
-                  // The fault stays shown; the next tap or return to the app retries.
-                })
-              }}
-            />
-          )}
+      {display && (
+        <View style={styles.ahead}>
+          {formatTrailAhead(puck === null ? null : trailAhead(display, puck, personalFactor)).map((line) => (
+            <View key={line.kind} style={styles.aheadLine}>
+              <MaterialCommunityIcons
+                name={AHEAD_ICONS[line.kind]}
+                size={18}
+                color={c.onSurface}
+                importantForAccessibility="no-hide-descendants"
+              />
+              <Text style={[styles.aheadText, { color: c.onSurface }]}>{line.text}</Text>
+            </View>
+          ))}
         </View>
       )}
 
-      {display && <ElevationGraph display={display} placement="inSheet" />}
-
-      <MetricsGrid
-        items={[
-          { label: 'Duration', value: formatStopwatch(durationSeconds) },
-          { label: 'Distance', value: formatDistance(metrics.distanceMeters) },
-          { label: 'Elev. Gain', value: formatElevation(metrics.elevationGainMeters) },
-          { ...paceSpeedTile, onPress: togglePaceSpeed, accessibilityLabel: 'Toggle pace or speed' },
-        ]}
-      />
+      <TrailDescription trail={trail} setApart />
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
-  recording: { fontSize: 16, fontWeight: '700' },
-  following: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
-  followingText: { fontSize: 13, flexShrink: 1 },
-  fault: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
-  faultText: { fontSize: 13, flexShrink: 1 },
+  along: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  trail: { flexShrink: 1, gap: 2 },
+  alongText: { fontSize: 15, fontWeight: '600' },
+  ahead: { gap: 4 },
+  aheadLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  aheadText: { fontSize: 15, flexShrink: 1 },
 })

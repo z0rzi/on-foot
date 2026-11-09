@@ -1,8 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Alert, Pressable, StyleSheet, Text } from 'react-native'
 import { ActivityMetrics, Effort } from '../data/activities/types'
-import { formatDistance, formatElevation } from '../format/units'
-import { formatDuration } from './format'
+import { formatDistance, formatDuration, formatElevation } from '../format/units'
 import { EnumSelector } from '../components/EnumSelector'
 import { MetricsGrid } from '../components/MetricsGrid'
 import { FormField, FormScreen, FormTextInput, SubmitButton } from '../components/form'
@@ -79,7 +78,7 @@ export function ActivityForm({
         items={[
           { label: 'Distance', value: formatDistance(metrics.distanceMeters) },
           { label: 'Duration', value: formatDuration(metrics.durationSeconds) },
-          { label: 'Elevation Gain', value: formatElevation(metrics.elevationGainMeters) },
+          { label: 'Elevation gain', value: formatElevation(metrics.elevationGainMeters) },
         ]}
       />
 
@@ -102,6 +101,9 @@ export function ActivityForm({
         disabled={!canSave}
         onPress={handleSave}
       />
+      {!canSave && !busy && (
+        <Text style={[styles.hint, { color: c.onSurfaceVariant }]}>Name and effort are needed.</Text>
+      )}
 
       <Pressable accessibilityLabel="Discard activity" disabled={busy} onPress={handleDiscard} style={styles.discard}>
         <Text style={[styles.discardLabel, { color: c.danger }]}>Discard</Text>
@@ -111,6 +113,7 @@ export function ActivityForm({
 }
 
 const styles = StyleSheet.create({
+  hint: { fontSize: 13, textAlign: 'center' },
   discard: { marginTop: 4, paddingVertical: 12, alignItems: 'center' },
   discardLabel: { fontSize: 15, fontWeight: '600' },
 })

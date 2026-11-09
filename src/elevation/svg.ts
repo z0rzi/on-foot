@@ -1,21 +1,26 @@
-import { ElevationProfile, GradeBand } from './profile'
+import { ElevationProfile, GradeBand, sampleAt } from './profile'
 import { SlopeBand } from './slope'
 import { samplesForBands } from './bandGeometry'
 
-export interface PlotScale { width: number; height: number }
+// The vertical mapping: elevation `low` onto pixel row `bottom`, `high` onto `top`.
+export interface YScale { low: number; high: number; top: number; bottom: number }
 
-export function projectX(distance: number, profile: ElevationProfile, width: number): number {
+export interface PlotScale { width: number; y: YScale }
+
+function projectX(distance: number, profile: ElevationProfile, width: number): number {
   if (profile.totalDistance <= 0) return 0
   return (distance / profile.totalDistance) * width
 }
 
-// Reserve a little headroom at the top so the highest peak isn't flush against the edge.
-const Y_PAD_TOP = 6
+export function projectY(ele: number, { low, high, top, bottom }: YScale): number {
+  const range = high - low
+  if (range <= 0) return (top + bottom) / 2
+  return bottom - ((ele - low) / range) * (bottom - top)
+}
 
-export function projectY(ele: number, profile: ElevationProfile, height: number): number {
-  const range = profile.maxEle - profile.minEle
-  if (range <= 0) return height / 2
-  return height - ((ele - profile.minEle) / range) * (height - Y_PAD_TOP)
+// The plot point of the profile at a distance: where the line passes there.
+export function projectPoint(distance: number, profile: ElevationProfile, scale: PlotScale): { x: number; y: number } {
+  return { x: projectX(distance, profile, scale.width), y: projectY(sampleAt(profile, distance).ele, scale.y) }
 }
 
 export interface BandTop {
@@ -35,7 +40,7 @@ export function buildBandTops(
       band,
       points: samples.map((s): [number, number] => [
         projectX(s.distance, profile, scale.width),
-        projectY(s.ele, profile, scale.height),
+        projectY(s.ele, scale.y),
       ]),
     }))
     .filter(({ points }) => points.length >= 2)

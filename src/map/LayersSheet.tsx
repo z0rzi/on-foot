@@ -37,7 +37,7 @@ export const LayersSheet = forwardRef<BottomSheetModal>((_props, ref) => {
       backgroundStyle={{ backgroundColor: c.panelBackground }}
     >
       <BottomSheetView style={styles.content}>
-        <Text style={[styles.title, { color: c.panelContent }]}>Map Layers</Text>
+        <Text style={[styles.title, { color: c.panelContent }]}>Map layers</Text>
         {caps.styles.map((s) => (
           <Pressable
             key={s.id}

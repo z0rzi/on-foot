@@ -1,4 +1,4 @@
-import { formatBytes, formatDistance, formatElevation } from '../units'
+import { formatBytes, formatDistance, formatDuration, formatElevation } from '../units'
 
 describe('formatBytes', () => {
   it('uses GB at a billion bytes and above, to one decimal', () => {
@@ -35,5 +35,26 @@ describe('formatElevation', () => {
   })
   test('shows a dash when elevation is unknown', () => {
     expect(formatElevation(null)).toBe('—')
+  })
+})
+
+describe('formatDuration', () => {
+  it('formats seconds under a minute', () => {
+    expect(formatDuration(45)).toBe('45 s')
+  })
+  it('formats whole minutes without seconds', () => {
+    expect(formatDuration(600)).toBe('10 min')
+  })
+  it('formats minutes and two-digit seconds', () => {
+    expect(formatDuration(125)).toBe('2 min 05 s')
+  })
+  it('formats hours and two-digit minutes, without seconds', () => {
+    expect(formatDuration(3725)).toBe('1 h 02')
+  })
+  it('keeps the minutes of a whole hour', () => {
+    expect(formatDuration(7200)).toBe('2 h 00')
+  })
+  it('clamps negatives to 0 s', () => {
+    expect(formatDuration(-5)).toBe('0 s')
   })
 })
