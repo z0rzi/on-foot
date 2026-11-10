@@ -49,6 +49,7 @@
     "jest-expo": "^57.0.4",
     "patch-package": "^8.0.1",
     "react-native-dotenv": "^4.1.1",
+    "tsx": "^4.23.12",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.69.0",
     "yaml": "^2.9.1"
@@ -58,9 +59,9 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint",
+    "lint": "expo lint src app tools",
     "test": "jest",
-    "verify": "tsc --noEmit && jest && expo lint",
+    "verify": "tsc --noEmit && jest && npm run lint",
     "db:generate": "drizzle-kit generate",
     "postinstall": "patch-package",
     "prepare": "husky"

@@ -9,6 +9,9 @@ You drive the owner's phone over adb, observe the app, and report evidence. The 
 OnePlus DN2103, Android 13, 1080x2400, the only device on `adb devices`. The app is the release
 build of `com.zorzi.onfootrn`.
 
+Everything goes through the toolkit, `.claude/skills/device-check/devcheck` (below: `devcheck`),
+run from the repo root. Its source and tests are in `tools/device-check/`.
+
 ## What you may verify
 
 You may mark a behaviour **device-verified (agent)** when your evidence shows it directly:
@@ -19,33 +22,43 @@ Report those as `owner to verify` and never claim them.
 
 ## Steps
 
-1. **Preflight.** `adb devices` shows the phone. The installed build contains the change under
-   check: build it with `nix-shell ../shell.nix --run 'npx expo run:android --variant release --no-bundler'`
-   from the repo root (it installs and opens the app), or prove an installed APK current by
-   pulling it (`pm path`), unzipping `assets/index.android.bundle` and grepping for an identifier
-   the change introduced. Done when you can name the build you are checking.
-2. **List the checks.** Each claim to check gets a one-line expected observation. Done when every
-   claim has one.
+1. **Preflight.** `devcheck build-has '<string>'` with a string the change introduced (a log
+   message, a label, a function name; Hermes drops constant names). Found: name the build by the
+   install time it prints. Missing, or the change touches native code (which `build-has` cannot
+   see): build in the background with `nix-shell ../shell.nix --run 'npx expo run:android --variant release --no-bundler'`
+   from the repo root (it installs and opens the app), and say in the report that a build was
+   needed. Done when you can name the build you are checking.
+2. **List the checks.** Each claim to check gets a one-line expected observation and, if it
+   moves, its pace (see Walks). Done when every claim has one.
 3. **Run them.** Make the data and movement each check needs: create test activities and fake
-   walks freely (see below), since a check run on whatever data happens to be on the phone proves
-   little. Save evidence to `.scratch/device-checks/<YYYY-MM-DD>/`, files numbered in order
-   (`01-map-start.png`, `02-map-start.xml`). Done when every check has a verdict.
-4. **Clean up.** Delete every `DEVCHECK` activity and trail you created, stop any walk
-   (`walk.sh stop`), and leave On Foot in the foreground on the Map tab with no recording running.
-   Done when the Activities and Trails lists show no `DEVCHECK` entry.
+   walks freely, since a check run on whatever data happens to be on the phone proves little.
+   Wait on events (`wait-for`, a walk's own return), and run anything longer than a minute in the
+   background so the harness tells you when it ends. Done when every check has a verdict.
+4. **Clean up.** Delete every `DEVCHECK` activity and trail you created, run `devcheck walk stop`
+   (`--force` if your own walk still moves),
+   and leave On Foot in the foreground on the map with no recording running. Done when the
+   Activities and Trails lists show no `DEVCHECK` entry you made and `walk status` says the mock
+   is off.
 5. **Report.** Per check: verdict `verified` | `failed` (what contradicted it) | `owner to verify`
    (feel) | `unobservable` (why) | `blocked` (what stopped you), then the evidence: what you did,
    what you saw (on-screen text and log entries quoted verbatim), file paths. Then **Other
-   observations**: anything odd seen in passing, with evidence. Then the state you left the phone in.
+   observations**: anything odd seen in passing, with evidence. Then the state you left the phone
+   in, including whether it may still stand on a fake position.
 
 ## Rules
 
-- **Before every `screencap` or `uiautomator dump`**, confirm On Foot is in front:
-  `adb shell dumpsys activity activities | grep topResumedActivity` shows `com.zorzi.onfootrn`
-  (a system picker or share sheet your check opened is fine too). This keeps the owner's other
-  apps out of the evidence.
+- **Only the toolkit's adb.** `devcheck` pins the SDK's adb; the system `adb` is another version,
+  and mixing the two restarts the server under the phone. For a raw command, use
+  `~/android-sdk/platform-tools/adb`.
+- **`phone gone` means `blocked`.** A toolkit command that loses the phone tries one reconnect,
+  waits up to 4 minutes, then exits 3 with `phone gone` and, for a walk, the mark it reached.
+  Mark the checks left `blocked`, say early in your reply that the phone dropped off so the owner
+  can replug it, and report that the phone may still stand on the mock until `walk stop` runs.
+- **The owner's other apps stay out.** `shot`, `tap` and `wait-for` refuse when another app is in
+  front (a system picker or share sheet your check opened is fine).
 - **Everything you create is named with the `DEVCHECK` prefix**, and only `DEVCHECK` items are
-  edited or deleted. All other trails and activities are the owner's real data: open and read only.
+  edited or deleted. All other trails and activities are the owner's real data: open and read
+  only. `route`, `import-gpx` and `save-activity` enforce the prefix.
 - **Positions in reports and evidence are fake ones** (walk coordinates) or none. Strip real
   coordinates from logcat or `dumpsys location` before quoting them.
 - Leave the package and the phone intact: no `pm clear`, uninstall, permission changes, or other
@@ -54,24 +67,82 @@ Report those as `owner to verify` and never claim them.
   wake-ups. To kill as the owner does: `input keyevent KEYCODE_APP_SWITCH`, then swipe the card
   up (`input swipe 540 1200 540 200`).
 
-## Driving and looking
+## The toolkit
 
-- **Find controls by label.** Icon controls carry an `accessibilityLabel`, which shows up as
-  `content-desc` in the UI tree: `adb shell rm -f /sdcard/ui.xml; adb shell uiautomator dump /sdcard/ui.xml; adb exec-out cat /sdcard/ui.xml`,
-  then tap the centre of the node's `bounds`. Remove the old file before each dump: while the map
-  animates the dump fails with `could not get idle state` and would leave a stale file behind.
-  Labels come from the source (`grep -rn accessibilityLabel src`), so read them there to plan.
-- **Input.** `input tap X Y`; a long press is `input swipe X Y X Y 1500`; `input text`;
-  `input keyevent 4` is back. If the screen is off: `input keyevent 224`, then `wm dismiss-keyguard`.
-  If a PIN is asked, stop and report it.
-- **Screens.** `adb exec-out screencap -p > <evidence>/NN-name.png`, viewed with Read. A loop of
-  screencaps gives 3–4 frames/s (the phone has no `screenrecord`).
+`devcheck` with no arguments prints this list with each command's options.
+
+| Command | Does |
+|---|---|
+| `walk to <mark\|end> --pace walk\|fast\|<m/s>` | moves along the route a fix a second, returns at the mark, standing |
+| `walk jump <mark\|end>` | puts the position at a mark; refused while recording |
+| `walk status` / `walk stop [--force]` | where the fake position is / stop the mock (`--force`: and a moving walk) |
+| `route <name> <stretch>...` | writes a `DEVCHECK` GPX into the evidence folder |
+| `import-gpx <file>` | pushes a `DEVCHECK` GPX and imports it through the app's picker |
+| `save-activity <name>` | pauses, stops, names and saves the recording |
+| `shot <name>` | screenshot, half-width copy, dump and the labels on screen in one line |
+| `crop <shot> <label>` | cuts a shot to one control |
+| `tap <label> [--hold MS]` | taps (or long-presses) by accessibility label or text |
+| `wait-for <label> [--gone] [--timeout S]` | waits for a label to appear or go, prints the time waited |
+| `build-has <string>` | whether the installed JS bundle holds the string |
+
+Evidence lands in `.scratch/device-checks/<YYYY-MM-DD>/`, numbered in order.
+
+### Looking and driving
+
+- **Read the labels line first.** `shot` prints the `text` and `content-desc` of everything on
+  screen; most checks need no image. When they do, read the `.half.png` it names (about a third
+  of a full screenshot's tokens), and `crop` a shot to one control for a pixel-level look.
+- **Labels come from the source** (`grep -rn accessibilityLabel src`); a button made of an icon
+  and a text answers to the text. A `tap` that misses lists the labels it saw.
+- **The recording screen cannot be dumped**: its clock ticks every second and `uiautomator`
+  needs a second of quiet. While On Foot records, `shot` gives the screenshot only, `wait-for`
+  refuses, and `tap` reaches only the record button (remembered from an earlier dump showing
+  **Start recording**, then checked by the recording state, which fails the tap when the hold
+  missed). The open map card lifts the button: collapse it with `input keyevent 4` before pausing.
+  Read what a recording shows from the screenshot, or pause first.
+- **During a walk** `shot` skips the dump, and `tap` and `wait-for` refuse; act between moves.
+- **Input the toolkit lacks**: `input text` (spaces as `%s`), `input keyevent 4` (back),
+  `input keyevent 224` then `wm dismiss-keyguard` when the screen is off. If a PIN is asked,
+  stop and report it.
 - **The debug log is the first evidence for app behaviour.** The build is not debuggable (no
-  `run-as`), so read it in the app: Settings tab → Debug log, through dumps and screenshots.
+  `run-as`), so read it in the app: map card → **Settings** → **Debug log**.
 - **Native side.** `adb logcat -d -v time` (`ReactNativeJS` carries `console.log` from the release
   build, plus `Mapbox` and `AndroidRuntime`). Process deaths and their reasons:
   `adb shell dumpsys activity exit-info com.zorzi.onfootrn | head -40`. Crash stacks:
   `adb shell dumpsys dropbox --print data_app_crash`.
+
+## Walks
+
+The walker fakes the phone's position through the Appium Settings app. The mock replaces Google's
+fused location, the source both the puck and recording read, so the app sees only the walk.
+
+- **A route first.** `devcheck route 'climb then flat' 600 400:8% 200:noele 700` writes a straight
+  route from Place du Capitole, Toulouse (a public place; `--from`, `--bearing`, `--ele` move it):
+  stretches of `LENGTH`, `LENGTH:GRADE%` or `LENGTH:noele` (no elevation). Any GPX works as a
+  route; pass it once with `--route FILE`, later moves reuse it.
+- **A mark is a distance along the route** in metres; `--offset M` ends the move M metres to the
+  right of the route (negative: left), for "Not on the trail" checks. `--accuracy M` sets the fixes'
+  accuracy (default 4 m), for the accuracy gate and bad-GPS checks.
+- **Between moves the phone stands still on its own**: Appium repeats the last fix every 2 s, and
+  the last fix of a move carries no speed. Nothing of yours keeps running.
+- **A jump** (`walk jump`, or the first move on a new route, which starts with a jump to its start)
+  is refused while On Foot records: the fix gate recovers to a seek after two good fixes, so it
+  would draw a straight line into the track under check. Pause, jump, then resume (a resume opens
+  a new segment), or walk there at `fast`.
+- One walker per phone, across every worktree: a second move is refused while one runs, and
+  `walk stop` refuses to end a moving walk, maybe another agent's, without `--force`.
+
+### Pace
+
+Every move names its pace; there is no default.
+
+- `walk` (1.4 m/s) for anything that reads pace: current pace, moving time, the personal factor,
+  and so every walking time and the history they come from. A chosen speed (`--pace 2.5`) builds
+  personal-factor history at a known pace.
+- `fast` (8 m/s, recorded points about 16 m apart) for checks where only the place matters: the
+  puck, the camera, distance and climbs left, off-trail. It distorts everything in the line above,
+  and an activity of 2 km or more enters the saved history, so keep fast `DEVCHECK` recordings
+  under 2 km unless history is what you check.
 
 ## Test activities
 
@@ -79,39 +150,19 @@ Create activities whenever a behaviour needs one: recording, the activity list, 
 export, elevation, pause and resume, a relaunch mid-recording. Record against a walk so the track
 has real shape:
 
-1. Start a walk (below), then on the Map tab tap **Start recording**.
-2. Pause with a long press on **Pause recording (press and hold)** (it needs over 1 s, `MapTokens.holdToStopMs`); **Resume recording** or
-   **Stop and save recording** from there.
-3. In the form, name it `DEVCHECK <what it tests>`, then **Save activity** (or **Discard activity**).
+1. Walk or jump to the start, `devcheck tap 'Start recording'`, then walk.
+2. Pause with `devcheck tap 'Pause recording (press and hold)' --hold 1500` (it needs over 1 s,
+   `MapTokens.holdToStopMs`); **Resume recording** or **Stop and save recording** from there.
+3. `devcheck save-activity '<what it tests>'` pauses if needed, stops, names it
+   `DEVCHECK <what it tests>` with effort Easy (`--effort`), and saves.
 
-Delete in step 4: Activities tab → the row's **Delete activity** button → confirm the alert.
+Delete in step 4: map card → **Activities** → the row's **Activity actions** → **Delete activity**
+→ confirm. Trails likewise from **Trails** (**Trail actions** → **Delete trail**).
 
-## Walks
+## Phone setup
 
-`.claude/skills/device-check/walk.sh` fakes the phone's position with one fix per second, through
-the Appium Settings app. The mock replaces Google's fused location, the source both the puck and
-recording read, so the app sees only the walk.
-
-```
-walk.sh line [--from LAT,LNG] [--bearing DEG] [--speed M/S] [--seconds N] [--accuracy M] [--ele M]
-walk.sh gpx FILE [--speed M/S] [--accuracy M]
-walk.sh stop
-```
-
-- `line` walks straight from Place du Capitole, Toulouse (default) at 1.4 m/s, bearing 45°,
-  altitude 146 m, accuracy 4 m. `--speed 0` stands still, for checks on a fixed position.
-- `gpx` follows a track's points at `--speed`, altitude from `<ele>`. Write the GPX you need
-  (a loop, a climb, a hairpin, a bad-accuracy stretch via `--accuracy`) into the evidence folder.
-- Start positions are public places, never the owner's real location.
-- Run it in the background while you drive the app; it stops the mock when it ends or is killed.
-  A leftover walk or a crashed script leaves the **whole phone** on the fake position, so run
-  `walk.sh stop` in clean-up regardless.
-- A position jump to the owner's real location during a walk means the mock is not in effect:
-  check the phone setup below.
-
-### Phone setup
-
-Done once, already in place on 2026-11-06. `walk.sh` checks it and points here when it is missing:
+Done once, already in place on 2026-11-06 (Appium Settings 8.2.1). The walker checks it and points
+here when it is missing:
 
 - Developer options → **Disable permission monitoring** on (OnePlus; without it adb cannot grant
   mock location).
@@ -120,3 +171,5 @@ Done once, already in place on 2026-11-06. `walk.sh` checks it and points here w
 - `adb shell pm grant io.appium.settings android.permission.ACCESS_FINE_LOCATION` (and
   `ACCESS_COARSE_LOCATION`, `ACCESS_BACKGROUND_LOCATION`), then
   `adb shell appops set io.appium.settings android:mock_location allow`.
+- `ffmpeg` on the host, for `shot`'s half-width copy and `crop` (the system ImageMagick has no PNG
+  support).

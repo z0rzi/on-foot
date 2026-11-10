@@ -1,0 +1,1 @@
+    topResumedActivity=ActivityRecord{775aa9c u0 com.zorzi.onfootrn/.MainActivity} t3857}

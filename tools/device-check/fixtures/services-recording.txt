@@ -1,0 +1,37 @@
+ACTIVITY MANAGER SERVICES (dumpsys activity services)
+  User 0 active services:
+  * ServiceRecord{431784 u0 com.zorzi.onfootrn/expo.modules.location.services.LocationTaskService}
+    intent={cmp=com.zorzi.onfootrn/expo.modules.location.services.LocationTaskService}
+    packageName=com.zorzi.onfootrn
+    processName=com.zorzi.onfootrn
+    baseDir=/data/app/~~c4gEU31vAghDG9O1xiAg8g==/com.zorzi.onfootrn-slUAmZ_Oy0dcXv-VH96n9A==/base.apk
+    dataDir=/data/user/0/com.zorzi.onfootrn
+    app=ProcessRecord{78256ff 12555:com.zorzi.onfootrn/u0a340}
+    allowWhileInUsePermissionInFgs=true
+    recentCallingPackage=com.zorzi.onfootrn
+    recentCallingUid=10340
+    allowStartForeground=PROC_STATE_TOP
+    startForegroundCount=1
+    infoAllowStartForeground=[callingPackage: com.zorzi.onfootrn; callingUid: 10340; uidState: TOP ; intent: Intent { cmp=com.zorzi.onfootrn/expo.modules.location.services.LocationTaskService (has extras) }; code:PROC_STATE_TOP; tempAllowListReason:<broadcast:u0a340:com.mapbox.common.location.action.PROCESS_LOCATION_UPDATES,reason:null,reasonCode:LOCATION_PROVIDER,duration:20000,callingUid:10340>; targetSdkVersion:36; callerTargetSdkVersion:36; startForegroundCount:0; bindFromPackage:null]
+    isForeground=true foregroundId=481756 foregroundNoti=Notification(channel=com.zorzi.onfootrn:onfoot-location-recording shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x40 color=0xff2196f3 category=service vis=PRIVATE)
+    createTime=-2s761ms startingBgTimeout=--
+    lastActivity=-2s759ms restartTime=-2s760ms createdFromFg=true
+    startRequested=true delayedStop=false stopIfKilled=true callStart=true lastStartId=1
+    Delivered Starts:
+    #0 id=1 dur=-2s760ms dxc=1
+      intent=Intent { cmp=com.zorzi.onfootrn/expo.modules.location.services.LocationTaskService (has extras) }
+    Bindings:
+    * IntentBindRecord{de374e5 CREATE}:
+      intent={cmp=com.zorzi.onfootrn/expo.modules.location.services.LocationTaskService}
+      binder=android.os.BinderProxy@594bbba
+      requested=true received=true hasBound=true doRebind=false
+      * Client AppBindRecord{d62ca6b ProcessRecord{78256ff 12555:com.zorzi.onfootrn/u0a340}}
+        Per-process Connections:
+          ConnectionRecord{50e23a2 u0 CR com.zorzi.onfootrn/expo.modules.location.services.LocationTaskService:@1d36b6d}
+    All Connections:
+      ConnectionRecord{50e23a2 u0 CR com.zorzi.onfootrn/expo.modules.location.services.LocationTaskService:@1d36b6d}
+
+  Connection bindings to services:
+  * ConnectionRecord{50e23a2 u0 CR com.zorzi.onfootrn/expo.modules.location.services.LocationTaskService:@1d36b6d}
+    binding=AppBindRecord{d62ca6b com.zorzi.onfootrn/expo.modules.location.services.LocationTaskService:com.zorzi.onfootrn}
+    conn=android.os.BinderProxy@1d36b6d flags=0x1

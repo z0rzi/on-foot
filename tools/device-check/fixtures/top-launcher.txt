@@ -1,0 +1,1 @@
+      topResumedActivity=ActivityRecord{c6a73db u0 bitpit.launcher/.ui.HomeActivity} t3546}

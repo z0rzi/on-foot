@@ -34,5 +34,5 @@ that never settled, which would stall every later batch silently. Not reproduced
 
 **What we still need:**
 
-- A reproduction: pause, stop, discard, start again in one process, under a `walk.sh` walk, then the
+- A reproduction: pause, stop, discard, start again in one process, under a `devcheck walk`, then the
   debug log's `capture` entries and logcat.

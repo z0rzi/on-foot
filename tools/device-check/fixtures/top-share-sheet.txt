@@ -1,0 +1,1 @@
+    topResumedActivity=ActivityRecord{6350bb u0 android/com.android.internal.app.ChooserActivity} t3858}

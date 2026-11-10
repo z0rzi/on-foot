@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# The device-check toolkit (tools/device-check), run from this checkout through tsx.
+root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
+exec "$root/node_modules/.bin/tsx" "$root/tools/device-check/cli.ts" "$@"
