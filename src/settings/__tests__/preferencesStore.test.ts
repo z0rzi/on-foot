@@ -33,3 +33,44 @@ describe('persisted state', () => {
     expect(JSON.parse(json).state).toEqual({ paceSpeedMode: 'pace', elevationSmoothingMeters: 100 })
   })
 })
+
+describe('hydration', () => {
+  const getItem = jest.mocked(AsyncStorage.getItem)
+  const setItem = jest.mocked(AsyncStorage.setItem)
+  const persisted = JSON.stringify({
+    state: { paceSpeedMode: 'speed', elevationSmoothingMeters: 200 },
+    version: 0,
+  })
+  beforeEach(() => {
+    usePreferencesStore.setState({ paceSpeedMode: 'pace', elevationSmoothingMeters: 50 })
+    setItem.mockClear()
+  })
+  afterEach(() => {
+    getItem.mockReset()
+    setItem.mockReset()
+  })
+
+  it('a failed hydration never writes the defaults over the stored preferences', async () => {
+    getItem.mockRejectedValueOnce(new Error('storage unavailable'))
+    await usePreferencesStore.persist.rehydrate()
+    usePreferencesStore.getState().togglePaceSpeed()
+    expect(usePreferencesStore.getState().paceSpeedMode).toBe('speed')
+    expect(setItem).not.toHaveBeenCalled()
+  })
+  it('nothing is written while hydration is pending, and writes resume once it lands', async () => {
+    let land: (value: string) => void = () => {}
+    getItem.mockReturnValueOnce(new Promise<string>((resolve) => { land = resolve }))
+    const hydration = usePreferencesStore.persist.rehydrate()
+    usePreferencesStore.getState().setElevationSmoothing(100)
+    expect(usePreferencesStore.getState().elevationSmoothingMeters).toBe(100)
+    expect(setItem).not.toHaveBeenCalled()
+    land(persisted)
+    await hydration
+    usePreferencesStore.getState().setElevationSmoothing(25)
+    expect(setItem).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(setItem.mock.calls[0][1]).state).toEqual({
+      paceSpeedMode: 'speed',
+      elevationSmoothingMeters: 25,
+    })
+  })
+})

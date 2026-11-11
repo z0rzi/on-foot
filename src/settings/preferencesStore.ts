@@ -1,6 +1,7 @@
-import { create } from 'zustand'
+import { create, type Mutate, type StoreApi, type UseBoundStore } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { writesAfterHydration } from '../store/writesAfterHydration'
 
 export type PaceSpeedMode = 'pace' | 'speed'
 
@@ -19,7 +20,14 @@ interface PreferencesStore {
   setElevationSmoothing: (meters: number) => void
 }
 
-export const usePreferencesStore = create<PreferencesStore>()(
+type PersistedPreferences = Pick<PreferencesStore, 'paceSpeedMode' | 'elevationSmoothingMeters'>
+
+// Annotated because the storage reads the store's own hydration status.
+type PreferencesStoreHook = UseBoundStore<
+  Mutate<StoreApi<PreferencesStore>, [['zustand/persist', PersistedPreferences]]>
+>
+
+export const usePreferencesStore: PreferencesStoreHook = create<PreferencesStore>()(
   persist(
     (set) => ({
       paceSpeedMode: 'pace',
@@ -29,7 +37,10 @@ export const usePreferencesStore = create<PreferencesStore>()(
     }),
     {
       name: 'onfoot-preferences',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: writesAfterHydration(
+        createJSONStorage<PersistedPreferences>(() => AsyncStorage),
+        () => usePreferencesStore.persist.hasHydrated(),
+      ),
       partialize: (s) => ({
         paceSpeedMode: s.paceSpeedMode,
         elevationSmoothingMeters: s.elevationSmoothingMeters,
