@@ -5,12 +5,13 @@ import type {
   MapProvider, MapViewProps, CameraProps, TerrainProps, CameraController, RouteOverlayProps,
   ScrubMarkerProps, UserPuckProps,
 } from '../../provider/types'
+import type { RouteLayer } from '../../provider/routeTiers'
 import { mapboxCapabilities } from './capabilities'
 import { mapboxOfflineController } from './offline'
 import { trackingModeFor } from './followMode'
 import { cameraPaddingFor, cameraStopFor, fitCameraFor, framingFromMapState, type ViewSize } from './camera'
 import { TERRAIN_DEM } from './styles'
-import { TIER_ANCHORS, anchorLayerIdFor } from './tiers'
+import { SLOT_ANCHORS, anchorLayerIdForSlot } from './tiers'
 import { MAPBOX_ACCESS_TOKEN } from './token'
 import { logEvent } from '../../../log'
 
@@ -58,12 +59,15 @@ const View = ({ styleURL, onCameraChanged, onMapLoaded, style, children }: MapVi
       >
         {/* rnmapbox adds a layer on top of the stack as it mounts once the style has loaded,
             unless it is given an aboveLayerID, belowLayerID or layerIndex; child order only
-            orders the layers queued before the style loads. So the route tiers are held by one
-            invisible anchor layer per tier, mounted in tier order as the map's first children,
-            and every route overlay layer is inserted below its tier's anchor (belowLayerID,
-            which waits for the anchor if it is not on the map yet). On a style reload rnmapbox
-            re-adds the map's children in child order, so the anchors come back first, in order. */}
-        {TIER_ANCHORS.map((id) => (
+            orders the layers queued before the style loads. So the route tiers, and the layers
+            of an overlay inside its tier, are held by one invisible anchor layer per slot (tier
+            and kind of layer), mounted in stacking order as the map's first children, and every
+            route overlay layer is inserted below its slot's anchor (belowLayerID, which waits for
+            the anchor if it is not on the map yet). On a style reload rnmapbox re-adds the map's
+            children in child order, so the anchors come back first, in order. With terrain on,
+            Mapbox draws the symbol and circle layers (arrows, endpoints) above every line layer,
+            whatever their place in the style, so they show above the lines of both tiers. */}
+        {SLOT_ANCHORS.map((id) => (
           <Mapbox.BackgroundLayer key={id} id={id} style={{ visibility: 'none' }} />
         ))}
         <MapLoadedContext.Provider value={loaded}>
@@ -177,13 +181,13 @@ const RouteOverlay = ({
   tier, lines, connectors, connectorDashArray, color, lineWidth, colouredLines, casing,
   arrowImage, arrowSpacing, arrowSize, endpoints,
 }: RouteOverlayProps) => {
-  const belowLayerID = anchorLayerIdFor(tier)
+  const below = (layer: RouteLayer) => anchorLayerIdForSlot(tier, layer)
   const arrowsLayer =
     arrowImage != null ? (
       <Mapbox.SymbolLayer
         key="arrows"
         id={`${tier}-arrows`}
-        belowLayerID={belowLayerID}
+        belowLayerID={below('arrows')}
         style={{
           symbolPlacement: 'line',
           symbolSpacing: arrowSpacing,
@@ -213,14 +217,14 @@ const RouteOverlay = ({
               <Mapbox.LineLayer
                 key="slope-casing"
                 id={`${tier}-slope-casing`}
-                belowLayerID={belowLayerID}
+                belowLayerID={below('casing')}
                 style={{ lineColor: TRAIL_CASING, lineWidth: lineWidth + 3, lineCap: 'round', lineJoin: 'round' }}
               />
             ),
             <Mapbox.LineLayer
               key="slope-line"
               id={`${tier}-slope-line`}
-              belowLayerID={belowLayerID}
+              belowLayerID={below('line')}
               style={{ lineColor: ['get', 'color'], lineWidth, lineCap: 'round', lineJoin: 'round' }}
             />,
             arrowsLayer,
@@ -234,14 +238,14 @@ const RouteOverlay = ({
                 <Mapbox.LineLayer
                   key="casing"
                   id={`${tier}-line-casing`}
-                  belowLayerID={belowLayerID}
+                  belowLayerID={below('casing')}
                   style={{ lineColor: TRAIL_CASING, lineWidth: lineWidth + 3, lineCap: 'round', lineJoin: 'round' }}
                 />
               ),
               <Mapbox.LineLayer
                 key="line"
                 id={`${tier}-line`}
-                belowLayerID={belowLayerID}
+                belowLayerID={below('line')}
                 style={{ lineColor: color, lineWidth, lineCap: 'round', lineJoin: 'round' }}
               />,
               arrowsLayer,
@@ -253,7 +257,7 @@ const RouteOverlay = ({
         <Mapbox.ShapeSource id={`${tier}-connector-source`} shape={multiLine(connectors)}>
           <Mapbox.LineLayer
             id={`${tier}-connector`}
-            belowLayerID={belowLayerID}
+            belowLayerID={below('connectors')}
             style={{ lineColor: color, lineWidth, lineDasharray: connectorDashArray, lineCap: 'round' }}
           />
         </Mapbox.ShapeSource>
@@ -272,7 +276,7 @@ const RouteOverlay = ({
         >
           <Mapbox.CircleLayer
             id={`${tier}-endpoints`}
-            belowLayerID={belowLayerID}
+            belowLayerID={below('endpoints')}
             style={{
               circleColor: color,
               circleRadius: endpoints.radius,

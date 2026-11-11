@@ -63,9 +63,9 @@ prefix; see `README.md`.
   2026-11-09, release build. Confirmed: after a cold-start relaunch mid-recording (`launch action
   resume`), and after switching Outdoors → Default → Outdoors, the recorded track's line covers the
   trail's line and casing (slope-coloured; the plain line too, seen without a relaunch); a trail
-  shown alone draws its casing, arrows and both endpoints. Contradicted: the trail's direction
-  arrows draw above the recorded track wherever they overlap, before and after the relaunch and on
-  both layers.
+  shown alone draws its casing, arrows and both endpoints. The trail's arrows and endpoint dots draw
+  above the recorded track's line, as Mapbox draws symbol and circle layers with terrain on; D102
+  keeps them there.
 - **T-77, T-80, T-81 and T-82, the ahead lines on the recording card** ([[2026-11-06-hiking-ux-design]],
   D81; [[2026-11-09-walking-time-ahead-design]], D84, D85, D86, D87; review rulings D89, D91, D92)
   were checked on the device on 2026-11-09, release build of `1b6fdcf`, with mocked GPS replays
@@ -109,3 +109,18 @@ prefix; see `README.md`.
   under it (Verification 24); along `.scratch/device-checks/2026-11-07-hiking-ux-feedback/climb.gpx`
   (146–202 m, the profile the overlap was seen on, not the 155–211 m first reported) the y-axis
   reads "180 m" and "160 m", apart, with no label over the top 20 m.
+- **draped-route-overlay/01, the in-tier layer order** (T-78, D83, D102)
+  was checked on the device on 2026-11-10, terrain on, along a trail on two segments whose dashed
+  connector crosses its own line, on builds whose arrows and dots were draped lines (items 02 and 03,
+  since restored to the symbol and circle layers by D102). Confirmed for the line layers, which did
+  not change: the connector's dashes draw over the line and its casing on the slope-coloured trail,
+  on the same geometry imported without elevation (plain line), back on the slope-coloured one, after
+  a relaunch on Default and after switching Default → Outdoors live. The slope ↔ plain switch was
+  made by switching between the two trails, not within one. A connector mounting after the rest of
+  its overlay (a spike handing the route its connectors 6 s late) draws over the line and casing;
+  a live track resumed away from its pause point draws its late connector. The order has since
+  become casing, line, connectors, arrows, endpoints (D102). **Unobservable** with terrain on: the
+  markers' place among the lines, Mapbox drawing the arrows and dots above every line whatever
+  their place in the style. Owed on the restored build: a trail shown alone draws both endpoint
+  dots over its arrows, and the line and casing stay under the connectors after a slope ↔ plain
+  switch within one trail (the remount T-78 described).

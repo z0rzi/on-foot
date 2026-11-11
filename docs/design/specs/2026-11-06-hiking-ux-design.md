@@ -11,10 +11,10 @@ status bar, opacity, graph gap, y range, fade and in-plot labels after the owner
 the card, D75–D80; recording card, metrics and track order after the owner's hike of 2026-11-08,
 D81–D83; the ahead line revised by [[2026-11-09-walking-time-ahead-design]], D84–D88; its review
 rulings, D89–D93; the card and the graph puck after the device check, D94–D96; the card after its
-own check, D97–D101)
+own check, D97–D101; the route's markers above the track after the draped overlay's device check, D102)
 **Ticket:** `T-14` (app shell). Pulls in `T-23` (you-are-here dot on the graph, while recording) and
 answers the display half of `T-38` (pace at recording start).
-**Date:** 2026-11-06, revised 2026-11-09
+**Date:** 2026-11-06, revised 2026-11-09, 2026-11-11
 **Evidence:** code audit and device walk of 2026-11-06, screenshots in
 `.scratch/device-checks/2026-11-06-ux-rethink/`; the owner's device look at the build of 2026-11-07,
 screenshots in `.scratch/device-checks/2026-11-07-hiking-ux-feedback/` (both gitignored, cited by
@@ -718,7 +718,8 @@ title or top inset.
     tabular digits on one line, labels centred over up to two lines (D82).
   - Route overlays (map port and Mapbox adapter): each overlay declares its **tier**, the shown
     route or the live track; the adapter stacks the tiers in that order whatever order they mount
-    in, a style reload included (D83).
+    in, a style reload included (D83). Inside a tier, an overlay's lines, then its markers; with
+    terrain on the markers draw above the lines of both tiers (D102).
   - `TrailInfoSheet` / `ActivityInfoSheet`: ⋮, metrics, the name wrapping.
   - `EntityListItem`: one ⋮ slot for both list items; `TrailListItem` / `ActivityListItem` lose
     their inline icons.
@@ -812,7 +813,7 @@ whole-walk average; the window's stationary rule does not filter them.
 | Off the recording's trail | No puck on the graph; the map shows the track leaving the trail; the open card's ahead lines become the one line "Not on the trail" | Puck and ahead lines return once back within R. |
 | Recording along a trail with no elevation profile | No puck, no bands, so no ahead lines ("Not on the trail" would be false); the rest of the open card as normal: the Along row with its summary row and the description, set apart (D95, D98) | — |
 | Walking the trail against its direction | The ahead lines' distance, time and climbs count toward the trail's own end | — |
-| Relaunch mid-recording, the trail loading after the track | The recorded track stays drawn above the trail (D83) | — |
+| Relaunch mid-recording, the trail loading after the track | The recorded track's line stays drawn above the trail's lines, the trail's arrows and dots above it (D83, D102) | — |
 | Recording's trail deleted | Recording carries on along no trail, toast "Trail deleted · Recording without a trail" | — |
 | Recording's trail fails to load | Same, toast "The recording's trail is no longer available" (today silent, F26) | — |
 | Large system font | Pill figures shrink to fit, never truncate | — |
@@ -989,7 +990,7 @@ On the device (`device-check`), each check failing in the broken case:
 | D80 *(owner, 2026-11-07, second look at the card)* | The y-axis's labels are drawn inside the plot, at its left edge just above their gridlines, behind the bands and the line (they may hide them in places), plain text with no rim (owner: a rim stood out too much); no gutter, the plot takes the card's whole content width. Revises D55's left gutter. | Owner: the graph can then expand over the full width. |
 | D81 *(owner, 2026-11-09, after a hike)* | *Revised the same day by D84–D85 (the ahead line's form and the climb rule) and D95 (the card's order).* Recording along a trail, the open card shows, under the Along row, the ahead line (the distance left to the trail's end and the next climb, or the climb in progress: distance to it, gain, length; climbs under 20 m ignored; "Not on the trail" with no puck), then the trail's difficulty badge, metrics and description. Not in the pill. Revises D25 ("Along row, nav row"). | Owner: the trail's specs and description were visible nowhere while recording; wants the km left and when the next climb is. |
 | D82 *(owner, 2026-11-09, after a hike)* | `MetricsGrid` lays its tiles out three to a row, in equal columns, wrapping; the activity card's five read Distance · Duration · Average pace, then Elevation gain · Elevation loss. | Owner: on the activity card the values were too close and the labels stuck together (five tiles in one row with no gap). |
-| D83 *(owner, 2026-11-09, after a hike)* | The recorded track is always drawn above the shown route, whatever order they appear in. The stacking is declared on the map port (a tier per route overlay) and enforced by the adapter, not left to the order the overlays mount in. Restores the invariant of the 2026-08-26 follow-trail spec. | Owner's screenshot (2026-11-08 17:25): after relaunching mid-recording the track lay under the trail; the trail loads after the resumed recording and the map stacks a layer on top as it is added. |
+| D83 *(owner, 2026-11-09, after a hike)* | *Narrowed 2026-11-11 by D102 (the route's markers stay above the track).* The recorded track is always drawn above the shown route, whatever order they appear in. The stacking is declared on the map port (a tier per route overlay) and enforced by the adapter, not left to the order the overlays mount in. Restores the invariant of the 2026-08-26 follow-trail spec. | Owner's screenshot (2026-11-08 17:25): after relaunching mid-recording the track lay under the trail; the trail loads after the resumed recording and the map stacks a layer on top as it is added. |
 | D84 *(owner, 2026-11-09, grilling after the hike)* | The ahead line becomes two lines, one fact each behind an icon: the distance and walking time left; the next climb (distance, walking time, height) or the climb in progress (height left, walking time to the top). Times in "min"/"h", heights always in m. Revises D81's line. Detail: [[2026-11-09-walking-time-ahead-design]]. | Owner: "Too much data, hard to understand what's going on"; the line was clustered and not discoverable. |
 | D85 *(owner, 2026-11-09)* | *Revised the same day by D89 (the end of a climb, its average grade, segments).* A climb is found on its own rule over a fixed 50 m smoothing, not on the graph's bands: from a low point to its top, never 10 m below its running high, never 300 m at a flat grade, at least 20 m of gain. Revises D81's "run of touching climbing bands". | Owner: a short flat inside a climb must not split it; the bands also followed the display smoothing preference. |
 | D86 *(owner, 2026-11-09)* | Walking time is Tobler's hiking function over the trail's profile, scaled by the personal factor, breaks excluded. | Terrain-aware and personal; the current pace alone is blind to slope. |
@@ -1008,6 +1009,7 @@ On the device (`device-check`), each check failing in the broken case:
 | D99 *(owner, 2026-11-09, after the device check of D95)* | The climbing line reads "Climbing · 10 min to the top (230 m up)", and the next-climb line "Next climb in 12 min (1.2 km) · 340 m to climb". Revises D94's height. | Owner: in "Climbing · 20 m up" it was unclear whether the 20 m were climbed or still to go; stacked over the climbing line, "to climb" says the next climb's height is its whole. |
 | D100 *(owner, 2026-11-09, after the device check of D95)* | The end line reads "Trail end in 3 h 10 (12.4 km)", and "At the trail end" with no distance left. Revises D84's "12.4 km · 3 h 10 left" and D91's "0 m left". | Owner: only the flag said the line was about the trail's end, and under it the climb lines made it unclear; naming the target, time first, distance in brackets, reads like the climb lines. |
 | D101 *(owner, 2026-11-09, after the device check of D97)* | On the recording card the trail's summary row sits tight under the "Along {name}" title, and ✕ beside the two, centred on them. Revises D95's ✕ beside the title alone. | Owner: the summary sat as far from the title as from the lines below it, so it was unclear what it referred to. |
+| D102 *(owner, 2026-11-11, after the device check of the draped route overlay)* | The recorded track covers the shown route's line, casing and connectors; the route's markers, its direction arrows and endpoint dots, stay drawn above the track. Inside a tier the order stays declared: casing, line, connectors, arrows, endpoints, the lines then the markers, the order Mapbox draws them in with terrain on. Narrows D83 to the route's lines. | With terrain on, Mapbox draws symbol and circle layers above every line, so covering the markers took drawing them as terrain-draped lines (plan `2026-11-10-draped-route-overlay`, items 02–03); on the device those arrows and dots came out blurry, and the arrows misshapen when zoomed out. Owner: markers above the track are no problem, and the dots keep marking the start and end once walked over. |
 
 **Rejected alternatives**
 
