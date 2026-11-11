@@ -1,6 +1,7 @@
 import { create, type Mutate, type StoreApi, type UseBoundStore } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { logEvent } from '../log'
 import { MapTokens } from '../theme/tokens'
 import { writesAfterHydration } from './writesAfterHydration'
 import type { CameraFraming, CameraProps, FollowUserMode } from '../map/provider/types'
@@ -235,7 +236,7 @@ type MapStoreHook = UseBoundStore<Mutate<StoreApi<MapStore>, [['zustand/persist'
 
 export const useMapStore: MapStoreHook = create<MapStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // Default to Position so a first launch centres and zooms to the user once location is
       // granted (matches the Kotlin app's default FollowMode.Position).
       followMode: 'position',
@@ -278,31 +279,34 @@ export const useMapStore: MapStoreHook = create<MapStore>()(
       // Any action that triggers a one-shot camera op (pendingFit here / northResetNonce) MUST set
       // followMode: 'off' — rnmapbox ignores a camera move while following, and MapCanvas defers the
       // op a frame past this follow-off (see the deferral there). Leave follow on and it is swallowed.
-      select: (kind, id) =>
+      // Each request for a fit is logged with who asked (T-84), so a fit at relaunch names its caller.
+      select: (kind, id) => {
+        logEvent('info', 'map', 'fit requested', { by: 'select', kind })
         set({
           selection: { kind, id },
           followMode: 'off',
           pendingFit: { kind, id },
           cameraPitch: MapTokens.pitchMin,
           pitchAnimated: true,
-        }),
+        })
+      },
       clearSelection: () => set(NO_SELECTION),
       forgetEntity: (kind, id) =>
         set((s) => (s.selection?.kind === kind && s.selection.id === id ? NO_SELECTION : {})),
       endActivityView: () =>
         set((s) => (s.selection?.kind === 'activity' ? NO_SELECTION : {})),
       clearPendingFit: () => set({ pendingFit: null }),
-      recenter: () =>
-        set((s) =>
-          s.selection
-            ? {
-                pendingFit: { kind: s.selection.kind, id: s.selection.id },
-                followMode: 'off',
-                cameraPitch: MapTokens.pitchMin,
-                pitchAnimated: true,
-              }
-            : {},
-        ),
+      recenter: () => {
+        const { selection } = get()
+        if (!selection) return
+        logEvent('info', 'map', 'fit requested', { by: 'recenter', kind: selection.kind })
+        set({
+          pendingFit: { kind: selection.kind, id: selection.id },
+          followMode: 'off',
+          cameraPitch: MapTokens.pitchMin,
+          pitchAnimated: true,
+        })
+      },
       setCameraPitch: (p) => set({ cameraPitch: p, pitchAnimated: false }),
       setCameraPitchAnimated: (p) => set({ cameraPitch: p, pitchAnimated: true }),
       setCameraHeading: (h) => set({ cameraHeading: h }),

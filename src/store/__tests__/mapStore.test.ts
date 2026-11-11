@@ -1,3 +1,5 @@
+jest.mock('../../log', () => ({ logEvent: jest.fn() }))
+
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import {
   nextFollowMode,
@@ -15,6 +17,7 @@ import {
   trailToShow,
   useMapStore,
 } from '../mapStore'
+import { logEvent } from '../../log'
 
 const CAMERA = { center: [6.86, 45.92] as [number, number], zoom: 14, pitch: 45, heading: 30 }
 
@@ -489,5 +492,39 @@ describe('hydration', () => {
     useMapStore.getState().setLastCamera(CAMERA)
     expect(setItem).toHaveBeenCalledTimes(1)
     expect(JSON.parse(setItem.mock.calls[0][1]).state).toMatchObject({ mapStyleId: 'outdoors', lastCamera: CAMERA })
+  })
+})
+
+describe('fit requests in the debug log', () => {
+  beforeEach(() => {
+    jest.mocked(logEvent).mockClear()
+    useMapStore.setState({ selection: null, pendingFit: null })
+  })
+
+  test('select logs who asked and the kind, never the id', () => {
+    useMapStore.getState().select('trail', 7)
+    expect(logEvent).toHaveBeenCalledTimes(1)
+    expect(logEvent).toHaveBeenCalledWith('info', 'map', 'fit requested', { by: 'select', kind: 'trail' })
+  })
+
+  test('recenter logs who asked and the kind of the selection', () => {
+    useMapStore.setState({ selection: { kind: 'activity', id: 4 } })
+    useMapStore.getState().recenter()
+    expect(logEvent).toHaveBeenCalledTimes(1)
+    expect(logEvent).toHaveBeenCalledWith('info', 'map', 'fit requested', { by: 'recenter', kind: 'activity' })
+  })
+
+  test('recenter with nothing selected requests no fit and logs nothing', () => {
+    useMapStore.getState().recenter()
+    expect(useMapStore.getState().pendingFit).toBeNull()
+    expect(logEvent).not.toHaveBeenCalled()
+  })
+
+  test('no other action logs a fit', () => {
+    useMapStore.setState({ selection: { kind: 'trail', id: 7 }, pendingFit: { kind: 'trail', id: 7 } })
+    useMapStore.getState().clearPendingFit()
+    useMapStore.getState().clearSelection()
+    useMapStore.getState().restoreCamera(CAMERA)
+    expect(logEvent).not.toHaveBeenCalled()
   })
 })

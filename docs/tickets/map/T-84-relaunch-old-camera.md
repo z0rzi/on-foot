@@ -40,3 +40,14 @@ Seen again in the device check of 2026-11-09 evening (release build of `hiking-u
 1b6fdcf, mocked GPS): after a relaunch from Recents mid-recording, the map opened on the camera from
 before the check session, not on the view shown at the kill. Observation only; the screenshot was
 deleted because it showed a real location.
+
+Since 2026-11-11 the debug log records both ([[2026-11-11-field-diagnostics-design]], §2), not yet
+seen on a device: every launch writes `map launch camera` with `kind` (`restore` or `follow`),
+`mode` and `from`; `select` and `recenter` each write `map fit requested` with `by` and `kind`;
+the fit itself writes `map fit fired`. On the next occurrence, read the entries after the last
+`launch cold start`. A `launch camera` of `follow` where the camera was free at the kill, or one
+with `from: false`, says the follow state or the last camera was not persisted as it stood at the
+kill. A `fit requested` after the cold start names what asked for the reframing: `by: select`
+means something selected the trail again on the way back, `by: recenter` that the frame control's
+action ran. No `fit requested` and a `restore` on a wrong view points at what was saved as the
+last camera, not at the launch.

@@ -5,6 +5,7 @@ import {
   connectorLines,
   overallEndpoints,
   flattenSegments,
+  pointCount,
   startPointOf,
 } from '../geo'
 import { GpxPoint } from '../../data/trails/types'
@@ -65,6 +66,10 @@ describe('segment helpers', () => {
   })
   test('flattenSegments concatenates in order', () => {
     expect(flattenSegments([segA, segB])).toHaveLength(5)
+  })
+  test('pointCount adds up every segment', () => {
+    expect(pointCount([segA, [], segB])).toBe(5)
+    expect(pointCount([])).toBe(0)
   })
 })
 

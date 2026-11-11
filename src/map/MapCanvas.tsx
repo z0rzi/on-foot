@@ -9,19 +9,16 @@ import { MapTokens } from '../theme/tokens'
 import { Trail } from '../data/trails'
 import { Activity } from '../data/activities/types'
 import { groupPointsBySegment } from '../data/activities/mapping'
-import { boundsForPoints, flattenSegments } from './geo'
+import { boundsForPoints, flattenSegments, pointCount } from './geo'
 import { MapOverlays, type OverlayRoute } from './MapOverlays'
 import { useCurrentMapStyle } from './useCurrentMapStyle'
 import { ScrubMarkerLayer } from './ScrubMarkerLayer'
+import { UserPuckLayer } from './UserPuckLayer'
 import { useRouteColouring } from '../elevation/useRouteColouring'
 import type { RouteDisplay } from '../elevation/routeDisplay'
 import { useInterruptionToast } from '../recording/useInterruptionToast'
 import { useLastCameraCapture } from './useLastCameraCapture'
-
-// Counts points without allocating the flattened copy flattenSegments would build.
-function pointCount<T>(segments: T[][]): number {
-  return segments.reduce((total, segment) => total + segment.length, 0)
-}
+import { logEvent } from '../log'
 
 export function MapCanvas({
   trail,
@@ -39,7 +36,7 @@ export function MapCanvas({
   const { components } = useMapProvider()
   const caps = useMapCapabilities()
   const style = useCurrentMapStyle()
-  const { View: MapView, Camera, Terrain, UserPuck } = components
+  const { View: MapView, Camera, Terrain } = components
 
   // The camera is driven declaratively from the store. When a follow mode is active, rnmapbox
   // owns the camera (centres/zooms/tilts to the puck) — this is what moves to the user on a
@@ -108,6 +105,7 @@ export function MapCanvas({
       : pendingFit?.kind === 'activity' && activity?.id === pendingFit.id
         ? activity.geometry.segments
         : null
+  const fitKind = pendingFit?.kind
 
   const [padTop, padRight, padBottom, padLeft] = camera.padding
   const padding = useMemo((): EdgePadding => [padTop, padRight, padBottom, padLeft], [padTop, padRight, padBottom, padLeft])
@@ -121,11 +119,15 @@ export function MapCanvas({
     if (!bounds) return
     const id = requestAnimationFrame(() => {
       const { cameraHeading } = useMapStore.getState()
-      cameraRef.current?.fitBounds(bounds.ne, bounds.sw, padding, MapTokens.trailFitDurationMs, cameraPitch, cameraHeading)
+      const controller = cameraRef.current
+      if (controller) {
+        controller.fitBounds(bounds.ne, bounds.sw, padding, MapTokens.trailFitDurationMs, cameraPitch, cameraHeading)
+        logEvent('info', 'map', 'fit fired', { kind: fitKind })
+      }
       clearPendingFit()
     })
     return () => cancelAnimationFrame(id)
-  }, [fitSegments, paddingSettled, padding, clearPendingFit, cameraPitch])
+  }, [fitSegments, fitKind, paddingSettled, padding, clearPendingFit, cameraPitch])
 
   const follow = followCameraProps(followMode)
   const manualPitch =
@@ -156,7 +158,7 @@ export function MapCanvas({
         }}
       />
       {caps.supportsTerrain && <Terrain exaggeration={MapTokens.terrainExaggeration} />}
-      <UserPuck scale={MapTokens.puckBearingScale} />
+      <UserPuckLayer />
       <MapOverlays
         route={route}
         liveSegments={liveSegments}

@@ -1,7 +1,13 @@
 import * as Location from 'expo-location'
 import * as TaskManager from 'expo-task-manager'
 import { PermissionsAndroid, Platform } from 'react-native'
-import type { BackgroundTrackingOptions, LocationFix, NotificationAccess } from './types'
+import type {
+  BackgroundTrackingOptions,
+  DeliveryFault,
+  HeadingReading,
+  LocationFix,
+  NotificationAccess,
+} from './types'
 
 const RECORDING_TASK = 'onfoot-location-recording'
 
@@ -45,11 +51,23 @@ function toTaskOptions(options: BackgroundTrackingOptions): Location.LocationTas
   }
 }
 
-export function defineBackgroundFixHandler(handler: (fixes: LocationFix[]) => Promise<void>): void {
+// A delivery that carries no fix never reaches the handler; onDeliveryFault is told instead, with
+// the error's message when there is one. Android's error body holds a message and no code.
+export function defineBackgroundFixHandler(
+  handler: (fixes: LocationFix[]) => Promise<void>,
+  onDeliveryFault: (fault: DeliveryFault, error?: string) => void,
+): void {
   TaskManager.defineTask(RECORDING_TASK, async ({ data, error }) => {
-    if (error) return
+    if (error) {
+      onDeliveryFault('error', error.message ?? undefined)
+      return
+    }
     const fixes = fixesFromTaskData(data)
-    if (fixes.length > 0) await handler(fixes)
+    if (fixes.length === 0) {
+      onDeliveryFault('empty')
+      return
+    }
+    await handler(fixes)
   })
 }
 
@@ -65,6 +83,17 @@ export async function stopBackgroundTracking(): Promise<void> {
   if (await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK)) {
     await Location.stopLocationUpdatesAsync(RECORDING_TASK)
   }
+}
+
+// Resolves to the function that ends the watch. Android sends a reading only when the compass has
+// turned about 2° since the last one, so a phone held steady is silent; it stops the watch while
+// the app is in the background, holds one watch at a time, and without the location grant or a
+// magnetometer resolves all the same and sends nothing.
+export async function watchHeading(listener: (reading: HeadingReading) => void): Promise<() => void> {
+  const subscription = await Location.watchHeadingAsync((heading) =>
+    listener({ degrees: heading.magHeading, accuracy: heading.accuracy }),
+  )
+  return () => subscription.remove()
 }
 
 // GPS or network enabled — the exact test the native start applies before issuing a request.

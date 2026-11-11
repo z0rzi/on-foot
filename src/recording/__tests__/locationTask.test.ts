@@ -19,6 +19,7 @@ const farLat = 45.0054
 
 type Handler = (fixes: LocationFix[]) => Promise<void>
 let handleFixes: Handler
+let reportFault: (fault: 'error' | 'empty', error?: string) => void
 let repo: jest.Mocked<typeof import('../../data/activities').activitiesRepository>
 let logged: jest.MockedFunction<typeof import('../../log').logEvent>
 let store: typeof import('../recordingStore').useRecordingStore
@@ -29,7 +30,9 @@ beforeEach(() => {
   jest.isolateModules(() => {
     const location: typeof import('../../location') = require('../../location')
     require('../locationTask')
-    handleFixes = jest.mocked(location.defineBackgroundFixHandler).mock.calls[0][0]
+    const defined = jest.mocked(location.defineBackgroundFixHandler).mock.calls[0]
+    handleFixes = defined[0]
+    reportFault = defined[1]
     repo = jest.mocked((require('../../data/activities') as typeof import('../../data/activities')).activitiesRepository)
     logged = jest.mocked((require('../../log') as typeof import('../../log')).logEvent)
     store = (require('../recordingStore') as typeof import('../recordingStore')).useRecordingStore
@@ -132,4 +135,51 @@ it('handles an overlapping delivery only once the previous one has finished', as
     [7, 2, [fix(6000)]],
     [7, 2, [fix(7000)]],
   ])
+})
+
+it('logs a delivery the port could not read, with the fault and the error', () => {
+  reportFault('error', 'task failed')
+  reportFault('empty')
+  expect(logged).toHaveBeenCalledWith('warn', 'capture', 'delivery fault', { fault: 'error', error: 'task failed' })
+  expect(logged).toHaveBeenCalledWith('warn', 'capture', 'delivery fault', { fault: 'empty', error: undefined })
+})
+
+describe('a delivery whose turn never settles', () => {
+  const waitingEntries = () => logged.mock.calls.filter((call) => call[2] === 'delivery waiting').map((call) => call[3])
+  let now: jest.SpyInstance<number, []>
+
+  beforeEach(() => {
+    now = jest.spyOn(Date, 'now').mockReturnValue(1_000_000)
+    repo.getActiveSession.mockReturnValueOnce(new Promise(() => {}))
+    void handleFixes([fix(6000)])
+  })
+  afterEach(() => now.mockRestore())
+
+  it('says nothing of a delivery arriving within 10 s of it', () => {
+    now.mockReturnValue(1_009_000)
+    void handleFixes([fix(7000)])
+    expect(waitingEntries()).toEqual([])
+  })
+
+  it('logs each later delivery as waiting, at most once per 30 s, with no position', () => {
+    now.mockReturnValue(1_011_000)
+    void handleFixes([fix(7000)])
+    now.mockReturnValue(1_020_000)
+    void handleFixes([fix(8000)])
+    now.mockReturnValue(1_045_000)
+    void handleFixes([fix(9000)])
+    expect(waitingEntries()).toEqual([
+      { waiting: 1, oldestS: 11 },
+      { waiting: 3, oldestS: 45 },
+    ])
+  })
+})
+
+it('counts a settled delivery as waiting no longer', async () => {
+  const now = jest.spyOn(Date, 'now').mockReturnValue(1_000_000)
+  await handleFixes([fix(6000)])
+  now.mockReturnValue(1_060_000)
+  await handleFixes([fix(7000)])
+  now.mockRestore()
+  expect(logged.mock.calls.filter((call) => call[2] === 'delivery waiting')).toEqual([])
 })

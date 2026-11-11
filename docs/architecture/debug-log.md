@@ -33,7 +33,8 @@ write is swallowed; the next entry still gets its turn.
   finish, refusals (e.g. "start already-active"), and a failed read of the personal factor's
   history (`recordingStore`; the times fall back to factor 1).
 - **`capture`** — the location stream: start/stop, permission and location-off refusals, each fix
-  batch (`fixBatchSummary`), and interruption recovery decisions.
+  batch (`fixBatchSummary`), a delivery that never reached the fix gate (`delivery fault`,
+  `delivery waiting`, below), and interruption recovery decisions.
 - **`launch`** — cold start, the action `useResumeRecording` took, an interruption it detects
   (with its range), and the moment that interruption is announced, once the map has loaded.
 - **`map`** — the recording sheet mounting, every map-mode transition, the sheet settling on a snap
@@ -43,7 +44,9 @@ write is swallowed; the next entry still gets its turn.
   maps list retries it on focus), and the launch camera falling back: the map store's hydration
   failing (with the error class, never its message) or timing out (with the bound), and a persisted
   launch camera ignored (with the fault: `missing`, `non-finite`, `out-of-range` or
-  `unknown-follow-state`).
+  `unknown-follow-state`), the launch's camera choice and every fit of the camera to a route (below),
+  the two route timing entries (below), and the compass watch held while recording with the puck's
+  mounts (below).
 - **`error`** — uncaught errors (the global `ErrorUtils` handler), render errors caught by
   `ErrorBoundary`, and every failure or refusal the user is told about in an alert or a toast:
   start, pause, resume and stop recording, opening an activity while recording, saving or
@@ -71,6 +74,98 @@ fix gate (`src/recording/fixGate.ts`) has judged them and before the kept ones a
 | `metresFromAnchor` | whole metres from the segment's last stored point to the first fix of the segment, kept or not, so a rejected jump still shows its size; null with no stored point or no fix in the segment |
 
 A paused session or no session logs `fixes ignored, …` with `arrived` instead.
+
+## The launch camera and fit entries
+
+What the camera was told to do, so a relaunch that frames the wrong view names its cause (T-84):
+
+- `launch camera` `{ kind, mode, from }`, once per launch (`MapLaunchGate`): `kind` is `restore`
+  (a free launch back on the last camera) or `follow`; `mode` is the follow mode, null on a
+  restore; `from` says whether the launch starts on a last camera. A launch that fell back, after
+  one of the warn entries above, reads `follow`, `position`, `from: false` or the fallback
+  `launchCamera` named.
+- `fit requested` `{ by, kind }`, from the map store's two actions that ask for a fit: `by` is
+  `select` (an entity was chosen to be shown) or `recenter` (the route was framed again), `kind`
+  is `trail` or `activity`.
+- `fit fired` `{ kind }`, when `MapCanvas` hands the fit to the camera, a frame after the
+  entity's geometry has loaded and the camera padding has settled. A request with no `fit fired`
+  after it was replaced, cleared, or never got a geometry of two points.
+
+None carries a camera centre or an entity id.
+
+## The route timing entries
+
+Two entries split the cost of showing a route (T-4), each `{ kind, points, ms }`: `kind` is
+`trail` or `activity`, `points` the point count over every segment, `ms` the duration to one
+decimal.
+
+- `route loaded`: the load of the selected entity, which is the SQLite read and the `JSON.parse`
+  of its stored geometry (`timedRouteLoad`, wrapped around the loader in `useSelectedEntity`).
+  Written once per load of the map's selection, so on a selection and again when a mutation
+  makes the selection re-read; no other read of a trail or an activity writes it. An activity's
+  load also reads its linked trail, when it has one, and that read is inside its `ms`. A load
+  that finds nothing or fails writes none.
+- `route derived`: the profile and banding pass of `useRouteDisplay`, written each time it runs
+  for a trail or an activity, so on a selection and on a change of the smoothing preference. The
+  live track's pass is not logged: it runs again on every fix batch.
+
+## The heading entries
+
+The puck's heading arrow is turned by the map SDK from a compass JS cannot read (T-89). While a
+recording is in the recording phase and the app is active, `useHeadingLog` holds its own watch on
+the compass through the location port (`watchHeading`) and writes, all under `map`:
+
+- `heading watch` `{ on }` when the watch starts and stops. A watch that rejects writes
+  `{ on: false, error }` once, as a warn, and is not retried until the next recording phase or
+  return to the app.
+- `heading sample` `{ updates, spreadDeg, accuracy, movedM }` every five minutes of one watch:
+  the readings that arrived in the window, the arc that holds all of them in degrees to one
+  decimal, the last calibration grade (0 to 3, null with no reading), and the metres of track
+  recorded in the window.
+- `heading stalled` `{ silentS, movedM }`, a warn, once: the compass has sent nothing since its
+  last reading (since the start of the watch with none), that was at least 60 s ago, and the
+  recording has moved at least 50 m since. `silentS` is that silence in whole seconds, `movedM`
+  the metres recorded over it. A slow walker reaches the 50 m later; one standing still never.
+- `heading resumed`, once, on the first reading after a stall.
+
+The rule and the window are pure (`src/map/headingMonitor.ts`); the stall is looked for every
+10 s. Each start of the watch begins a new window, so no sample and no stall spans a pause or a
+stay in the background.
+
+Android sends a reading only when the compass has turned about 2° since the last one. So
+`updates` counts turns, not sensor ticks, one reading is already a compass that turned, and
+silence is the only stall there is. A phone held perfectly steady along a straight line is
+silent too and reads as a stall; the hand's sway on a walk is normally well over 2°. Without a
+magnetometer, or without the location grant, the watch starts and sends nothing: `heading watch
+{ on: true }` followed by samples of `updates: 0`.
+
+`puck mounted` and `puck unmounted` are written by `UserPuckLayer`, the map-side component that
+renders the port's puck.
+
+No heading entry carries a position: `movedM` is a length of track.
+
+## Deliveries that never reach the gate
+
+A delivery of the background task can end before `fix batch` on two JS paths (T-95), both `warn`:
+
+- `delivery fault` `{ fault, error }`: the location port could not hand the delivery over
+  (`defineBackgroundFixHandler`, logged from `src/recording/locationTask.ts`). `fault` is `error`
+  when the task manager reported one, with its message in `error`, or `empty` when the body held
+  no location.
+- `delivery waiting` `{ waiting, oldestS }`: a delivery arrived while an earlier one had been
+  unsettled for more than 10 s, so a turn of the handler's serial queue is stuck and this
+  delivery is held behind it (`deliveryWaiting`). `waiting` counts the deliveries held behind
+  the oldest, the arriving one included; `oldestS` is how long the oldest has been pending, in
+  whole seconds. Written at most once per 30 s.
+
+A delivery dropped natively, before JS, writes neither: only logcat shows it (T-95).
+
+## Native error messages
+
+`delivery fault` and the rejected `heading watch` log the native error's message, where the map
+store's hydration failure logs only the error's class. These messages are written by the task
+manager and the heading module: they describe the failure and carry no payload, and the class
+alone would say nothing.
 
 ## No coordinates, ever
 

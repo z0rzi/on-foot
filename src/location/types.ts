@@ -15,3 +15,14 @@ export interface BackgroundTrackingOptions {
 }
 
 export type NotificationAccess = 'granted' | 'denied' | 'not-applicable'
+
+// The compass: degrees clockwise from magnetic north in [0, 360), and the platform's calibration
+// grade from 0 (uncalibrated) to 3 (high).
+export interface HeadingReading {
+  degrees: number
+  accuracy: number
+}
+
+// A delivery of the background task that carried no fix: the task manager reported an error, or
+// the body held no location.
+export type DeliveryFault = 'error' | 'empty'

@@ -60,3 +60,8 @@ export function startPointOf(segments: GpxPoint[][]): GpxPoint | null {
 export function flattenSegments<T>(segments: T[][]): T[] {
   return segments.flat()
 }
+
+// Counts points without allocating the flattened copy flattenSegments would build.
+export function pointCount(segments: readonly (readonly unknown[])[]): number {
+  return segments.reduce((total, segment) => total + segment.length, 0)
+}

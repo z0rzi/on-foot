@@ -124,3 +124,26 @@ prefix; see `README.md`.
   their place in the style. Owed on the restored build: a trail shown alone draws both endpoint
   dots over its arrows, and the line and casing stay under the connectors after a slope ↔ plain
   switch within one trail (the remount T-78 described).
+- **Field diagnostics** ([[2026-11-11-field-diagnostics-design]]) was checked on the device on
+  2026-11-11, on a release build of the branch, under a mock walk along a straight 1.5 km route,
+  all read in Settings → Debug log. Confirmed: selecting a trail (an import) and an activity (a
+  save) each writes `fit requested` (`by: select`), `route loaded`, `route derived` and `fit fired`
+  with their `kind`, `points` and `ms` (T-4, T-84); three cold starts each write one `launch camera`
+  (`kind: restore`) and one `puck mounted`, with no other mount in the process, and the puck is
+  drawn with its heading arrow (T-84, T-89); a recording writes `heading watch` `on: true` at its
+  start and `on: false` at its pause and when the app leaves the front, and a `heading sample`
+  after five minutes; with the phone lying still while the mock walked, `heading stalled` was
+  written once after 64 s and 78 m, and `heading resumed` when the phone was picked up (T-89).
+  Not seen, none being provoked: `delivery fault`, `delivery waiting`. Owed, the owner's, in the
+  field:
+  - **T-4**: select a long real trail, then a long real activity, and read `route loaded` and
+    `route derived`; their `ms` say whether the load or the derivation is worth deferring.
+  - **T-89**: record a real walk. A healthy compass leaves a `heading sample` every five minutes
+    and no `heading stalled`; when the puck's arrow freezes, the log should hold a
+    `heading stalled` near that time (the compass went silent) or none (the compass still turned,
+    so the fault is in the drawing), and any `puck mounted` after the cold start's.
+  - **T-84**: when a launch opens on the wrong view or a route is not framed, read
+    `launch camera` (which branch ran) and whether each `fit requested` has its `fit fired`.
+  - **T-95**: when a recording stays at "0 m" while the puck moves, share the log before
+    relaunching: `delivery fault` or `delivery waiting` names the JS path, their absence points
+    at the native side.

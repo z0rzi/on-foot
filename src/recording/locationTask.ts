@@ -6,6 +6,7 @@ import { useRecordingStore } from './recordingStore'
 import { fixesInSegment } from './session'
 import { gateFixes } from './fixGate'
 import { fixBatchSummary } from './fixBatchSummary'
+import { deliveryWaiting } from './deliveryWaiting'
 
 // The task manager awaits each delivery but does not queue them; the gate reads the segment's last
 // point and appends after it, so two deliveries must never interleave.
@@ -15,7 +16,12 @@ const serial = createSerialQueue()
 // may vote on.
 let heldCandidate: { sessionId: number; segment: number; fix: LocationFix } | null = null
 
-defineBackgroundFixHandler((fixes) => serial(async () => {
+// Arrival times of the deliveries that have not settled, oldest first: the queue settles them in
+// the order they arrived.
+const pendingSince: number[] = []
+let waitingLoggedAt: number | null = null
+
+async function recordDelivery(fixes: LocationFix[]): Promise<void> {
   const session = await activitiesRepository.getActiveSession()
   // A paused session still being delivered to is the interesting case: the stop that pause asked for
   // did not take. No session at all means the stream outlived every recording.
@@ -41,4 +47,18 @@ defineBackgroundFixHandler((fixes) => serial(async () => {
   if (gate.kept.length === 0) return
   await activitiesRepository.appendPoints(session.id, segment, gate.kept)
   useRecordingStore.getState().appendLivePoints(segment, gate.kept)
-}))
+}
+
+defineBackgroundFixHandler(
+  (fixes) => {
+    const arrivedAt = Date.now()
+    const waiting = deliveryWaiting(pendingSince, arrivedAt, waitingLoggedAt)
+    if (waiting) {
+      waitingLoggedAt = arrivedAt
+      logEvent('warn', 'capture', 'delivery waiting', waiting)
+    }
+    pendingSince.push(arrivedAt)
+    return serial(() => recordDelivery(fixes)).finally(() => pendingSince.shift())
+  },
+  (fault, error) => logEvent('warn', 'capture', 'delivery fault', { fault, error }),
+)

@@ -3,7 +3,7 @@ import { logEvent } from '../log'
 import { useMapStore } from '../store/mapStore'
 import { MapTokens } from '../theme/tokens'
 import { useMapCapabilities } from './provider'
-import { launchCamera } from './launchCamera'
+import { launchCamera, launchCameraDetail, type LaunchCamera } from './launchCamera'
 import { hydrationGate } from './hydrationGate'
 
 // Renders its children only once this session's launch camera is decided, so the map mounts with
@@ -27,22 +27,23 @@ export function MapLaunchGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (gate === 'wait' || launchResolved) return
     const { followMode, lastCamera, restoreCamera, startFollow } = useMapStore.getState()
-    if (gate !== 'hydrated') {
+    let launch: LaunchCamera
+    if (gate === 'hydrated') {
+      launch = launchCamera(followMode, lastCamera, { minZoom, maxZoom })
+      if (launch.kind === 'follow' && launch.invalid) {
+        logEvent('warn', 'map', 'persisted launch camera ignored', { reason: launch.invalid })
+      }
+    } else {
       if (gate === 'failed') {
         logEvent('warn', 'map', 'map store hydration failed, launch follows', { errorClass: hydrationError })
       } else {
         logEvent('warn', 'map', 'map store hydration timed out, launch follows', { boundMs: MapTokens.hydrationBoundMs })
       }
-      startFollow('position')
-      return
+      launch = { kind: 'follow', mode: 'position' }
     }
-    const launch = launchCamera(followMode, lastCamera, { minZoom, maxZoom })
-    if (launch.kind === 'restore') {
-      restoreCamera(launch.camera)
-      return
-    }
-    if (launch.invalid) logEvent('warn', 'map', 'persisted launch camera ignored', { reason: launch.invalid })
-    startFollow(launch.mode, launch.from)
+    logEvent('info', 'map', 'launch camera', launchCameraDetail(launch))
+    if (launch.kind === 'restore') restoreCamera(launch.camera)
+    else startFollow(launch.mode, launch.from)
   }, [gate, launchResolved, hydrationError, minZoom, maxZoom])
 
   return launchResolved ? children : null

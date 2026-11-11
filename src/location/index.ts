@@ -9,4 +9,5 @@ export {
   requestTrackingNotificationAccess,
   startBackgroundTracking,
   stopBackgroundTracking,
+  watchHeading,
 } from './expoLocation'

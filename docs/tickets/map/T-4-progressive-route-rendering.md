@@ -2,7 +2,7 @@
 severity:
 category: enhancement
 size:
-triage: ready-for-agent
+triage: ready-for-human
 origin: owner
 filed: 2026-10-07
 from:
@@ -33,24 +33,13 @@ verification. Gets its own spec.
 
 Owner ruling 26/10 → `ready-for-agent`. Step 1 only: an agent writes to the debug log the duration of the track's `JSON.parse` and that of the profile/banding computation, separately. The owner will then select a long trail and read the log; the ticket then goes back to `ready-for-human` to decide whether it is worth a spec. No `useDeferredValue` and no spec before the number.
 
-## Agent Brief
+> *Comment written by an AI agent.*
 
-**Category:** enhancement
-**Summary:** Log how a trail selection's cost splits between parsing the track and deriving the profile.
+Step 1 built, 11/11 ([[2026-11-11-field-diagnostics-design]], §1) → `ready-for-human`. Two entries, each `{ kind, points, ms }`: `map route loaded`, the load of the selected trail or activity (the SQLite read and the `JSON.parse` together, both blocking JS), and `map route derived`, the profile and banding pass. The parse is not timed alone: that would put the log inside the database seam. The owner selects a long trail, opens Settings → Debug log and reads the two `ms` side by side. Not yet seen on a device.
 
-**Current behavior:**
-A 13.3 km trail selection measured 657 ms of frame activity; the split between the track's
-`JSON.parse` and `routeDisplay`'s profile/banding arithmetic (`src/map/useRouteDisplay.ts`) is unknown.
+## Why a human
 
-**Desired behavior:**
-One `logEvent('info', …)` per selection carrying both durations in ms and the point count — never
-coordinates (`docs/architecture/debug-log.md`). Instrument where each cost actually runs; find
-where the track is parsed rather than assuming `useRouteDisplay`.
-
-**Acceptance criteria:**
-- [ ] Selecting a trail writes one entry with parse ms, derivation ms, point count.
-- [ ] No coordinate in the entry.
-- [ ] On completion set `triage: ready-for-human` with a comment: owner selects a long trail and reads the entry.
-
-**Out of scope:**
-- Any deferral, threshold or spec.
+The number decides. If `route loaded` carries most of the 657 ms, deferring the derivation buys
+little and this closes or turns into a lighter stored geometry; if `route derived` does, it is
+worth a spec, with the size threshold as its open question. Only the owner's phone and the owner's
+long trail give the figure, and the call on what it is worth is theirs.

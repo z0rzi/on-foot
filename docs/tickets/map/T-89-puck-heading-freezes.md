@@ -26,3 +26,18 @@ The hike's debug log (2026-11-08, exported 2026-11-09, not kept in the repo) has
 between the recording's start at 12:49 and four cold starts in a row at 17:24:08–17:24:33. If the
 restart that fixed the freeze was on this hike, it is one of those, and the freeze began before
 17:24. Nothing in the log shows the freeze itself.
+
+Since 2026-11-11 the debug log has the signal ([[2026-11-11-field-diagnostics-design]], §3), not
+yet seen on a device. While a recording is in the recording phase and the app is in front, a
+second watch on the compass, through the location port, writes `map heading watch` when it starts
+and stops, `map heading sample` every five minutes (`updates`, `spreadDeg`, `accuracy`,
+`movedM`), and `map heading stalled` when the compass has been silent for at least 60 s over
+which the recording moved 50 m, then `map heading resumed` on its next reading. The puck writes `map puck mounted` and `map puck unmounted`.
+On the next frozen arrow, note the time and read the entries around it. Samples with `updates`
+and `spreadDeg` well above zero and no `heading stalled` say the phone's compass kept turning:
+the freeze is inside Mapbox's location component, and the fix is on the map side (remount the
+puck, or drive its bearing from the port). A `heading stalled` at that time says the sensor or
+the OS stopped delivering, and the map is not the cause. A `puck unmounted` then `puck mounted`,
+or an `app active`, just before the freeze names what it follows. Two limits: the log never sees
+the drawn arrow itself, and Android sends a reading only on a turn of about 2°, so a phone held
+perfectly steady on a straight line also reads as a stall.

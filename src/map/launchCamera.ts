@@ -28,7 +28,7 @@ function lastCameraFault(camera: CameraFraming, range: ZoomRange): LastCameraFau
   return null
 }
 
-type LaunchCamera =
+export type LaunchCamera =
   | {
       kind: 'follow'
       mode: FollowUserMode
@@ -52,4 +52,12 @@ export function launchCamera(followMode: FollowMode, lastCamera: CameraFraming |
   if (lastCamera == null) return { kind: 'follow', mode: followMode }
   const fault = lastCameraFault(lastCamera, range)
   return fault == null ? { kind: 'follow', mode: followMode, from: lastCamera } : { kind: 'follow', mode: followMode, invalid: fault }
+}
+
+// The launch's choice as the debug log records it: which branch, in which follow mode, and whether
+// it starts from a last camera. Never the camera, whose centre is a position.
+export function launchCameraDetail(launch: LaunchCamera): Record<string, unknown> {
+  return launch.kind === 'restore'
+    ? { kind: 'restore', mode: null, from: true }
+    : { kind: 'follow', mode: launch.mode, from: launch.from != null }
 }

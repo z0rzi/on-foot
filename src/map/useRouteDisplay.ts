@@ -1,7 +1,9 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { routeDisplay, type RouteDisplay } from '../elevation/routeDisplay'
 import { usePreferencesStore } from '../settings/preferencesStore'
+import { logEvent } from '../log'
 import { profileSourceFor } from './profileSource'
+import { routeTiming } from './routeTiming'
 import type { MapMode } from '../store/mapStore'
 import type { Trail } from '../data/trails/types'
 import type { Activity, LiveTrackPoint } from '../data/activities/types'
@@ -13,7 +15,9 @@ import type { Activity, LiveTrackPoint } from '../data/activities/types'
 // profileSourceFor returns the trail's own segment array on every call, so segments holds across
 // GPS fix batches even though the source object wrapping it is new each time. The second memo is
 // keyed on kind and segments rather than on source itself so that reference stability still
-// reaches it, and the profile/banding pass below does not re-run per fix.
+// reaches it, and the profile/banding pass below does not re-run per fix. The pass is timed where
+// it runs, in render, and logged once committed (T-4); the live track's is not, it runs again on
+// every fix batch.
 export function useRouteDisplay(
   mode: MapMode,
   trail: Trail | null,
@@ -27,8 +31,18 @@ export function useRouteDisplay(
   )
   const kind = source?.kind ?? null
   const segments = source?.segments ?? null
-  return useMemo(
-    () => (kind ? routeDisplay(kind, segments, smoothing) : null),
-    [kind, segments, smoothing],
-  )
+  const derived = useMemo(() => {
+    if (!kind) return null
+    // eslint-disable-next-line react-hooks/purity -- a measurement for the log, not render input
+    const start = performance.now()
+    const display = routeDisplay(kind, segments, smoothing)
+    // eslint-disable-next-line react-hooks/purity -- a measurement for the log, not render input
+    const ms = performance.now() - start
+    return { display, timing: kind === 'live' ? null : routeTiming(kind, segments ?? [], ms) }
+  }, [kind, segments, smoothing])
+  const timing = derived?.timing ?? null
+  useEffect(() => {
+    if (timing) logEvent('info', 'map', 'route derived', timing)
+  }, [timing])
+  return derived?.display ?? null
 }

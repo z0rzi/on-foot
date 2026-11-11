@@ -12,6 +12,7 @@ jest.mock('expo-location', () => ({
   getForegroundPermissionsAsync: jest.fn(),
   requestForegroundPermissionsAsync: jest.fn(),
   requestBackgroundPermissionsAsync: jest.fn(),
+  watchHeadingAsync: jest.fn(),
 }))
 jest.mock('expo-task-manager', () => ({ defineTask: jest.fn() }))
 jest.mock('react-native', () => {
@@ -31,8 +32,10 @@ jest.mock('react-native', () => {
 })
 
 import * as Location from 'expo-location'
+import * as TaskManager from 'expo-task-manager'
 import type { LocationObject } from 'expo-location'
 import {
+  defineBackgroundFixHandler,
   fixesFromTaskData,
   isLocationAvailable,
   promptToEnableLocation,
@@ -40,6 +43,7 @@ import {
   startBackgroundTracking,
   stopBackgroundTracking,
   toLocationFix,
+  watchHeading,
 } from '../expoLocation'
 import type { BackgroundTrackingOptions } from '../types'
 
@@ -171,5 +175,63 @@ describe('requestTrackingNotificationAccess', () => {
   it('reports any other answer as denied', async () => {
     mockPermissionRequest.mockResolvedValue('never_ask_again')
     await expect(requestTrackingNotificationAccess()).resolves.toBe('denied')
+  })
+})
+
+describe('defineBackgroundFixHandler', () => {
+  type Executor = (body: { data: unknown; error: { message?: string | null } | null }) => Promise<void>
+  const handler = jest.fn()
+  const onDeliveryFault = jest.fn()
+  const defined = (): Executor => {
+    handler.mockResolvedValue(undefined)
+    defineBackgroundFixHandler(handler, onDeliveryFault)
+    return jest.mocked(TaskManager.defineTask).mock.calls[0][1] as unknown as Executor
+  }
+
+  it('hands the fixes of a delivery to the handler and reports no fault', async () => {
+    await defined()({ data: { locations: [location(1, 2, 3, 4)] }, error: null })
+    expect(handler).toHaveBeenCalledWith([{ lat: 1, lng: 2, ele: 3, t: 4, accuracy: 5 }])
+    expect(onDeliveryFault).not.toHaveBeenCalled()
+  })
+  it('reports a delivery that carried an error, with its message, and hands over nothing', async () => {
+    await defined()({ data: {}, error: { message: 'task failed' } })
+    expect(onDeliveryFault).toHaveBeenCalledWith('error', 'task failed')
+    expect(handler).not.toHaveBeenCalled()
+  })
+  it('reports an error with no message', async () => {
+    await defined()({ data: {}, error: { message: null } })
+    expect(onDeliveryFault).toHaveBeenCalledWith('error', undefined)
+  })
+  it('reports a delivery with no location as empty', async () => {
+    const execute = defined()
+    await execute({ data: {}, error: null })
+    await execute({ data: { locations: [] }, error: null })
+    expect(onDeliveryFault.mock.calls).toEqual([['empty'], ['empty']])
+    expect(handler).not.toHaveBeenCalled()
+  })
+})
+
+describe('watchHeading', () => {
+  it('hands each reading over as a magnetic heading and its calibration grade', async () => {
+    ;(Location.watchHeadingAsync as jest.Mock).mockResolvedValue({ remove: jest.fn() })
+    const listener = jest.fn()
+    await watchHeading(listener)
+    const onHeading = (Location.watchHeadingAsync as jest.Mock).mock.calls[0][0]
+    onHeading({ trueHeading: -1, magHeading: 271.5, accuracy: 2 })
+    expect(listener).toHaveBeenCalledWith({ degrees: 271.5, accuracy: 2 })
+  })
+
+  it('resolves to a stop that removes the subscription', async () => {
+    const remove = jest.fn()
+    ;(Location.watchHeadingAsync as jest.Mock).mockResolvedValue({ remove })
+    const stop = await watchHeading(jest.fn())
+    expect(remove).not.toHaveBeenCalled()
+    stop()
+    expect(remove).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects when the watch cannot start', async () => {
+    ;(Location.watchHeadingAsync as jest.Mock).mockRejectedValue(new Error('no sensor'))
+    await expect(watchHeading(jest.fn())).rejects.toThrow('no sensor')
   })
 })

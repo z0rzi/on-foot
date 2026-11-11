@@ -1,4 +1,4 @@
-import { launchCamera } from '../launchCamera'
+import { launchCamera, launchCameraDetail } from '../launchCamera'
 import type { CameraFraming } from '../provider/types'
 import type { FollowMode } from '../../store/mapStore'
 
@@ -84,5 +84,27 @@ describe('launchCamera', () => {
   })
   test('free with no last camera follows position, fault missing', () => {
     expect(launchCamera('off', null, RANGE)).toEqual({ kind: 'follow', mode: 'position', invalid: 'missing' })
+  })
+})
+
+describe('launchCameraDetail, what the debug log says of the launch', () => {
+  test('a restore has no follow mode and starts from the last camera', () => {
+    expect(launchCameraDetail(launchCamera('off', CAMERA, RANGE))).toEqual({ kind: 'restore', mode: null, from: true })
+  })
+  test('a follow from the last camera names its mode', () => {
+    expect(launchCameraDetail(launchCamera('positionAndBearing', CAMERA, RANGE))).toEqual({
+      kind: 'follow',
+      mode: 'positionAndBearing',
+      from: true,
+    })
+  })
+  test('a follow with no usable last camera starts from none', () => {
+    expect(launchCameraDetail(launchCamera('position', null, RANGE))).toEqual({ kind: 'follow', mode: 'position', from: false })
+    expect(launchCameraDetail(launchCamera('off', null, RANGE))).toEqual({ kind: 'follow', mode: 'position', from: false })
+  })
+  test('never carries the camera itself', () => {
+    const detail = JSON.stringify(launchCameraDetail(launchCamera('off', CAMERA, RANGE)))
+    expect(detail).not.toContain('6.86')
+    expect(detail).not.toContain('45.92')
   })
 })

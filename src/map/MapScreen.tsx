@@ -31,6 +31,7 @@ import { useRouteDisplay } from './useRouteDisplay'
 import { useGraphPuck } from './useGraphPuck'
 import { logEvent } from '../log'
 import { useSheetGeometryLog } from './useSheetGeometryLog'
+import { useHeadingLog } from './useHeadingLog'
 import { overlayBottom, overlaysHidden, sheetHeightAbove } from './overlayGeometry'
 import { statusBarStyleOverMap } from './statusBarOverMap'
 import { useCurrentMapStyle } from './useCurrentMapStyle'
@@ -106,6 +107,7 @@ export function MapScreen() {
   }, [mode])
 
   useSheetGeometryLog({ mode, sheetTop, rootHeight, sheetHeight })
+  useHeadingLog()
 
   return (
     <>
