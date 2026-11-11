@@ -18,6 +18,31 @@ A visual style of the map the user can switch between — Outdoors, Satellite. D
 provider; the app only knows a layer by its descriptor.
 _Avoid_: style (in user-facing text), basemap, theme
 
+**Overview**:
+Every saved trail and activity drawn on the map at once, each with a pin at its start. The user
+chooses whether it holds trails, activities, both or neither; what is selected or being recorded is
+drawn whatever that choice. Chosen in the Layers menu, but not a layer.
+_Avoid_: layer (a map style), overlay, heatmap
+
+**Completed**:
+Said of a trail with at least one saved activity linked to it, however much of the trail that
+activity covered.
+_Avoid_: done, finished, hiked
+
+**Family**:
+A trail and every saved activity linked to it. Selecting any one of them shows them all.
+_Avoid_: group, siblings (as the whole), linked set
+
+**Pin**:
+The mark at the start of a trail or activity in the overview: a teardrop whose tip is on the start
+point, with a tag beside it that gives the distance. With trails shown, a family has one pin, its
+trail's.
+_Avoid_: marker, flag, annotation
+
+**Cluster**:
+Pins too close to tell apart at the current zoom, merged into one disc with their count.
+_Avoid_: group, bubble, stack
+
 **Capability**:
 A map feature a provider may lack and the app renders without — today only 3D terrain. Offline is
 not one: every provider must support it, so the app never asks.
