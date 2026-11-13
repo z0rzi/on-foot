@@ -1,5 +1,5 @@
 import { adb, shell, TIMEOUT } from './adb'
-import { APP_PACKAGE, classifyForeground, classifyServices, type FixIntake, type Foreground } from './phoneState'
+import { APP_PACKAGE, classifyForeground, classifyServices, parseDisplaySize, type DisplaySize, type FixIntake, type Foreground } from './phoneState'
 import { recordButtonIn, type ScreenRead } from './tapTarget'
 import { parseUiDump } from './uiDump'
 import { runningMove, updateMemory } from './walkStore'
@@ -18,8 +18,26 @@ export async function requireForeground(): Promise<Extract<Foreground, { activit
   return front
 }
 
+export async function requireOnFoot(): Promise<void> {
+  const front = await requireForeground()
+  if (front.kind !== 'on-foot') throw new Error(`On Foot must be in front, not ${front.activity}`)
+}
+
 export async function fixIntake(): Promise<FixIntake> {
   return classifyServices(await shell(`dumpsys activity services ${APP_PACKAGE}`))
+}
+
+export async function refuseWhileRecording(what: string): Promise<void> {
+  if ((await fixIntake()) !== 'not-taking-fixes') throw new Error(`${what} refused: On Foot is recording, or its state cannot be read`)
+}
+
+// A screen of the app by its route, through the app's own `onfootrn://` scheme.
+export async function openInApp(route: string): Promise<void> {
+  await shell(`am start -a android.intent.action.VIEW -d onfootrn://${route} ${APP_PACKAGE}`)
+}
+
+export async function displaySize(): Promise<DisplaySize> {
+  return parseDisplaySize(await shell('wm size'))
 }
 
 export function refuseWhileMoving(serial: string, what: string): void {

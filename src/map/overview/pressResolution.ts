@@ -25,7 +25,7 @@ export interface PressInput {
 
 // What a press on the overview does: select an item, clear the selection, fit the camera to the
 // starts under the finger, list the items there, name an item in a toast while recording, or nothing.
-export type PressOutcome =
+type PressOutcome =
   | { kind: 'none' }
   | { kind: 'select'; selection: Selection }
   | { kind: 'deselect' }

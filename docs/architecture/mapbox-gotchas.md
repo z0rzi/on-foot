@@ -43,4 +43,5 @@ a device is added here in the change that handles it.
 ## Finding the next one
 
 Mapbox reports style, source and layer errors in logcat, not in the JS console of a release build:
-`adb logcat -d -v time | grep -i mapbox`, or the device-check toolkit's preflight.
+`devcheck native-errors` (the device-check skill's preflight), or
+`adb logcat -d -v time | grep -i mapbox`.

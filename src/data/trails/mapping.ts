@@ -14,7 +14,7 @@ export interface TrailRow extends OverviewColumns {
   updatedAt: number
 }
 
-export type TrailSummaryRow = Omit<TrailRow, 'description' | 'geometry' | 'updatedAt'>
+type TrailSummaryRow = Omit<TrailRow, 'description' | 'geometry' | 'updatedAt'>
 
 export type TrailInsertValues = Omit<TrailRow, 'id'>
 

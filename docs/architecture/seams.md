@@ -24,14 +24,17 @@ forbidden token. It runs with every `npm test` / `npm run verify`, locally, in t
 hook, and in CI. `SEAMS` is the only source of truth: other docs point here rather than listing
 seams, and the table below mirrors the array — if they ever disagree, the array is right.
 
-Four sibling gates use the same scan: `importRules.ts` (one-way directory bans on what a
+Five sibling gates use the same scan: `importRules.ts` (one-way directory bans on what a
 directory may *import*), `exportRules.ts` (directory-scoped bans on what a directory may
 *export* — today, nothing under `src/data/` may export a `format` symbol followed by a capital
 letter), `moduleEntries.ts` (modules whose `index` is the only file outside code may import —
-today `src/log`), and `duplication.ts` (verbatim copies of 8+ significant lines, across or within
-files). All four fail `npm run verify` with a report naming the files. For `importRules.ts` and
-`duplication.ts` the only escape is a registered entry with a rationale, never an inline disable;
-`exportRules.ts` and `moduleEntries.ts` have no exemption mechanism at all.
+today `src/log`), `duplication.ts` (verbatim copies of 8+ significant lines, across or within
+files) and `unusedExports.ts` (every export has an importer outside its own file and the tests;
+its header states how barrels, `export *`, defaults, types and expo-router routes are counted).
+All five fail `npm run verify` with a report naming the files. For `importRules.ts`,
+`duplication.ts` and `unusedExports.ts` the only escape is a registered entry with a rationale,
+never an inline disable; `exportRules.ts` and `moduleEntries.ts` have no exemption mechanism at
+all.
 
 ## How to add a seam
 

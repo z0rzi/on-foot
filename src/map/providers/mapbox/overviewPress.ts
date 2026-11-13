@@ -17,7 +17,7 @@ export function pressBox(x: number, y: number, tolerance: number): [number, numb
   return [y - tolerance, x - tolerance, y + tolerance, x + tolerance]
 }
 
-export interface PressHits {
+interface PressHits {
   pins: string[]
   lines: string[]
   // Each cluster's feature, which its leaves are read by.

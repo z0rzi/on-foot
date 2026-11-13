@@ -1,21 +1,15 @@
 import { readFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 import { adb, quote, serial, shell, TIMEOUT } from './adb'
+import { devcheckName, isDevcheckName } from './devcheckData'
 import { buildRoute } from './geometry'
 import { gpxTitle, parseGpxPoints } from './gpx'
 import { tap, waitFor } from './look'
-import { APP_PACKAGE } from './phoneState'
-import { devcheckName } from './routeSpec'
-import { fixIntake, refuseWhileMoving, requireForeground } from './screen'
+import { fixIntake, openInApp, refuseWhileMoving, refuseWhileRecording, requireOnFoot } from './screen'
 
 // Labels come from the app (`grep -rn accessibilityLabel src`); a renamed one surfaces as a tap
 // listing the labels it saw.
 const HOLD_TO_PAUSE_MS = 1500
-
-async function requireOnFoot(): Promise<void> {
-  const front = await requireForeground()
-  if (front.kind !== 'on-foot') throw new Error(`On Foot must be in front, not ${front.activity}`)
-}
 
 export async function importGpx(file: string, difficulty: string): Promise<void> {
   const path = resolve(file)
@@ -23,14 +17,14 @@ export async function importGpx(file: string, difficulty: string): Promise<void>
   buildRoute(parseGpxPoints(xml))
   const fileName = basename(path)
   const title = gpxTitle(xml, fileName.replace(/\.[^.]+$/, ''))
-  if (!title.startsWith('DEVCHECK')) throw new Error(`the trail would be named "${title}": only DEVCHECK items may be created`)
+  if (!isDevcheckName(title)) throw new Error(`the trail would be named "${title}": only DEVCHECK items may be created`)
   refuseWhileMoving(await serial(), 'import-gpx')
   await requireOnFoot()
-  if ((await fixIntake()) !== 'not-taking-fixes') throw new Error('import-gpx refused: On Foot is recording, or its state cannot be read')
+  await refuseWhileRecording('import-gpx')
   const remote = `/sdcard/Download/${fileName}`
   await adb(['push', path, remote], TIMEOUT.pull)
   try {
-    await shell(`am start -a android.intent.action.VIEW -d onfootrn:///trails ${APP_PACKAGE}`)
+    await openInApp('/trails')
     await waitFor('Add a GPX file', false, 10)
     await tap('Add a GPX file')
     await waitFor(fileName, false, 15)

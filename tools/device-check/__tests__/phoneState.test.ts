@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { classifyForeground, classifyServices } from '../phoneState'
+import { classifyForeground, classifyServices, parseDisplaySize } from '../phoneState'
 
 const fixture = (name: string) => readFileSync(join(__dirname, '..', 'fixtures', name), 'utf8')
 
@@ -36,5 +36,19 @@ describe('classifyServices', () => {
   it('is unreadable when the output is not a service dump', () => {
     expect(classifyServices('')).toBe('unreadable')
     expect(classifyServices('adb: no devices/emulators found')).toBe('unreadable')
+  })
+})
+
+describe('parseDisplaySize', () => {
+  it('reads the size from `wm size`', () => {
+    expect(parseDisplaySize('Physical size: 1080x2400\n')).toEqual({ width: 1080, height: 2400 })
+  })
+
+  it('takes an override, the size taps and dumps are in', () => {
+    expect(parseDisplaySize('Physical size: 1440x3216\nOverride size: 1080x2412\n')).toEqual({ width: 1080, height: 2412 })
+  })
+
+  it('throws on anything else', () => {
+    expect(() => parseDisplaySize('')).toThrow('wm size')
   })
 })

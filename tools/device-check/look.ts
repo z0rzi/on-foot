@@ -1,18 +1,12 @@
-import { spawnSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { adbBuffer, serial, shell, sleep, TIMEOUT } from './adb'
 import { evidenceDir, nextShotBase, slug } from './evidence'
+import { ffmpeg } from './ffmpeg'
 import { describeNoDump, fixIntake, readScreen, refuseWhileMoving, requireForeground } from './screen'
 import { tapTarget } from './tapTarget'
-import { centre, cropFilter, findByLabel, parseUiDump, summaryLine } from './uiDump'
+import { centre, cropFilter, findByLabel, parseUiDump, summaryLine, type Bounds, type UiNode } from './uiDump'
 import { readMemory, runningMove } from './walkStore'
-
-function ffmpeg(args: string[]): string | null {
-  const run = spawnSync('ffmpeg', ['-loglevel', 'error', '-y', ...args], { encoding: 'utf8' })
-  if (run.error) return run.error.message
-  return run.status === 0 ? null : run.stderr.trim() || `ffmpeg exited ${run.status}`
-}
 
 export async function shot(name: string): Promise<void> {
   const id = await serial()
@@ -56,14 +50,20 @@ export function crop(ref: string, label: string): void {
   console.log(`read: ${out}`)
 }
 
+// Taps the middle of bounds just read from a dump.
+export async function tapAt(bounds: Bounds, holdMs?: number): Promise<{ x: number; y: number }> {
+  const { x, y } = centre(bounds)
+  await shell(holdMs !== undefined ? `input swipe ${x} ${y} ${x} ${y} ${holdMs}` : `input tap ${x} ${y}`)
+  return { x, y }
+}
+
 export async function tap(label: string, holdMs?: number): Promise<void> {
   const id = await serial()
   refuseWhileMoving(id, 'tap')
   const screen = await readScreen(id, await requireForeground())
   const target = tapTarget(label, screen, readMemory(id).recordButton)
   if (target.kind === 'missing') throw new Error(target.reason)
-  const { x, y } = centre(target.bounds)
-  await shell(holdMs !== undefined ? `input swipe ${x} ${y} ${x} ${y} ${holdMs}` : `input tap ${x} ${y}`)
+  const { x, y } = await tapAt(target.bounds, holdMs)
   const how = holdMs !== undefined ? `held ${holdMs} ms` : 'tapped'
   console.log(`${how} "${label}" at ${x},${y}${target.remembered ? ' (record button bounds remembered from an earlier dump)' : ''}`)
   if (target.remembered) await confirmPaused()
@@ -83,26 +83,31 @@ async function confirmPaused(): Promise<void> {
   throw new Error('still recording: the remembered record button missed (is the map card open? collapse it with `input keyevent 4`)')
 }
 
+export type Polled<T> = { found: T; waitedS: number } | { found: null; last: string }
 
-export async function waitFor(label: string, gone: boolean, timeoutS: number): Promise<void> {
+// Reads the screen until `judge` finds what it looks for, at least once and up to the timeout.
+export async function pollScreen<T>(what: string, timeoutS: number, judge: (nodes: UiNode[]) => T | null): Promise<Polled<T>> {
   const id = await serial()
-  refuseWhileMoving(id, 'wait-for')
+  refuseWhileMoving(id, what)
   const started = Date.now()
   let last = ''
-  while (Date.now() - started < timeoutS * 1000) {
+  do {
     const screen = await readScreen(id, await requireForeground())
-    if (screen.kind === 'recording') throw new Error(`wait-for cannot read the screen: ${describeNoDump(screen)}`)
+    if (screen.kind === 'recording') throw new Error(`${what} cannot read the screen: ${describeNoDump(screen)}`)
     if (screen.kind === 'dump') {
-      const present = findByLabel(screen.nodes, label).node !== null
-      if (present !== gone) {
-        console.log(`"${label}" ${gone ? 'gone' : 'appeared'} after ${((Date.now() - started) / 1000).toFixed(1)} s`)
-        return
-      }
+      const found = judge(screen.nodes)
+      if (found !== null) return { found, waitedS: (Date.now() - started) / 1000 }
       last = `labels seen: ${summaryLine(screen.nodes)}`
     } else {
       last = describeNoDump(screen)
     }
     await sleep(POLL_MS)
-  }
-  throw new Error(`"${label}" ${gone ? 'still there' : 'not there'} after ${timeoutS} s; ${last}`)
+  } while (Date.now() - started < timeoutS * 1000)
+  return { found: null, last }
+}
+
+export async function waitFor(label: string, gone: boolean, timeoutS: number): Promise<void> {
+  const polled = await pollScreen('wait-for', timeoutS, (nodes) => ((findByLabel(nodes, label).node !== null) !== gone ? true : null))
+  if (polled.found === null) throw new Error(`"${label}" ${gone ? 'still there' : 'not there'} after ${timeoutS} s; ${polled.last}`)
+  console.log(`"${label}" ${gone ? 'gone' : 'appeared'} after ${polled.waitedS.toFixed(1)} s`)
 }

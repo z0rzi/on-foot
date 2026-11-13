@@ -29,3 +29,12 @@ export function classifyServices(dumpsysServices: string): FixIntake {
   )
   return locationInForeground ? 'taking-fixes' : 'not-taking-fixes'
 }
+
+export interface DisplaySize { width: number; height: number }
+
+// From `wm size`: an override, when set, is the size taps, screenshots and dumps are in.
+export function parseDisplaySize(wmSize: string): DisplaySize {
+  const m = /Override size: (\d+)x(\d+)/.exec(wmSize) ?? /Physical size: (\d+)x(\d+)/.exec(wmSize)
+  if (!m) throw new Error(`cannot read the display size from \`wm size\`: ${wmSize.trim() || 'no output'}`)
+  return { width: Number(m[1]), height: Number(m[2]) }
+}

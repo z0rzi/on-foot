@@ -22,7 +22,7 @@ export interface ActivityRow extends OverviewColumns {
   createdAt: number
 }
 
-export type ActivitySummaryRow = Omit<ActivityRow, 'comments' | 'geometry' | 'endedAt'>
+type ActivitySummaryRow = Omit<ActivityRow, 'comments' | 'geometry' | 'endedAt'>
 
 export type ActivityInsertValues = Omit<ActivityRow, 'id'>
 

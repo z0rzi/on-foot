@@ -2,7 +2,7 @@ import { haversineMeters } from '../../../src/data/geo/metrics'
 import { parseGpx } from '../../../src/data/trails/gpx/parse'
 import { buildRoute, positionAt } from '../geometry'
 import { gpxTitle, parseGpxPoints, writeGpx } from '../gpx'
-import { DEFAULT_ROUTE_START, devcheckName, gpxFileName, parseStretches, routePoints } from '../routeSpec'
+import { DEFAULT_ROUTE_START, gpxFileName, parseStretches, routePoints } from '../routeSpec'
 
 describe('parseStretches', () => {
   it('reads lengths, grades in percent and noele stretches', () => {
@@ -57,9 +57,7 @@ describe('routePoints', () => {
 })
 
 describe('naming', () => {
-  it('gives every route the DEVCHECK prefix, once', () => {
-    expect(devcheckName('climb then flat')).toBe('DEVCHECK climb then flat')
-    expect(devcheckName('DEVCHECK climb')).toBe('DEVCHECK climb')
+  it('names the GPX file after the DEVCHECK name', () => {
     expect(gpxFileName('DEVCHECK climb, then flat!')).toBe('DEVCHECK-climb-then-flat.gpx')
   })
 })

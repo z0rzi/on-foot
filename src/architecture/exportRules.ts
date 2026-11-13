@@ -1,3 +1,4 @@
+import { moduleBindings } from './moduleBindings'
 import { SourceFile } from './sourceScan'
 
 // Directory-scoped export bans: what a directory may not become, where importRules.ts governs what
@@ -24,11 +25,6 @@ export interface ExportRuleViolation {
   rationale: string
 }
 
-const exportedValueNames = (content: string): string[] => {
-  const pattern = /^export\s+(?:async\s+)?(?:function|const|let|var|class)\s+([A-Za-z_$][\w$]*)/gm
-  return [...content.matchAll(pattern)].map((match) => match[1])
-}
-
 export function findExportRuleViolations(
   files: SourceFile[],
   rules: ExportRule[] = EXPORT_RULES,
@@ -37,7 +33,7 @@ export function findExportRuleViolations(
   for (const rule of rules) {
     for (const file of files) {
       if (!file.path.startsWith(rule.within)) continue
-      for (const symbol of exportedValueNames(file.content)) {
+      for (const symbol of moduleBindings(file.content).declared) {
         if (rule.mustNotExport.test(symbol)) {
           violations.push({ file: file.path, symbol, rationale: rule.rationale })
         }

@@ -9,7 +9,8 @@ a change is allowed to make live in its spec under `docs/design/specs/`, written
 code, so a reviewer judges against that spec and never against an after-the-fact list.
 
 Everything `npm run verify` enforces is omitted on purpose: types, tests, the seam registry,
-verbatim duplication, import cycles, import and export rules, secrets, floating promises, lint.
+verbatim duplication, import cycles, import and export rules, unused exports, secrets, floating
+promises, lint.
 A rule below is a judgement call no gate can make. Each one says what it is, why it matters and
 how a breach is fixed, so a finding can cite it and propose the fix in one line.
 
@@ -73,6 +74,8 @@ anything built "for later" count as unused.
 **Why.** Dead code is read, maintained and reviewed for nothing, and a dead control is a promise
 the UI breaks.
 **Fix.** Delete it. If it is needed by work that has not landed, it belongs in that work's diff.
+Unused exports are mechanical (`src/architecture/unusedExports.ts`); this rule covers the state,
+props, parameters and controls that check cannot see.
 
 ## A generated asset lands with its generator
 

@@ -1,0 +1,14 @@
+--------- beginning of main
+11-12 10:52:06.101 21603 21603 I ReactNativeJS: Running "main"
+11-12 10:52:07.634 21603 21689 W Mapbox  : [maps-core/style]: The expression config "basemap/theme" is missing in style
+11-12 10:52:07.709 21603 21689 W Mapbox  : [maps-core/style]: Source '{ "sourceId": "composite" }' missing for layer '{ "layerId": "overview-lines-dimmed" }'
+11-12 10:52:07.711 21603 21689 W Mapbox  : [maps-core/style]: Source '{ "sourceId": "composite" }' missing for layer '{ "layerId": "overview-lines-shown" }'
+11-12 10:52:07.802 21603 21690 E Mapbox  : [maps-core/http]: Request failed: tile 14/8253/5972 unreachable
+11-12 10:52:07.901 21603 21603 E RNMBXMapView: An error occurred while attempting to parse the expression
+11-12 10:52:08.120 21603 21603 I ReactNativeJS: camera fit at 43.60445, 1.44345
+11-12 10:52:08.230 21603 21603 E ReactNativeJS: Error: route failed near 43.60445,1.44345 ("lat":43.6044,"lng":1.4434)
+11-12 10:52:08.400 21603 21603 W ReactNativeJS: a warning that is not an error
+--------- beginning of crash
+11-12 10:52:09.001 21603 21603 E AndroidRuntime: FATAL EXCEPTION: main
+11-12 10:52:09.001 21603 21603 E AndroidRuntime: Process: com.zorzi.onfootrn, PID: 21603
+11-12 10:52:09.001 21603 21603 E AndroidRuntime: java.lang.IllegalStateException: at [1.44345, 43.60445]

@@ -43,8 +43,9 @@ blocks the push rather than the review.
 
 `jest` is not only unit tests — it also runs the architecture gates in `src/architecture/`: the
 **seam** test (no file may import a native SDK outside its directory), **secrets** (`.env` stays
-untracked), **cycles**, **duplication** (verbatim copies of 8+ significant lines), and **import
-rules** (one-way directory bans). These are facts, not heuristics: their only escape is a registered
+untracked), **cycles**, **duplication** (verbatim copies of 8+ significant lines), **import
+rules** (one-way directory bans), and **unused exports** (every export has an importer outside its
+own file and the tests). These are facts, not heuristics: their only escape is a registered
 entry with a rationale. Lint rules are heuristics and may instead be answered by a justified inline
 `eslint-disable` — see `AGENTS.md` and `docs/architecture/lint-debt.md`.
 

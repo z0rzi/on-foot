@@ -3,7 +3,7 @@ export type OverviewGeometry = string & { readonly __brand: 'OverviewGeometry' }
 
 export interface StartPoint { lat: number; lng: number }
 
-export interface ItemOverview {
+interface ItemOverview {
   geometry: OverviewGeometry
   start: StartPoint | null
 }

@@ -1,0 +1,59 @@
+add device 1: /dev/input/event6
+  bus:      0000
+  vendor    0000
+  product   0000
+  version   0000
+  name:     "oplus,hall_tri_state_key"
+  location: ""
+  id:       ""
+  version:  1.0.1
+  events:
+    KEY (0001): KEY_F3                KEY_F4                KEY_F5
+  input props:
+    <none>
+add device 2: /dev/input/event2
+  bus:      0000
+  vendor    0000
+  product   0000
+  version   0000
+  name:     "qpnp_pon"
+  location: "qpnp_pon/input0"
+  id:       ""
+  version:  1.0.1
+  events:
+    KEY (0001): KEY_VOLUMEDOWN        KEY_POWER
+  input props:
+    <none>
+add device 3: /dev/input/event4
+  bus:      0018
+  vendor    0000
+  product   0000
+  version   0000
+  name:     "touchpanel_hover"
+  location: ""
+  id:       ""
+  version:  1.0.1
+  events:
+    ABS (0003): ABS_MT_POSITION_X     : value 0, min 0, max 1079, fuzz 0, flat 0, resolution 0
+                ABS_MT_POSITION_Y     : value 0, min 0, max 2399, fuzz 0, flat 0, resolution 0
+  input props:
+    <none>
+add device 4: /dev/input/event5
+  bus:      0000
+  vendor    0000
+  product   0000
+  version   0000
+  name:     "touchpanel"
+  location: ""
+  id:       ""
+  version:  1.0.1
+  events:
+    KEY (0001): KEY_POWER             KEY_WAKEUP            BTN_TOOL_FINGER       BTN_TOUCH
+    ABS (0003): ABS_MT_SLOT           : value 0, min 0, max 9, fuzz 0, flat 0, resolution 0
+                ABS_MT_TOUCH_MAJOR    : value 0, min 0, max 255, fuzz 0, flat 0, resolution 0
+                ABS_MT_TOUCH_MINOR    : value 0, min 0, max 255, fuzz 0, flat 0, resolution 0
+                ABS_MT_POSITION_X     : value 0, min 0, max 4319, fuzz 0, flat 0, resolution 0
+                ABS_MT_POSITION_Y     : value 0, min 0, max 9599, fuzz 0, flat 0, resolution 0
+                ABS_MT_TRACKING_ID    : value 0, min 0, max 65535, fuzz 0, flat 0, resolution 0
+  input props:
+    INPUT_PROP_DIRECT

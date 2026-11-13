@@ -3,7 +3,8 @@ import { join } from 'node:path'
 import { evidenceDir } from './evidence'
 import { buildRoute } from './geometry'
 import { writeGpx } from './gpx'
-import { DEFAULT_ROUTE_START, devcheckName, gpxFileName, parseStretches, routePoints, type RouteStart } from './routeSpec'
+import { devcheckName } from './devcheckData'
+import { DEFAULT_ROUTE_START, gpxFileName, parseStretches, routePoints, type RouteStart } from './routeSpec'
 
 export function writeRoute(name: string, stretches: string[], start: Partial<RouteStart>): void {
   const points = routePoints(parseStretches(stretches), { ...DEFAULT_ROUTE_START, ...start })

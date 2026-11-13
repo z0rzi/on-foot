@@ -96,7 +96,7 @@ export function followCameraProps(mode: FollowMode): FollowCameraProps {
 }
 
 // How a pitch control (the 2D/3D toggle, the tilt drag) last set the pitch: eased or live.
-export type PitchControl = 'animated' | 'live'
+type PitchControl = 'animated' | 'live'
 
 // The declarative pitch the camera is given: a pitch control's, once follow is off. None when the
 // pitch was last set otherwise (a follow mode, a fit, the launch camera), which brings the camera

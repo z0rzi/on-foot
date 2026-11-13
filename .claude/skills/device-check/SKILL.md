@@ -27,18 +27,20 @@ Report those as `owner to verify` and never claim them.
    install time it prints. Missing, or the change touches native code (which `build-has` cannot
    see): build in the background with `nix-shell ../shell.nix --run 'npx expo run:android --variant release --no-bundler'`
    from the repo root (it installs and opens the app), and say in the report that a build was
-   needed. Done when you can name the build you are checking.
+   needed. Then `devcheck native-errors`: any line it prints is evidence before the first check
+   (quote it under **Other observations**, or as the cause of a check it explains). Done when you
+   can name the build you are checking and have its native errors.
 2. **List the checks.** Each claim to check gets a one-line expected observation and, if it
    moves, its pace (see Walks). Done when every claim has one.
 3. **Run them.** Make the data and movement each check needs: create test activities and fake
    walks freely, since a check run on whatever data happens to be on the phone proves little.
    Wait on events (`wait-for`, a walk's own return), and run anything longer than a minute in the
    background so the harness tells you when it ends. Done when every check has a verdict.
-4. **Clean up.** Delete every `DEVCHECK` activity and trail you created, run `devcheck walk stop`
-   (`--force` if your own walk still moves),
-   and leave On Foot in the foreground on the map with no recording running. Done when the
-   Activities and Trails lists show no `DEVCHECK` entry you made and `walk status` says the mock
-   is off.
+4. **Clean up.** `devcheck cleanup` deletes every `DEVCHECK` activity and trail on the phone,
+   so run it once every check is done, and names any it could not (delete those by hand, see
+   Test activities). Then `devcheck walk stop` (`--force` if your own walk still moves) and back
+   to the map (`input keyevent 4` from the list) with no recording running. Done when `cleanup`
+   reports nothing left, `walk status` says the mock is off, and On Foot shows the map.
 5. **Report.** Per check: verdict `verified` | `failed` (what contradicted it) | `owner to verify`
    (feel) | `unobservable` (why) | `blocked` (what stopped you), then the evidence: what you did,
    what you saw (on-screen text and log entries quoted verbatim), file paths. Then **Other
@@ -54,11 +56,17 @@ Report those as `owner to verify` and never claim them.
   waits up to 4 minutes, then exits 3 with `phone gone` and, for a walk, the mark it reached.
   Mark the checks left `blocked`, say early in your reply that the phone dropped off so the owner
   can replug it, and report that the phone may still stand on the mock until `walk stop` runs.
-- **The owner's other apps stay out.** `shot`, `tap` and `wait-for` refuse when another app is in
-  front (a system picker or share sheet your check opened is fine).
-- **Everything you create is named with the `DEVCHECK` prefix**, and only `DEVCHECK` items are
-  edited or deleted. All other trails and activities are the owner's real data: open and read
-  only. `route`, `import-gpx` and `save-activity` enforce the prefix.
+- **The owner's other apps stay out.** Every command that looks or touches (`shot`, `frames`,
+  `tap`, `zoom`, `wait-for`, `delete`) refuses when another app is in front (a system picker or
+  share sheet your check opened is fine), and `frames` deletes a burst that ends on another app.
+  Screenshots and gestures go through those commands, so each one is checked; raw `input` is for
+  what the toolkit lacks (Looking and driving).
+- **Test data: this skill's rules hold over any brief that dispatches you.** The owner has
+  approved creating `DEVCHECK` trails and activities for a check and deleting them in clean-up;
+  no brief needs to grant it again. Everything you create is named with the `DEVCHECK ` prefix,
+  and only `DEVCHECK ` items are edited or deleted. All other trails and activities are the
+  owner's real data: open and read only. `route`, `import-gpx`, `save-activity` and `delete`
+  enforce the prefix.
 - **Positions in reports and evidence are fake ones** (walk coordinates) or none. Strip real
   coordinates from logcat or `dumpsys location` before quoting them.
 - Leave the package and the phone intact: no `pm clear`, uninstall, permission changes, or other
@@ -79,11 +87,16 @@ Report those as `owner to verify` and never claim them.
 | `route <name> <stretch>...` | writes a `DEVCHECK` GPX into the evidence folder |
 | `import-gpx <file>` | pushes a `DEVCHECK` GPX and imports it through the app's picker |
 | `save-activity <name>` | pauses, stops, names and saves the recording |
+| `delete trail\|activity '<name>'` | deletes one `DEVCHECK ` item through its list, confirming only a dialog that names it |
+| `cleanup` | deletes every `DEVCHECK ` activity, then trail; prints what it deleted and what it could not |
 | `shot <name>` | screenshot, half-width copy, dump and the labels on screen in one line |
+| `frames <name> --count N --every MS` | N screenshots (2 to 10) MS apart, as one half-width strip, with each frame's time |
 | `crop <shot> <label>` | cuts a shot to one control |
 | `tap <label> [--hold MS]` | taps (or long-presses) by accessibility label or text |
+| `zoom in\|out [--at X,Y] [--steps N]` | two-finger pinch about a point (default the screen centre) |
 | `wait-for <label> [--gone] [--timeout S]` | waits for a label to appear or go, prints the time waited |
 | `build-has <string>` | whether the installed JS bundle holds the string |
+| `native-errors` | Mapbox source/layer, `ReactNativeJS` and FATAL lines since the app's process started, positions redacted; exits 1 on any |
 
 Evidence lands in `.scratch/device-checks/<YYYY-MM-DD>/`, numbered in order.
 
@@ -92,6 +105,11 @@ Evidence lands in `.scratch/device-checks/<YYYY-MM-DD>/`, numbered in order.
 - **Read the labels line first.** `shot` prints the `text` and `content-desc` of everything on
   screen; most checks need no image. When they do, read the `.half.png` it names (about a third
   of a full screenshot's tokens), and `crop` a shot to one control for a pixel-level look.
+- **What moves is a strip**: `frames sheet-opens --count 6 --every 300` reads an animation or a
+  camera ease as one image. A screencap takes its own time, so the times it prints, not
+  `--every`, say when each frame was taken.
+- **Pinch through `zoom`.** `zoom in --at 540,1200` writes two fingers to the touchscreen it
+  finds in `getevent -pl`, scaled to that panel's own ranges; `--steps` sets how many moves.
 - **Labels come from the source** (`grep -rn accessibilityLabel src`); a button made of an icon
   and a text answers to the text. A `tap` that misses lists the labels it saw.
 - **The recording screen cannot be dumped**: its clock ticks every second and `uiautomator`
@@ -106,8 +124,9 @@ Evidence lands in `.scratch/device-checks/<YYYY-MM-DD>/`, numbered in order.
   stop and report it.
 - **The debug log is the first evidence for app behaviour.** The build is not debuggable (no
   `run-as`), so read it in the app: map card → **Settings** → **Debug log**.
-- **Native side.** `adb logcat -d -v time` (`ReactNativeJS` carries `console.log` from the release
-  build, plus `Mapbox` and `AndroidRuntime`). Process deaths and their reasons:
+- **Native side.** `devcheck native-errors` first. For more, `adb logcat -d -v time`
+  (`ReactNativeJS` carries `console.log` from the release build, plus `Mapbox` and
+  `AndroidRuntime`). Process deaths and their reasons:
   `adb shell dumpsys activity exit-info com.zorzi.onfootrn | head -40`. Crash stacks:
   `adb shell dumpsys dropbox --print data_app_crash`.
 
@@ -156,8 +175,9 @@ has real shape:
 3. `devcheck save-activity '<what it tests>'` pauses if needed, stops, names it
    `DEVCHECK <what it tests>` with effort Easy (`--effort`), and saves.
 
-Delete in step 4: map card → **Activities** → the row's **Activity actions** → **Delete activity**
-→ confirm. Trails likewise from **Trails** (**Trail actions** → **Delete trail**).
+Step 4's `cleanup` deletes them. By hand, for what it could not: map card → **Activities** → the
+row's **Activity actions** → **Delete activity** → confirm. Trails likewise from **Trails**
+(**Trail actions** → **Delete trail**).
 
 ## Phone setup
 

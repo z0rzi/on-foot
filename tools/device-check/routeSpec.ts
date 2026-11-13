@@ -1,3 +1,4 @@
+import { devcheckName } from './devcheckData'
 import { slug } from './evidence'
 import { destination, type LatLng, type RoutePoint } from './geometry'
 
@@ -44,10 +45,6 @@ export function routePoints(stretches: Stretch[], start: RouteStart): RoutePoint
     }
   }
   return points
-}
-
-export function devcheckName(name: string): string {
-  return name.startsWith('DEVCHECK') ? name : `DEVCHECK ${name}`
 }
 
 export function gpxFileName(name: string): string {

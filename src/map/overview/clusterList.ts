@@ -5,7 +5,7 @@ import { familiesByTrail } from '../../data/activities/family'
 type TrailRow = { id: number }
 type ActivityRow = Pick<ActivitySummary, 'id' | 'linkedTrailId' | 'startedAt'>
 
-export type ClusterListRow<T, A> = { kind: 'trail'; trail: T; completed: number } | { kind: 'activity'; activity: A }
+type ClusterListRow<T, A> = { kind: 'trail'; trail: T; completed: number } | { kind: 'activity'; activity: A }
 
 // The listed items as rows, in the list's order, a trail with its completed count. An item no row
 // has, as one deleted while the list is open, is left out.
