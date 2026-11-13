@@ -1,3 +1,4 @@
+import { OverviewFields } from '../geo/overview'
 export type Effort = 'easy' | 'moderate' | 'hard' | 'max'
 
 export interface TrackPoint { lat: number; lng: number; ele: number | null; t: number }
@@ -48,3 +49,6 @@ export interface RecordingSession {
   // When the current segment began; a fix taken earlier does not belong to it.
   segmentStartedAt: number
 }
+
+// A summary with what the map's overview draws.
+export interface ActivityOverviewRow extends ActivitySummary, OverviewFields {}

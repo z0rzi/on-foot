@@ -15,6 +15,8 @@ import { AppHeader } from '../src/components/AppHeader'
 import { useOfflineStore } from '../src/map/offline/offlineStore'
 import { useDownloadSettledToast } from '../src/map/offline/useDownloadSettledToast'
 import { useDatabaseMigrations } from '../src/data/db/useDatabaseMigrations'
+import { useStoresAtLaunch } from '../src/store/loadStoresAtLaunch'
+import { useOverviewBackfill } from '../src/store/overviewBackfill'
 import '../src/recording/locationTask'
 import { useResumeRecording } from '../src/recording/useResumeRecording'
 import { useRecordingStream } from '../src/recording/useRecordingStream'
@@ -64,6 +66,16 @@ function DownloadSettledToastHandler() {
   return null
 }
 
+function StoresAtLaunchHandler() {
+  useStoresAtLaunch()
+  return null
+}
+
+function OverviewBackfillHandler() {
+  useOverviewBackfill()
+  return null
+}
+
 function LogRetentionHandler() {
   useLogRetention()
   return null
@@ -89,6 +101,7 @@ export default function RootLayout() {
             </View>
           ) : success ? (
             <KeyboardProvider>
+              <StoresAtLaunchHandler />
               <MapProviderProvider provider={mapboxProvider}>
                 <MapLaunchGate>
                   <BottomSheetModalProvider>
@@ -113,6 +126,7 @@ export default function RootLayout() {
                     <AlongTrailLogHandler />
                     <OfflineInitHandler />
                     <DownloadSettledToastHandler />
+                    <OverviewBackfillHandler />
                     <LogRetentionHandler />
                   </BottomSheetModalProvider>
                 </MapLaunchGate>

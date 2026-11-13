@@ -147,3 +147,60 @@ prefix; see `README.md`.
   - **T-95**: when a recording stays at "0 m" while the puck moves, share the log before
     relaunching: `delivery fault` or `delivery waiting` names the JS path, their absence points
     at the native side.
+- **The family list in the card** (overview-on-map 09, [[2026-11-11-overview-on-map-design]] D115)
+  was checked on the device on 2026-11-12, release build. Two fragments stay: whether the rows read
+  as rows on the white light-theme panel is the owner's look; a long family scrolling inside the card
+  was not checked, as the longest family on the phone has three activities and a longer one needs
+  as many linked recordings.
+- **The overview backfill** (overview-on-map 02, [[2026-11-11-overview-on-map-design]] D121) was
+  checked on the device on 2026-11-12, release build. Unobserved: an `overview backfill` entry
+  appearing only after a recording that was running at launch ends, since every row on the phone is
+  backfilled now and a pass finds nothing to log either way.
+- **The overview's lines** (overview-on-map 03, [[2026-11-11-overview-on-map-design]] D103–D107,
+  D127, D138) were checked on the device on 2026-11-12, release build. Owed to the owner: the hues of
+  `trailLine` and `activityLine` and the zoom range, both still to tune. Unobserved: the exact fade
+  zooms (`overviewLineZoomFrom` 10 to 11; a release build shows no zoom), a saved trail showing
+  within half a second (the debug log has a one-second grain, and the new trail opens selected, its
+  plain line under its full dress), and at most two `overview-lines-*.json` in `files/overview/`
+  (no `run-as` on a release build).
+- **The overview's focus** (overview-on-map 04, [[2026-11-11-overview-on-map-design]] D108–D110,
+  D114, D132) was checked on the device on 2026-11-12, release build. Owed to the owner: the dimming
+  level (`overviewDimmedOpacity`, 0.55; the owner found 0.35 too dim on 2026-11-12), and that the
+  selected item's plain line never blinks out before its full dress shows (D132), finer than the
+  ~3 frames a second a screenshot loop reaches.
+  Not checked: a linked activity's siblings plain at full strength, as no test family has two
+  activities. Blocked: a selection with about 300 items not stalling the map, since the only way to
+  seed them is one picker import per trail (~24 s each, ~2 h for 300).
+- **The Layers menu** (overview-on-map 05, [[2026-11-11-overview-on-map-design]] D119, D124, D130,
+  D135) was checked on the device on 2026-11-12, release build; the roles are right in the dump
+  (radio buttons and checkboxes, each with its state). Owed to the owner: what TalkBack says.
+- **The overview's pins and clusters** (overview-on-map 06, [[2026-11-11-overview-on-map-design]]
+  D104, D105, D116, D117, D128, D133, D136) were checked on the device on 2026-11-12, release build,
+  in both schemes. Owed to the owner: the teardrop hues and the merging distance
+  (`overviewClusterCap` 17, `overviewClusterRadius` 40, both still to tune). Not checked: tags kept
+  by rank (family, trails, completed, activities), as no rank conflict was staged.
+- **A tap on the overview** (overview-on-map 07, [[2026-11-11-overview-on-map-design]] D112–D114,
+  D126, D134) was checked on the device on 2026-11-12, release build. Unobserved: a pending fit from
+  a list selection dropped by a map tap (the window is a few frames between the list tap and the
+  fit), and a tap during a layer switch selecting nothing with `overview press failed` (not hit: a
+  tap a tenth of a second after a switch selected normally).
+- **A tap on a cluster** (overview-on-map 08, [[2026-11-11-overview-on-map-design]] D118, D126,
+  D134, D135) was checked on the device on 2026-11-12, release build; the fit with follow on in 2D
+  and the list sheet running under the status bar, both found then, were fixed and seen fixed the
+  same day. Owed to the owner: Verification 10, tap comfort, the dimming level and cluster reach.
+- **The overview after its review** (overview-on-map review, [[2026-11-11-overview-on-map-design]]
+  D116, D117, D118, D138) was checked on the device on 2026-11-12, release build. Unobserved: the
+  values `getClusterExpansionZoom` gives (the cap plus one for a cluster that stays merged, at most
+  17 for one that splits), though both branches behave as built; the pins' labels in airplane mode on
+  a phone whose map never showed them online (it would mean clearing the owner's data); at most two
+  `overview-pins-*.json` in `files/overview/` (no `run-as`). Blocked: panning and pinching with
+  about 300 items writing no `overview loaded` and no `overview pins written`, for the seeding reason
+  above; at 35 trails and 23 activities they write nothing.
+- **A tap on nothing** (overview-on-map review, [[2026-11-11-overview-on-map-design]] D139) was
+  checked on the device on 2026-11-12, release build, over TEST data: a tap on the bare map closes
+  the card (`outcome deselect`) with the framing unchanged, a tap on the selected route and one
+  about 15 dp beside it keep it (`outcome none`, no line hit), and recording or paused a tap on the
+  bare map keeps the followed trail. Unobserved: a double tap zooming without deselecting, the
+  camera with follow on (it shifts with the card's padding, as D113 accepts), and a press whose
+  query fails doing nothing (no failure was hit). Owed to the owner: the dimming level at 0.55 and
+  whether the reach around the selected route feels right.

@@ -1,10 +1,11 @@
 import { create, type Mutate, type StoreApi, type UseBoundStore } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { logEvent } from '../log'
+import { errorClass, logEvent } from '../log'
 import { MapTokens } from '../theme/tokens'
 import { writesAfterHydration } from './writesAfterHydration'
 import type { CameraFraming, CameraProps, FollowUserMode } from '../map/provider/types'
+import type { LngLatBounds } from '../map/geo'
 
 export type FollowMode = 'off' | FollowUserMode
 
@@ -55,16 +56,17 @@ export function pitchForFollowMode(mode: FollowMode, current: number): number {
   }
 }
 
-// A follow-mode change also (animated) syncs the pitch that mode implies, so the 2D/3D label
-// stays consistent with the follow-driven camera. Shared by every action that changes followMode
-// (cycleFollowMode, northPressed) so the two paths can't drift out of sync.
+// A follow-mode change also syncs the pitch that mode implies, so the 2D/3D label stays consistent
+// with the follow-driven camera, which brings the camera there itself (no pitch control). Shared by
+// every action that changes followMode (cycleFollowMode, northPressed) so the two paths can't drift
+// out of sync.
 export interface FollowModeChange {
   followMode: FollowMode
   cameraPitch: number
-  pitchAnimated: boolean
+  pitchControl: null
 }
 export function followModeChange(mode: FollowMode, currentPitch: number): FollowModeChange {
-  return { followMode: mode, cameraPitch: pitchForFollowMode(mode, currentPitch), pitchAnimated: true }
+  return { followMode: mode, cameraPitch: pitchForFollowMode(mode, currentPitch), pitchControl: null }
 }
 
 // SDK-neutral <Camera> follow configuration for a given follow mode. Mirrors the Kotlin
@@ -91,6 +93,23 @@ export function followCameraProps(mode: FollowMode): FollowCameraProps {
         followPitch: MapTokens.pitchToggle,
       }
   }
+}
+
+// How a pitch control (the 2D/3D toggle, the tilt drag) last set the pitch: eased or live.
+export type PitchControl = 'animated' | 'live'
+
+// The declarative pitch the camera is given: a pitch control's, once follow is off. None when the
+// pitch was last set otherwise (a follow mode, a fit, the launch camera), which brings the camera
+// there itself. rnmapbox turns a pitch prop into a camera stop of its own, sent with the commit's
+// other props, and the native camera gets those and an imperative move unordered: a pitch prop
+// appearing with the follow-off of a fit could land after the fit and cancel it.
+export function manualPitchProps(
+  mode: FollowMode,
+  pitch: number,
+  control: PitchControl | null,
+): Pick<CameraProps, 'pitch' | 'animationDuration'> {
+  if (mode !== 'off' || control === null) return {}
+  return { pitch, animationDuration: control === 'animated' ? 300 : 0 }
 }
 
 // A style choice as the quick-switch logic needs to see it: an id plus the semantic satellite
@@ -128,6 +147,12 @@ export function resolveQuickSwitch(
 
 export type MapMode = 'free' | 'trail' | 'recording' | 'activity'
 
+// Which kinds the overview draws, each on or off; both off is allowed (D119).
+export interface OverviewToggles {
+  trails: boolean
+  activities: boolean
+}
+
 // The one thing shown on the map: a trail or an activity, never both. A single tagged field makes
 // that mutual exclusion true by construction — the store cannot represent "both selected".
 export interface Selection {
@@ -150,12 +175,12 @@ export function trailToShow<T>(mode: MapMode, selectedTrail: T | null): T | null
   return mode === 'trail' || mode === 'recording' ? selectedTrail : null
 }
 
-// A pending one-shot camera fit for whichever selection requested it, consumed once its geometry
-// loads (see MapCanvas). Generalized over trail and activity so both frame identically.
-export interface PendingFit {
-  kind: 'trail' | 'activity'
-  id: number
-}
+// A pending one-shot camera fit (see MapCanvas): of whichever selection requested it, consumed once
+// its geometry loads, trail and activity framed identically; or of a box known at once, never
+// zooming past its limit, as a cluster's starts are.
+export type PendingFit =
+  | { kind: 'trail' | 'activity'; id: number }
+  | { kind: 'bounds'; bounds: LngLatBounds; maxZoom: number }
 
 interface MapStore {
   // Persisted exactly, so a launch follows again in the same mode or, when free, restores lastCamera.
@@ -169,9 +194,9 @@ interface MapStore {
   // never does.
   selection: Selection | null
   cameraPitch: number
-  // Whether the next declarative pitch application should animate (tap toggle) or snap
-  // (live drag). Session-only; drives the <Camera> animationDuration in MapCanvas.
-  pitchAnimated: boolean
+  // How a pitch control last set cameraPitch, null when something else did since (see
+  // manualPitchProps). Session-only.
+  pitchControl: PitchControl | null
   // Live map camera bearing (deg), streamed from onCameraChanged; drives North-button
   // visibility. Session-only.
   cameraHeading: number
@@ -179,8 +204,8 @@ interface MapStore {
   // one-shot imperative rotate-to-north. Session-only.
   northResetNonce: number
   // The trail or activity a user tap has requested the camera to frame, consumed once its
-  // geometry loads. select() sets it; a restored trail selection leaves it null, so restore shows
-  // the overlay without fitting. Session-only.
+  // geometry loads, or the box a cluster tap asked for. select() sets it; a restored trail
+  // selection leaves it null, so restore shows the overlay without fitting. Session-only.
   pendingFit: PendingFit | null
   // The framing the camera last came to rest on, whatever the follow state. Persisted; the launch
   // starts the map on it.
@@ -195,12 +220,20 @@ interface MapStore {
   // library reports a failure only through its rehydration callback; the launch gate opens on it
   // (see MapLaunchGate). Session-only.
   hydrationError: string | null
+  // Persisted, both on by default (D124).
+  overviewToggles: OverviewToggles
   cycleFollowMode: () => void
   disableFollow: () => void
   northPressed: () => void
   setMapStyle: (id: string) => void
   quickSwitchMapStyle: (styles: StyleChoice[]) => void
   select: (kind: 'trail' | 'activity', id: number) => void
+  // A tap on the map's overview: the selection alone, the camera, pitch and follow left as they are,
+  // and no fit, an earlier selection's pending one included (D113, D134).
+  selectOnMap: (kind: 'trail' | 'activity', id: number) => void
+  // A tap on a cluster below the cap: the camera frames its starts, never past maxZoom, the
+  // selection left as it is (D118).
+  fitCluster: (bounds: LngLatBounds, maxZoom: number) => void
   clearSelection: () => void
   // Drops the selection only when it shows this entity, as after the entity is deleted.
   forgetEntity: (kind: 'trail' | 'activity', id: number) => void
@@ -215,12 +248,13 @@ interface MapStore {
   restoreCamera: (camera: CameraFraming) => void
   startFollow: (mode: FollowUserMode, from?: CameraFraming) => void
   failHydration: (errorClass: string) => void
+  setOverviewToggle: (kind: keyof OverviewToggles, shown: boolean) => void
 }
 
 // Nothing shown, and no framing left pending for what was.
 const NO_SELECTION: Pick<MapStore, 'selection' | 'pendingFit'> = { selection: null, pendingFit: null }
 
-type PersistedMapState = Pick<MapStore, 'mapStyleId' | 'selection' | 'followMode' | 'lastCamera'>
+type PersistedMapState = Pick<MapStore, 'mapStyleId' | 'selection' | 'followMode' | 'lastCamera' | 'overviewToggles'>
 
 // A hydration that lands after the launch was resolved without it (the gate timed out) still
 // restores the style and selection, but never overrides the follow state the session started in
@@ -244,7 +278,7 @@ export const useMapStore: MapStoreHook = create<MapStore>()(
       previousMapStyleId: null,
       selection: null,
       cameraPitch: 0,
-      pitchAnimated: false,
+      pitchControl: null,
       cameraHeading: 0,
       northResetNonce: 0,
       pendingFit: null,
@@ -252,6 +286,7 @@ export const useMapStore: MapStoreHook = create<MapStore>()(
       launchResolved: false,
       startingCamera: null,
       hydrationError: null,
+      overviewToggles: { trails: true, activities: true },
       cycleFollowMode: () => set((s) => followModeChange(nextFollowMode(s.followMode), s.cameraPitch)),
       disableFollow: () => set({ followMode: 'off' }),
       // Compass-follow → demote to north-up Position (follow viewport snaps bearing to north, and
@@ -277,8 +312,9 @@ export const useMapStore: MapStoreHook = create<MapStore>()(
           return target === s.mapStyleId ? {} : { mapStyleId: target, previousMapStyleId: s.mapStyleId }
         }),
       // Any action that triggers a one-shot camera op (pendingFit here / northResetNonce) MUST set
-      // followMode: 'off' — rnmapbox ignores a camera move while following, and MapCanvas defers the
-      // op a frame past this follow-off (see the deferral there). Leave follow on and it is swallowed.
+      // followMode: 'off' — rnmapbox ignores a camera move while following (see MapCanvas). Leave
+      // follow on and it is swallowed. A fit flattens through its own pitch, so it leaves no pitch
+      // control behind: a declarative pitch sent beside it could cancel it (manualPitchProps).
       // Each request for a fit is logged with who asked (T-84), so a fit at relaunch names its caller.
       select: (kind, id) => {
         logEvent('info', 'map', 'fit requested', { by: 'select', kind })
@@ -287,7 +323,17 @@ export const useMapStore: MapStoreHook = create<MapStore>()(
           followMode: 'off',
           pendingFit: { kind, id },
           cameraPitch: MapTokens.pitchMin,
-          pitchAnimated: true,
+          pitchControl: null,
+        })
+      },
+      selectOnMap: (kind, id) => set({ selection: { kind, id }, pendingFit: null }),
+      fitCluster: (bounds, maxZoom) => {
+        logEvent('info', 'map', 'fit requested', { by: 'cluster' })
+        set({
+          followMode: 'off',
+          pendingFit: { kind: 'bounds', bounds, maxZoom },
+          cameraPitch: MapTokens.pitchMin,
+          pitchControl: null,
         })
       },
       clearSelection: () => set(NO_SELECTION),
@@ -304,15 +350,16 @@ export const useMapStore: MapStoreHook = create<MapStore>()(
           pendingFit: { kind: selection.kind, id: selection.id },
           followMode: 'off',
           cameraPitch: MapTokens.pitchMin,
-          pitchAnimated: true,
+          pitchControl: null,
         })
       },
-      setCameraPitch: (p) => set({ cameraPitch: p, pitchAnimated: false }),
-      setCameraPitchAnimated: (p) => set({ cameraPitch: p, pitchAnimated: true }),
+      setCameraPitch: (p) => set({ cameraPitch: p, pitchControl: 'live' }),
+      setCameraPitchAnimated: (p) => set({ cameraPitch: p, pitchControl: 'animated' }),
       setCameraHeading: (h) => set({ cameraHeading: h }),
       setLastCamera: (camera) => set({ lastCamera: camera }),
-      // The declarative manual pitch and the North button read cameraPitch and cameraHeading, so
-      // both start from the restored camera instead of flattening or hiding its tilt and rotation.
+      // The 2D/3D label and the North button read cameraPitch and cameraHeading, so both start from
+      // the restored camera instead of flattening or hiding its tilt and rotation. The camera starts
+      // there itself (startingCamera), so no pitch control.
       restoreCamera: (camera) =>
         set({
           launchResolved: true,
@@ -320,7 +367,7 @@ export const useMapStore: MapStoreHook = create<MapStore>()(
           followMode: 'off',
           cameraPitch: camera.pitch,
           cameraHeading: camera.heading,
-          pitchAnimated: false,
+          pitchControl: null,
         }),
       startFollow: (mode, from) =>
         set((s) => ({
@@ -330,6 +377,7 @@ export const useMapStore: MapStoreHook = create<MapStore>()(
           ...followModeChange(mode, s.cameraPitch),
         })),
       failHydration: (errorClass) => set({ hydrationError: errorClass }),
+      setOverviewToggle: (kind, shown) => set((s) => ({ overviewToggles: { ...s.overviewToggles, [kind]: shown } })),
     }),
     {
       name: 'onfoot-map',
@@ -343,10 +391,11 @@ export const useMapStore: MapStoreHook = create<MapStore>()(
         selection: s.selection?.kind === 'trail' ? s.selection : null,
         followMode: s.followMode,
         lastCamera: s.lastCamera,
+        overviewToggles: s.overviewToggles,
       }),
       merge: mergeHydrated,
       onRehydrateStorage: (state) => (_, error) => {
-        if (error) state.failHydration(error instanceof Error ? error.name : typeof error)
+        if (error) state.failHydration(errorClass(error))
       },
     }
   )

@@ -41,12 +41,13 @@ write is swallowed; the next entry still gets its turn.
   point (`sheet settled`, with the mode and the index), the sheet/root/graph geometry sampled on
   `AppState` becoming `'active'` (`useSheetGeometryLog`), each hand-off of a destination to an
   external map app (`openMapApp`), a failed launch-time load of the offline packs (the offline
-  maps list retries it on focus), and the launch camera falling back: the map store's hydration
+  maps list retries it on focus) or of the trails or activities store (`loadStoresAtLaunch`; a
+  list's focus refresh or the next change retries it), and the launch camera falling back: the map store's hydration
   failing (with the error class, never its message) or timing out (with the bound), and a persisted
   launch camera ignored (with the fault: `missing`, `non-finite`, `out-of-range` or
   `unknown-follow-state`), the launch's camera choice and every fit of the camera to a route (below),
-  the two route timing entries (below), and the compass watch held while recording with the puck's
-  mounts (below).
+  the two route timing entries (below), the compass watch held while recording with the puck's
+  mounts (below), and the overview's lines and pins files and backfill (below).
 - **`error`** — uncaught errors (the global `ErrorUtils` handler), render errors caught by
   `ErrorBoundary`, and every failure or refusal the user is told about in an alert or a toast:
   start, pause, resume and stop recording, opening an activity while recording, saving or
@@ -84,14 +85,15 @@ What the camera was told to do, so a relaunch that frames the wrong view names i
   restore; `from` says whether the launch starts on a last camera. A launch that fell back, after
   one of the warn entries above, reads `follow`, `position`, `from: false` or the fallback
   `launchCamera` named.
-- `fit requested` `{ by, kind }`, from the map store's two actions that ask for a fit: `by` is
+- `fit requested` `{ by, kind }`, from the map store's actions that ask for a fit: `by` is
   `select` (an entity was chosen to be shown) or `recenter` (the route was framed again), `kind`
-  is `trail` or `activity`.
+  is `trail` or `activity`; or `{ by: 'cluster' }`, a tap on a cluster below the cap.
 - `fit fired` `{ kind }`, when `MapCanvas` hands the fit to the camera, a frame after the
-  entity's geometry has loaded and the camera padding has settled. A request with no `fit fired`
-  after it was replaced, cleared, or never got a geometry of two points.
+  entity's geometry has loaded (none to wait for with `kind` `bounds`, a cluster's starts) and the
+  camera padding has settled. A request with no `fit fired` after it was replaced, cleared, or
+  never got a geometry of two points.
 
-None carries a camera centre or an entity id.
+None carries a camera centre, a box or an entity id.
 
 ## The route timing entries
 
@@ -108,6 +110,48 @@ decimal.
 - `route derived`: the profile and banding pass of `useRouteDisplay`, written each time it runs
   for a trail or an activity, so on a selection and on a change of the smoothing preference. The
   live track's pass is not logged: it runs again on every fix batch.
+
+## The overview entries
+
+The overview's lines and pins reach the map as two files in the document directory, written by
+the Mapbox adapter (`useOverviewFile`) once per burst of changes whose content differs from the
+file's: the lines on a data change, the pins also on a selection, a toggle or a recording starting
+or ending.
+
+- `overview loaded` `{ trails, activities, points, ms }`: at each write of the lines file.
+  `trails` and `activities` are the lines in it (an activity linked or not), `points` the
+  positions over all of them, `ms` the time to join and write the file, to one decimal.
+- `overview pins written` `{ pins, ms }`: at each write of the pins file. `pins` is the pins shown
+  (none while recording), `ms` the time to build and write the file, to one decimal.
+- `overview file write failed` (`warn`) `{ source, errorClass }`: the source keeps its previous
+  file; the next change tries again. `source` is `lines` or `pins`.
+- `overview files not cleared` (`warn`) `{ source, errorClass }`: listing or deleting the
+  source's old files failed, at mount or after a switch; they are cleared at the next mount.
+- `overview press` `{ pins, lines, clusters, outcome }`: at each press on the map, with the
+  counts of the overview's pins, lines and clusters under the finger and what the press did:
+  `select`, `deselect` (nothing under the finger, off the selected route: the selection cleared),
+  `fit` (a cluster below the cap), `list` (the items under the finger listed), `name` (the toast
+  while recording, shown or held back by its throttle) or `none`.
+- `overview press failed` (`warn`) `{ errorClass }`: the press could not be read, as during a
+  style reload, or handling it threw; nothing was selected.
+
+
+Rows saved before overviews existed are filled by one pass at launch, once no recording session
+exists (`overviewBackfill`). Errors are logged by class, never by message: a parse error's message
+can quote the geometry it failed on.
+
+- `overview backfill` `{ rows, failed, slowestMs, ms }`: once per pass that found rows to fill, at
+  its end. `rows` is the rows filled, `failed` those of them whose stored geometry could not be
+  read, stored with an empty overview so no later pass retries them, `slowestMs` the slowest row
+  and `ms` the time spent on the rows, the frames between them excluded, both to one decimal. A
+  launch with every row filled writes none.
+- `overview geometry unreadable` (`warn`) `{ kind, errorClass }`: one per row counted in `failed`,
+  `kind` being `trail` or `activity`.
+- `overview backfill stopped` (`warn`) `{ rows, failed, errorClass }`: a read or a write failed
+  and the pass ended there, with the counts so far and no `overview backfill` entry. The next
+  launch resumes with the rows left.
+- `reloading after the overview backfill failed` (`warn`) `{ kind, errorClass }`: the store
+  reload that follows every few rows failed; the pass goes on.
 
 ## The heading entries
 

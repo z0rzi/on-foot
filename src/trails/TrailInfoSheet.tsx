@@ -13,8 +13,15 @@ import { offlineStatusForTrail } from '../map/offline/status'
 import type { MenuAnchor } from '../components/ActionsMenu'
 import { ActionsMenuButton } from '../components/ActionsMenuButton'
 import { TrailActions } from './TrailActions'
+import { FamilyList } from '../activities/FamilyList'
 
-export function TrailInfoSheet({ trail }: { trail: Trail }) {
+export function TrailInfoSheet({
+  trail,
+  onSelectActivity,
+}: {
+  trail: Trail
+  onSelectActivity: (id: number) => void
+}) {
   const c = useTheme()
   const caps = useMapCapabilities()
   const packs = useOfflineStore((s) => s.packs)
@@ -62,6 +69,8 @@ export function TrailInfoSheet({ trail }: { trail: Trail }) {
       <MetricsGrid items={trailMetricTiles(trail.metrics)} />
 
       <TrailDescription trail={trail} />
+
+      <FamilyList trailId={trail.id} onSelectActivity={onSelectActivity} />
 
       <TrailActions trail={trail} anchor={menuAnchor} onCloseMenu={() => setMenuAnchor(null)} />
     </>

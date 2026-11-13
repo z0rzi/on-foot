@@ -1,7 +1,6 @@
 import { haversineMeters } from '../data/geo/metrics'
 import type { LiveTrackPoint } from '../data/activities/types'
-import type { LogLevel } from '../log'
-import { toOneDecimal } from './oneDecimal'
+import { toOneDecimal, type LogLevel } from '../log'
 
 export const HEADING_CHECK_EVERY_MS = 10_000
 const HEADING_SAMPLE_EVERY_MS = 5 * 60_000

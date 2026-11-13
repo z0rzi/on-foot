@@ -30,6 +30,22 @@ export const MapTokens = {
   terrainExaggeration: 1.0,
   trailLineWidth: 4,
   recordingLineWidth: 5,
+  // The overview's thin plain lines, faded in from the first zoom to the second; farther out they
+  // are not drawn (D107). Tuned on device.
+  overviewLineWidth: 2,
+  overviewLineZoomFrom: 10,
+  overviewLineZoomTo: 11,
+  // The overview outside the family while something is selected or recorded (D108). Tuned on device.
+  overviewDimmedOpacity: 0.55,
+  // Pins closer than the radius (dp) merge into a cluster up to the cap zoom, and stay merged past it:
+  // about 17 m apart at the cap, at 45° latitude (D117). Tuned on device.
+  overviewClusterCap: 17,
+  overviewClusterRadius: 40,
+  // A press finds the overview's pins and lines up to this far from the finger (dp), in a box the
+  // size of the minimum touch target (D126).
+  overviewPressTolerance: 22,
+  // While recording, a press names an item at most once in this time (D114).
+  overviewPressToastMs: 3000,
   connectorDashArray: [0, 2],
   arrowSpacing: 100,
   arrowSize: 0.4,

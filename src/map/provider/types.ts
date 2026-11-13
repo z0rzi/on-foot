@@ -1,6 +1,6 @@
 import React from 'react'
 import type { StyleProp, ViewStyle } from 'react-native'
-import type { RouteTier } from './routeTiers'
+import type { RouteTier } from './stacking'
 
 // How light a layer's tiles are, as seen by what is drawn straight on them (the status bar's icons).
 export type MapTone = 'light' | 'dark'
@@ -15,6 +15,10 @@ export interface StyleDescriptor {
   // the port so provider-agnostic code (the store's quick-switch logic) can identify it without
   // hardcoding a provider-specific style id. A future provider marks its own imagery style.
   satellite?: boolean
+  // The font stack the layer's own labels use. The map fetches glyphs per stack, and offline only
+  // the layer's own stacks are there; a missing one blanks the whole source its text is in. So
+  // text the app draws on the map uses this stack (D133).
+  labelFont: readonly string[]
 }
 
 export interface MapCapabilities {
@@ -96,6 +100,106 @@ export interface RouteOverlayProps {
   }
 }
 
+// What an overview line stands for, as the focus tells lines apart: a trail, an activity tied to no
+// trail, or an activity linked to one of the trails.
+export type OverviewClass = 'trail' | 'activity' | 'linkedActivity'
+
+export interface OverviewItem {
+  // Opaque to the provider: it tells the items apart and comes back with a press.
+  key: string
+  class: OverviewClass
+  // The text of a GeoJSON MultiLineString geometry, [lng, lat] positions, placed in the map's data
+  // as is.
+  geometry: string
+}
+
+// Which lines of the overview are drawn, and how. Derived in shared code from the user's choices,
+// the selection and the recording; the provider turns it into layer filters without knowing the
+// rules behind it.
+export interface OverviewLineFocus {
+  // The classes drawn outside the family.
+  shownClasses: readonly OverviewClass[]
+  // Drawn at full strength above the rest, whatever their class, and never in the rest.
+  familyKeys: readonly string[]
+  // Not drawn at all, the family included: the item another overlay draws in full.
+  leftOutKey: string | null
+  // The lines outside the family drawn dimmed rather than at full strength.
+  restDimmed: boolean
+}
+
+// What a pin's teardrop says: a trail, a trail completed at least once (shown with activities or
+// not, D116), or an activity.
+export type OverviewPinKind = 'trail' | 'completedTrail' | 'completedTrailWithActivities' | 'activity'
+
+// The mark at an item's start: a teardrop with its tip on the start and a tag beside its head.
+export interface OverviewPin {
+  // The key of the item it stands for, as in `OverviewItem`.
+  key: string
+  // [lng, lat] of the item's start, where the tip is.
+  position: [number, number]
+  kind: OverviewPinKind
+  // The tag's text, ready to draw.
+  tag: string
+  // Drawn at the dimmed rest's opacity.
+  dimmed: boolean
+  // Where tags collide, the lower rank is kept; the teardrops always stay.
+  rank: number
+}
+
+// A cluster under a press: the keys of the pins it holds, and the zoom at which it splits into
+// smaller clusters or pins, past `OverviewProps.cluster.cap` when they stay merged at every zoom.
+export interface OverviewClusterHit {
+  keys: readonly string[]
+  splitZoom: number
+}
+
+// What of the overview lies under a press, as keys, each once. The provider reports what it hit and
+// never picks among it: shared code decides what the press means (D126).
+export interface OverviewPress {
+  // [lng, lat] of the press.
+  point: [number, number]
+  // The map's zoom at the press (`WORLD_DP_AT_ZOOM_0`).
+  zoom: number
+  pins: readonly string[]
+  lines: readonly string[]
+  clusters: readonly OverviewClusterHit[]
+}
+
+export interface OverviewProps {
+  // Every item with a line, whatever the focus: they change only when a trail or an activity is
+  // saved, changed or deleted, and the provider may treat a change as costly.
+  items: readonly OverviewItem[]
+  focus: OverviewLineFocus
+  trailColor: string
+  activityColor: string
+  lineWidth: number
+  // The zoom range over which the lines fade in, from invisible at `from` to full at `to`. Below
+  // `from` no line is laid out, so none can be pressed.
+  lineZoom: { from: number; to: number }
+  // The opacity of the dimmed rest, its lines at full zoom and its pins, between 0 and 1.
+  dimmedOpacity: number
+  // Every pin shown, changed by a selection, a toggle, a recording or a data change. Pins and
+  // clusters draw above every line, the routes' included, and a cluster holds only these pins.
+  pins: readonly OverviewPin[]
+  // The teardrop's border and centre, the cluster's border and count.
+  pinInkColor: string
+  clusterColor: string
+  // The tag's text.
+  tagTextColor: string
+  // The font stack of the shown layer's labels (`StyleDescriptor.labelFont`), for the tags and the
+  // counts.
+  pinFont: readonly string[]
+  // Pins closer than `radius` dp merge into a cluster, up to zoom `cap`; past the cap a cluster stays
+  // one at every zoom, so two pins never sit on one pixel.
+  cluster: { cap: number; radius: number }
+  // How far from the finger, in dp, a press still finds a pin or a line: half the side of a square
+  // around it.
+  pressTolerance: number
+  // Fires once per press on the map, with what of the overview it hit, possibly nothing. A press the
+  // provider cannot read, as during a style reload, is not reported.
+  onPress: (press: OverviewPress) => void
+}
+
 export interface ScrubMarkerProps {
   // [lng, lat] of the point being scrubbed on the elevation graph.
   coordinate: [number, number]
@@ -133,9 +237,11 @@ export interface CameraController {
   // [top, right, bottom, left] in points, the whole room left around the box, whatever padding the
   // camera holds from following; duration in ms. Like resetNorth, only meaningful when follow is
   // off (an imperative camera move is a no-op while rnmapbox is following).
-  // pitch travels with the fit: a camera stop without one keeps whatever pitch the native camera
-  // has, and being the later op it would override the declarative pitch the store just set.
+  // pitch travels with the fit, which is how a fit flattens: a camera stop without one keeps
+  // whatever pitch the native camera has.
   // heading is the camera's current one, kept: the box is framed as it turns on screen.
+  // maxZoom is the closest the fit may come, as for a cluster's starts that never split; the
+  // provider's own maximum when absent.
   fitBounds(
     ne: [number, number],
     sw: [number, number],
@@ -143,6 +249,7 @@ export interface CameraController {
     duration: number,
     pitch: number,
     heading: number,
+    maxZoom?: number,
   ): void
 }
 
@@ -153,6 +260,7 @@ export interface MapComponents {
   UserPuck: React.ComponentType<UserPuckProps>
   RouteOverlay: React.ComponentType<RouteOverlayProps>
   ScrubMarker: React.ComponentType<ScrubMarkerProps>
+  Overview: React.ComponentType<OverviewProps>
 }
 
 export interface OfflinePackDescriptor {

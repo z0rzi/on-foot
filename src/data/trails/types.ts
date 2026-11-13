@@ -1,3 +1,4 @@
+import { OverviewFields } from '../geo/overview'
 export interface GpxPoint { lat: number; lng: number; ele: number | null }
 export interface GpxWaypoint {
   lat: number; lng: number; ele: number | null
@@ -22,3 +23,6 @@ export interface TrailSummary {
 export interface Trail extends TrailSummary {
   description: string | null; geometry: TrailGeometry; updatedAt: number
 }
+
+// A summary with what the map's overview draws.
+export interface TrailOverviewRow extends TrailSummary, OverviewFields {}

@@ -1,10 +1,11 @@
 # Overview on the map: every trail and activity at once, tappable, with pins — Design
 
-**Status:** Planned, [[2026-11-11-overview-on-map]]. From the owner's grilling of 2026-11-11, challenged twice the same
+**Status:** Built, [[2026-11-11-overview-on-map]]. From the owner's grilling of 2026-11-11, challenged twice the same
 day (each time a fact-check and a design critique) with three device spikes, and revised with the
 owner's rulings and a UX session on the pin and the data path. Extends the map of the hiking-ux spec
-(§4.1, §4.5) as D103–D138; decision numbers continue that spec's (D129 and D137 are unused). Revises
-the layer quick-switch spec's "choosing a layer closes the sheet" (D130).
+(§4.1, §4.5) as D103–D139; decision numbers continue that spec's (D129 and D137 are unused). D139
+is the owner's ruling of 2026-11-12, from a first look at the build. Revises the layer quick-switch
+spec's "choosing a layer closes the sheet" (D130).
 **From:** [[T-26-all-activities-on-map]]; [[2026-11-06-hiking-ux-design]] (§4.1 "Map", §4.5 "Map
 card", §4.7 "Selecting a trail while recording", D83/D102 for the stacking);
 [[2026-08-20-onfoot-rn-layer-quick-switch-and-tap-outside]] (the Layers menu it restyles).
@@ -27,9 +28,9 @@ invisible.
 
 The map draws the **overview**: every saved trail and activity as a thin plain line, each with a
 **pin** at its start. The owner taps a line or a pin to select it; the card opens as it does from a
-list. What is selected keeps today's full dress, with its **family** drawn slim around it: a trail
-and all the activities linked to it, so the owner sees where each walk strayed. Everything else
-dims.
+list, and a tap on the bare map closes it. What is selected keeps today's full dress, with its
+**family** drawn slim around it: a trail and all the activities linked to it, so the owner sees
+where each walk strayed. Everything else dims.
 
 While recording, the overview stays, dimmed and without pins, as landmarks. A tap on one of its
 lines names it in a toast and changes nothing.
@@ -46,7 +47,7 @@ a trail or an activity rebuilds the lines, in the background.
 | State | Selected item | Its family | Rest of the overview | Pins | Tap on the overview |
 |---|---|---|---|---|---|
 | Idle, nothing selected | none | none | full strength | shown | selects |
-| Idle, something selected | full dress (bold, slope colours, as today), no pin | slim, plain, full strength, under the selected route | dimmed | the family's first, others dimmed | selects (switches) |
+| Idle, something selected | full dress (bold, slope colours, as today), no pin | slim, plain, full strength, under the selected route | dimmed | the family's first, others dimmed | selects (switches); a tap on nothing deselects |
 | Recording or paused | followed trail if any (as today) + live track | not drawn | dimmed | none | toast naming the item |
 
 ### What the overview holds
@@ -65,17 +66,23 @@ a trail or an activity rebuilds the lines, in the background.
   ▼│ 5.1 km   │       ▼│ ✓3 · 12.4 km    │       ▼│ 11 km   │         ⬤ 6
    ╰──────────╯        ╰─────────────────╯        ╰─────────╯
   ↑ start point (the tip)
- trail: trail colour,   completed: trail colour,    activity: activity      cluster: dark
- white centre           white check; the tag counts colour                  disc, white
-                        the linked activities                               border, count
+ trail: trail colour,   completed: split, trail     activity: activity      cluster: dark
+ white centre           colour left, activity       colour                  disc, white
+                        colour right (Activities                            border, count
+                        off: all trail colour);
+                        the tag counts the
+                        linked activities
 ```
 
 The pin is a teardrop: its tip is on the start point, its round head above it, with a white border
 and a soft shadow, so it reads at once as "this exact spot", and the trail's line leaves from the
 tip. The tag is a white pill with a soft shadow beside the head, vertically centred on it and
-tucked under it, holding the distance. The teardrop's colour and centre carry the kind and the
-state; there is no glyph beyond the check. Where tags would collide they give way, the teardrops
-stay, and a bare teardrop still reads as a whole pin. The tags kept first are the selected family's,
+tucked under it, holding the distance. The teardrop's colours and centre carry the kind and the
+state; there is no glyph in the head. A trail not yet completed has a white centre. A completed
+trail has none: with Activities shown it is split down through its tip, the left half in the trail
+colour and the right half, beside the tag, in the activity colour, so the activity colour marks
+every place the owner has walked; with Activities off it is all trail colour. Where tags would
+collide they give way, the teardrops stay, and a bare teardrop still reads as a whole pin. The tags kept first are the selected family's,
 then trails not yet completed, then completed trails, then activities. Pins too close to tell apart
 merge into a **cluster**.
 
@@ -100,6 +107,8 @@ merge into a **cluster**.
    and have that remembered.
 10. As a hiker, I want the Layers menu to show each layer as a preview with its name under it.
 11. As a hiker facing several pins on the same spot, I want to pick among them by name.
+12. As a hiker with something selected, I want a tap on the bare map to close its card, so that I
+    get back to the whole overview without reaching for the close button.
 
 ## Implementation Decisions
 
@@ -139,12 +148,22 @@ merge into a **cluster**.
 - **D112, what a tap picks.** Pins win over lines. Several pins under the finger: the list of
   D118. Among lines: the nearest to the finger; at equal distance a trail over an activity; never
   the selected item, so a tap on the selected route's own line falls through to what lies under
-  it, and selects nothing if nothing does. No cycling through stacked lines: siblings are reached
-  through the card's list (D115).
+  it, and keeps the selection if nothing does (D139). No cycling through stacked lines: siblings
+  are reached through the card's list (D115).
 - **D113, no camera move on a map tap.** Selecting from the map leaves the camera, the pitch and
   the follow mode as they are. A selection from a list keeps its fit. With follow on, the camera
   still shifts when the card opens, because the follow padding follows the card: accepted. A
   tapped item may end under the card: accepted.
+- **D139, a tap on nothing deselects (owner, 2026-11-12).** Idle with something selected, a tap
+  that hits no pin, no cluster and no overview line clears the selection, as closing the card does,
+  and moves no camera (D113). A tap on the selected route keeps it. The selected item's own line
+  leaves the overview once its route has loaded (D132) and the press reads no route layer, so
+  "nothing hit" does not tell "off the route": press resolution measures the press against the
+  selected item's overview geometry, and a press within the press tolerance (its dp at the press's
+  zoom) plus the overview geometry's own tolerance is on the route. While the selected route's
+  place is unknown (no readable overview geometry), a tap on nothing keeps the selection.
+  Recording or paused, a tap never deselects: the selection is the followed trail. A press whose
+  query fails (D126) does nothing.
 - **D114, recording.** Recording or paused: no pins and no clusters, the overview is dimmed, the
   followed trail's family is not drawn. A tap on an overview line shows the existing toast with
   "<name> · <distance>" and selects nothing. A tap on the same item within a few seconds shows
@@ -159,8 +178,13 @@ merge into a **cluster**.
   teardrop whose tip is on the start point, about 22 dp tall with a head about 16 dp across, a
   white border of about 1.5 dp and a soft shadow; the tag, a white pill about 16 dp tall with a
   soft shadow and text at 11, beside the head, vertically centred on it and starting under its
-  centre. Trail: trail colour with a white centre. Completed trail: trail colour with a white
-  check, and the tag reads `✓<count> · <distance>`. Activity: activity colour. With trails shown,
+  centre. Trail: trail colour with a white centre. Completed trail: no centre and no check, the tag
+  reading `✓<count> · <distance>`; with Activities on, the teardrop is split down through its tip,
+  the left half trail colour and the right half, beside the tag, activity colour; with Activities
+  off, it is all trail colour (owner, 2026-11-12: "respect the colour codes", the activity colour is
+  what the owner scans for to find where they have walked, and a trail-coloured pin with a check
+  did not read as "there is an activity here"). Clusters carry no activity mark: to see where they
+  have walked, the owner turns Trails off. Activity: activity colour. With trails shown,
   one pin per family, the trail's. The selected item has no pin: its start is the route's endpoint
   dot, where the tip was. The size sits between the gallery's rows B and C (the first drawn pins
   were too big). Future picture pins (T-27) keep the round head with a white border and a shadow,
@@ -178,9 +202,10 @@ merge into a **cluster**.
   15–20 m stay merged for good; both are `MapTokens` constants tuned on device. A cluster's count
   is always drawn and never pushes a tag away.
 - **D118, tapping a cluster.** Below the cap, the map fits the starts it holds, never zooming past
-  the cap; follow ends, as with any one-shot camera move. At the cap or past it, or when several
-  pins lie under the finger, a modal lists the items (name, distance, completed count); a row
-  selects that item. The camera never zooms in to tell apart two starts a few metres apart.
+  the cap; follow ends, as with any one-shot camera move. At the cap or past it, below it on a
+  cluster whose starts stay merged at the cap, or when several pins lie under the finger, a modal
+  lists the items (name, distance, completed count); a row selects that item. The camera never
+  zooms in to tell apart two starts a few metres apart.
 - **D119, the Layers menu.** Two rows of tiles, a preview with its title under it. "Map": the
   layers, one chosen. "Show on map": Trails and Activities, each on or off like a checkbox, both
   off allowed. The choice is remembered across launches.
@@ -286,22 +311,26 @@ merge into a **cluster**.
   200 / 370 ms at every change, because rnmapbox serialises a source's whole collection on every
   render of the source (`ShapeSource.tsx:263`) and parses it again on the UI thread.
 - **D126, presses on the port.** The overview component reports one semantic event per press: the
-  point pressed and the keys hit, split into pins, lines and clusters, a cluster with the keys it
-  holds. It never ranks or picks: D112, D114 and D118 are pure functions in shared code, which
+  point pressed, the map's zoom and the keys hit, split into pins, lines and clusters, a cluster
+  with the keys it holds and the zoom it splits at (past the cap when its starts stay merged). It
+  never ranks or picks: D112, D114 and D118 are pure functions in shared code, which
   parses the overview geometry of the few lines hit to measure their distance to the point, and
   ignores keys no row has (the two files switch a few hundred ms apart). In the Mapbox adapter a
   press is the map's own press plus one rendered-features query over the overview's layers in a box
   sized in dp (rnmapbox's per-source press reports only the topmost source, and sizes its hitbox in
-  physical pixels on Android). The query names no layer: pins, clusters and lines are told apart by
-  geometry type and the cluster count; line hits come once per map tile and a teardrop and its tag are
-  two hits, so hits are deduplicated by key; a cluster hit carries no keys, which the adapter reads
-  from the pins source (spike: 15–17 ms; the source must be the one the cluster came from, and
-  there is one). A query that fails, during a style reload, reports nothing.
+  physical pixels on Android). The query names the overview's own layers (every line layer, and of
+  a pin the teardrop's outline, its tag and the cluster's disc), so nothing of the style's own comes
+  back; among the hits, a cluster is told by its count, a pin by its point geometry and a line by
+  any other; line hits come once per map tile and a teardrop and its tag are two hits, so hits are
+  deduplicated by key; a cluster hit carries no keys, which the adapter reads from the pins source
+  with the zoom it splits at (`getClusterLeaves`, `getClusterExpansionZoom`; spike: 15–17 ms for
+  the leaves; the source must be the one the cluster came from, and there is one). A query that
+  fails, during a style reload, reports nothing.
 - **D128, pins are drawn by the map.** The teardrop is an icon anchored at its tip, so it is never
   clipped and takes part in placement (D136); its shape is a signed-distance image tinted with the
-  theme's colours through the port (a white outline shape, the coloured body, the white centre),
-  so light and dark themes need no baked colours; its shadow is a plain image. The check is text
-  in the head. The tag is a symbol whose pill is one stretchable image fitted around the text.
+  theme's colours through the port (a white outline shape, the coloured body or its two halves,
+  the white centre), so light and dark themes need no baked colours and the halves dim with the
+  rest like the body; its shadow is a plain image. The tag is a symbol whose pill is one stretchable image fitted around the text.
   Nothing in a pin is a circle moved off its point: the spike showed Mapbox clips such a circle at
   a map tile's edge, and a pin lost its head. The cluster is a circle on its own point, its count
   drawn over others and taking no room from tags. Clustering is the provider's. Spike, on device:
@@ -320,8 +349,9 @@ merge into a **cluster**.
   lines live in a source with no text.
 - **D134, a map tap selects through its own action.** `select` asks for a fit, ends follow and
   flattens the pitch; a map tap uses a store action that sets the selection only and clears a
-  pending fit left by an earlier one. A cluster fit ends follow through the store's one-shot
-  camera pattern (as `pendingFit`), since a camera move is ignored while following.
+  pending fit left by an earlier one. A tap on nothing (D139) clears the selection through the
+  card's own close, which moves no camera either. A cluster fit ends follow through the store's
+  one-shot camera pattern (as `pendingFit`), since a camera move is ignored while following.
 
 ### Layers menu
 
@@ -350,9 +380,10 @@ Pure logic, test-first:
   burst;
 - press resolution: pin over line, several pins open the list, nearest line, trail over activity,
   the selected item never picked, unknown keys ignored, duplicate hits merged, recording gives a
-  toast and no selection, the toast throttle;
-- cluster press: below the cap fits the starts with the cap as the zoom limit, at the cap opens the
-  list;
+  toast and no selection, the toast throttle; a tap on nothing deselects, but not within reach of
+  the selected route at the press's zoom, nor with that route's place unknown, nor while recording;
+- cluster press: below the cap fits the starts with the cap as the zoom limit, at the cap, or below
+  it for a cluster that stays merged at the cap, opens the list;
 - the map-select action leaves follow, pitch and fit untouched and clears a stale fit;
 - the persisted toggles: the `partialize` output holds them, a stored state without them hydrates
   to both on, nothing is written before hydration;
@@ -370,7 +401,7 @@ switch and reload, the menu.
 - **A route on the map**: the route overlay (`RouteOverlay` on the port, `MapOverlays`), one route
   per tier. Reused as is for the selected item. Not reused for the overview: its ids are per tier
   and its cost is per layer, which is why T-26 called for a collection. The slot mechanism
-  (`routeTiers`, the Mapbox anchors) is generalised, not forked.
+  (`stacking.ts` on the port, the Mapbox anchors) is generalised, not forked.
 - **Selection**: `mapStore.select`, `useSelectedEntity`, `useSelectedActivity` (which already loads
   the linked trail). A map tap gets its own action beside `select` (D134); the family comes from
   the overview rows.
@@ -421,8 +452,9 @@ switch and reload, the menu.
 - **Item deleted while shown.** The stores' `version` rebuilds the overview; a selection on a
   deleted item is cleared as today. Deleting a trail unlinks its activities, which then appear in
   the overview with their own pins.
-- **Tap on something gone** (a stale press). The press ignores it; nothing is selected.
-- **Press during a style reload.** The query fails; nothing is selected.
+- **Tap on something gone** (a stale press). The press ignores it; nothing is selected or
+  deselected.
+- **Press during a style reload.** The query fails; nothing is selected or deselected.
 - **Cluster tap while following.** Follow ends, then the fit runs.
 - **Layer switch with the overview on.** The style reloads; the overview's sources and layers come
   back with the map's children, as the route's do (D83), and re-read the current files (spike).
@@ -431,9 +463,10 @@ switch and reload, the menu.
   touch the lines; the pins file stays small; the cluster list scrolls; each rebuild is timed in
   the log. The whole set is loaded at start: loading by viewport would re-send data at the end of
   every pan, and only pays off at thousands of items (with bounding-box columns to query by).
-- **Render-time throw.** The derivations and press resolution are pure and run outside render; a
-  throw there leaves the overview empty and is logged. The map and the card do not depend on the
-  overview.
+- **Render-time throw.** The derivations and press resolution are pure. A throw in a derivation
+  leaves the overview empty, no line and no pin, and is logged once per derivation that throws, not
+  at every render; a throw in resolving a press is logged and the press does nothing. The map and
+  the card do not depend on the overview.
 - **Cancel mid-operation.** Closing the cluster list or the Layers menu selects nothing and leaves
   the toggles as last set.
 
@@ -451,9 +484,11 @@ On device, by `device-check`; feel (10) is the owner's. Items marked *(spike)* w
 5. Pins: the three states, the teardrop's tip on the line's start and the tag beside its head
    *(spike)*, `✓12 · 124.6 km` fitted, the selected family's and uncompleted trails' tags kept
    first *(spike)*; a tag never under a neighbour's teardrop; the tinted teardrop in light and dark
-   themes; terrain on, pitched.
+   themes; terrain on, pitched; the completed trail's split readable at 16 dp in light and dark, on
+   each layer and dimmed, and all trail colour with Activities off.
 6. A tap on a pin's teardrop and on its text *(spike)*, on a line, on two crossing lines (the nearer
-   wins), on the selected route (falls through); no camera move with follow off.
+   wins), on the selected route (falls through, the selection kept), on the bare map (the card
+   closes); no camera move with follow off.
 7. A cluster fits its starts up to the cap; two items on the same start stay a cluster past the cap
    *(spike)* and open the list; turning Activities off removes them from clusters and their counts
    *(spike: a layer filter alone does not)*.
@@ -551,7 +586,9 @@ The owner ruled D103–D119, D130, the first challenge's seven user-visible poin
 family list on both cards, the family under the route, no selected pin, the cluster list, the tap
 while following, the item under the card), the count on the tag, the pill, the teardrop and its size
 (D116), the tag priority (D136), the overview as files (D138); and in the second challenge, every
-activity pinned when trails are hidden (D104), the cluster reach (D117) and dropping the fade-in.
+activity pinned when trails are hidden (D104), the cluster reach (D117) and dropping the fade-in;
+and at the first look at the build, the tap on nothing (D139) and the completed trail's split
+teardrop (D116).
 These were taken while writing and are theirs to overturn:
 
 - **D120–D122**: the stored overview geometry and start point, its backfill, the existing stores
@@ -564,6 +601,8 @@ These were taken while writing and are theirs to overturn:
 - **D136's family-first priority** and the teardrops reserving their place against tags.
 - **D128's tinted teardrop images.**
 - **D114's throttle**: a few seconds per item.
+- **D139's reach**: the press tolerance plus the overview geometry's tolerance, and the selection
+  kept while its route's place is unknown.
 
 ## Further Notes
 

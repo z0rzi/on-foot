@@ -1,3 +1,10 @@
+// The overview's line layers, bottom to top, all below the route tiers: the rest of the overview
+// dimmed, the rest shown at full strength, then the selected item's family. The provider holds this
+// order as it holds the route tiers' (D127). They are not route tiers: no route overlay draws there.
+export const OVERVIEW_LINE_SLOTS = ['dimmed', 'shown', 'family'] as const
+
+export type OverviewLineSlot = (typeof OVERVIEW_LINE_SLOTS)[number]
+
 // The stacking tiers of the route overlays, bottom to top: the shown route (trail or activity),
 // then the live recording track above it. Each overlay names its tier; the provider keeps the
 // lines of an overlay within its tier, whatever order the overlays mount in, a style reload

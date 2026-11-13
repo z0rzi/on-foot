@@ -96,7 +96,7 @@ export const useRecordingStore = create<RecordingStore>((set, get) => {
 })
 
 async function historyFactorOfSavedActivities(): Promise<number> {
-  const ids = historyActivityIds(await activitiesRepository.listSummaries())
+  const ids = historyActivityIds(await activitiesRepository.listOverviewRows())
   const activities = await Promise.all(ids.map((id) => activitiesRepository.getActivity(id)))
   return historyFactor(activities.flatMap((a) => (a ? [a.geometry.segments] : [])))
 }

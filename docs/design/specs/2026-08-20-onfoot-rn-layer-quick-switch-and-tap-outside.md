@@ -13,7 +13,9 @@ store stays provider-agnostic).
    *previously selected* layer; if there is no usable previous layer, it falls back to a
    **satellite toggle**.
 2. **Tap-outside-to-close** — tapping the dimmed area outside the layers sheet dismisses
-   it (today only swipe-down closes it).
+   it, as do a swipe down and back. Choosing a layer applies it on the map behind and
+   leaves the sheet open, per the overview spec
+   ([[2026-11-11-overview-on-map-design]], D130).
 
 These are new behaviours, not present in the Kotlin reference app.
 
@@ -130,8 +132,11 @@ const renderBackdrop = useCallback(
 <BottomSheetModal ref={ref} snapPoints={snapPoints} backdropComponent={renderBackdrop} ...>
 ```
 
-Tapping the dimmed area dismisses the sheet; swipe-down continues to work. Purely
-additive — no change to layer-selection logic.
+Tapping the dimmed area dismisses the sheet; swipe-down and back close it too. Choosing a
+layer does not close it: the choice applies on the map behind while the sheet stays open,
+and only the backdrop, a swipe down or back closes it (D130 of the overview spec). The
+backdrop lives in the modal shell the Layers menu shares with the offline layer chooser
+(`src/components/ModalSheet.tsx`, D135).
 
 ## Testing
 
@@ -145,8 +150,8 @@ additive — no change to layer-selection logic.
   - store `quickSwitchMapStyle`: swaps to the resolved target and records previous;
     repeated calls A/B-toggle; no-op when the target equals the current style.
 - **Device-verified** (like the rest of the map): swipe on the layers button switches the
-  layer without opening the sheet; tap still opens it; tapping outside the open sheet
-  closes it.
+  layer without opening the sheet; tap still opens it; choosing a layer in the open sheet
+  applies it and leaves the sheet open; tapping outside it, swiping it down or back closes it.
 
 ## Non-goals
 

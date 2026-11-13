@@ -1,6 +1,6 @@
 jest.mock('../../log', () => ({ logEvent: jest.fn() }))
 jest.mock('../../data/activities', () => ({
-  activitiesRepository: { listSummaries: jest.fn(), getActivity: jest.fn() },
+  activitiesRepository: { listOverviewRows: jest.fn(), getActivity: jest.fn() },
 }))
 
 import { recordingPhase } from '../recordingPhase'
@@ -20,7 +20,7 @@ const pausedSession: RecordingSession = {
 }
 
 beforeEach(() => {
-  jest.mocked(activitiesRepository).listSummaries.mockResolvedValue([])
+  jest.mocked(activitiesRepository).listOverviewRows.mockResolvedValue([])
   useRecordingStore.setState({
     session: null,
     livePoints: [],
@@ -150,7 +150,7 @@ describe('history factor', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    repo.listSummaries.mockResolvedValue([hike(1, 1.5)])
+    repo.listOverviewRows.mockResolvedValue([{ ...hike(1, 1.5), overviewGeometry: null, start: null }])
     repo.getActivity.mockImplementation(async (id) => hike(id, 1.5))
   })
 
@@ -175,7 +175,7 @@ describe('history factor', () => {
     await settle()
     useRecordingStore.getState().setSession({ ...pausedSession, pausedAt: null, currentSegment: 2 })
     await settle()
-    expect(repo.listSummaries).toHaveBeenCalledTimes(2)
+    expect(repo.listOverviewRows).toHaveBeenCalledTimes(2)
   })
   it('is not read again when the session changes within its segment', async () => {
     useRecordingStore.getState().beginSession(recordingSession)
@@ -183,10 +183,10 @@ describe('history factor', () => {
     useRecordingStore.getState().setSession({ ...recordingSession, linkedTrailId: 3 })
     useRecordingStore.getState().setSession({ ...recordingSession, linkedTrailId: 3, pausedAt: 4000 })
     await settle()
-    expect(repo.listSummaries).toHaveBeenCalledTimes(1)
+    expect(repo.listOverviewRows).toHaveBeenCalledTimes(1)
   })
   it('falls back to 1 and logs a warning when the read fails', async () => {
-    repo.listSummaries.mockRejectedValue(new Error('database is locked'))
+    repo.listOverviewRows.mockRejectedValue(new Error('database is locked'))
     useRecordingStore.getState().beginSession(recordingSession)
     await settle()
     expect(factor()).toBe(1)

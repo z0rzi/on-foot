@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
 import { useIsFocused } from 'expo-router'
@@ -11,6 +11,7 @@ import { MapControls } from './MapControls'
 import { RecordButton } from './RecordButton'
 import { PausedControls } from './PausedControls'
 import { LayersSheet } from './LayersSheet'
+import { ClusterListSheet } from './overview/ClusterListSheet'
 import { MapStatusPill } from './MapStatusPill'
 import { pillContent } from './pillContent'
 import { cameraPadding, type PillMeasure } from './cameraPadding'
@@ -23,7 +24,7 @@ import { useSelectedTrail } from './useSelectedTrail'
 import { useSelectedActivity } from './useSelectedActivity'
 import { TrailInfoSheet } from '../trails/TrailInfoSheet'
 import { RecordingInfoSheet } from '../recording/RecordingInfoSheet'
-import { useMapStore, mapMode, trailToShow } from '../store/mapStore'
+import { useMapStore, mapMode, trailToShow, type Selection } from '../store/mapStore'
 import { useRecordingStore } from '../recording/recordingStore'
 import { recordingPhase } from '../recording/recordingPhase'
 import { recordingHealthFor } from '../recording/streamHealth'
@@ -38,6 +39,12 @@ import { useCurrentMapStyle } from './useCurrentMapStyle'
 
 export function MapScreen() {
   const sheetRef = useRef<BottomSheetModal>(null)
+  const clusterListRef = useRef<BottomSheetModal>(null)
+  const [listed, setListed] = useState<Selection[]>([])
+  const openClusterList = useCallback((items: Selection[]) => {
+    setListed(items)
+    clusterListRef.current?.present()
+  }, [])
   useLocationPermission()
   const focused = useIsFocused()
   const mapStyle = useCurrentMapStyle()
@@ -92,11 +99,12 @@ export function MapScreen() {
   // resumed on launch showed no sheet at all until the app was restarted (FIELD-2).
   const sheetContent =
     mode === 'trail' && trail ? (
-      <TrailInfoSheet trail={trail} />
+      <TrailInfoSheet trail={trail} onSelectActivity={(id) => select('activity', id)} />
     ) : mode === 'activity' && activity ? (
       <ActivityInfoSheet
         activity={activity}
         onViewLinkedTrail={(id) => select('trail', id)}
+        onSelectActivity={(id) => select('activity', id)}
       />
     ) : mode === 'recording' && trail ? (
       <RecordingInfoSheet trail={trail} display={display} puck={puck} onRemoveTrail={clearSelection} />
@@ -120,6 +128,7 @@ export function MapScreen() {
           activity={mode === 'activity' ? activity : null}
           display={display}
           camera={camera}
+          onOverviewList={openClusterList}
         />
         <HideableOverlay hidden={hideOverlays} style={StyleSheet.absoluteFill}>
           {phase !== 'paused' && (
@@ -154,6 +163,14 @@ export function MapScreen() {
         </MapInfoSheet>
       </View>
       <LayersSheet ref={sheetRef} />
+      <ClusterListSheet
+        ref={clusterListRef}
+        items={listed}
+        onSelect={(item) => {
+          clusterListRef.current?.dismiss()
+          select(item.kind, item.id)
+        }}
+      />
     </>
   )
 }

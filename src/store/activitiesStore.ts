@@ -1,8 +1,9 @@
 import { create } from 'zustand'
-import { ActivitySummary, NewActivityInput, activitiesRepository } from '../data/activities'
+import { ActivityOverviewRow, NewActivityInput, activitiesRepository } from '../data/activities'
+import { createLatestWins } from '../async/latestWins'
 
 interface ActivitiesStore {
-  activities: ActivitySummary[]
+  activities: ActivityOverviewRow[]
   version: number
   loadActivities: () => Promise<void>
   publishTrailDeleted: () => Promise<void>
@@ -13,18 +14,18 @@ interface ActivitiesStore {
 export const useActivitiesStore = create<ActivitiesStore>((set, get) => {
   // Reloading the list after a mutation and bumping the version are one operation, so a
   // mutation cannot publish a change the selection revalidation misses. `loadActivities` on
-  // its own — the focus refresh — deliberately leaves the version alone.
+  // its own — the focus refresh and the launch load — deliberately leaves the version alone.
   const commit = async () => {
     await get().loadActivities()
     set((s) => ({ version: s.version + 1 }))
   }
+  const latestLoad = createLatestWins()
 
   return {
     activities: [],
     version: 0,
-    loadActivities: async () => {
-      set({ activities: await activitiesRepository.listSummaries() })
-    },
+    loadActivities: () =>
+      latestLoad(() => activitiesRepository.listOverviewRows(), (activities) => set({ activities })),
     // A trail delete clears the links to it in the same transaction, so the trails store
     // publishes that activity change here.
     publishTrailDeleted: commit,

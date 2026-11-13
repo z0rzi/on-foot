@@ -1,3 +1,4 @@
 export * from './types'
-export * from './routeTiers'
+export * from './stacking'
+export * from './zoom'
 export * from './MapProviderContext'

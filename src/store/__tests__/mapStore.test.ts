@@ -1,4 +1,4 @@
-jest.mock('../../log', () => ({ logEvent: jest.fn() }))
+jest.mock('../../log', () => ({ ...jest.requireActual('../../log/errorClass'), logEvent: jest.fn() }))
 
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import {
@@ -13,11 +13,13 @@ import {
   normalizeDeg,
   shouldShowNorthButton,
   followModeChange,
+  manualPitchProps,
   mapMode,
   trailToShow,
   useMapStore,
 } from '../mapStore'
 import { logEvent } from '../../log'
+import { MapTokens } from '../../theme/tokens'
 
 const CAMERA = { center: [6.86, 45.92] as [number, number], zoom: 14, pitch: 45, heading: 30 }
 
@@ -135,18 +137,31 @@ describe('shouldShowNorthButton', () => {
 })
 
 describe('followModeChange', () => {
-  test('position flattens pitch and animates', () =>
+  test('position flattens the pitch and leaves no pitch control, follow drives the camera', () =>
     expect(followModeChange('position', 60)).toEqual({
       followMode: 'position',
       cameraPitch: 0,
-      pitchAnimated: true,
+      pitchControl: null,
     }))
-  test('positionAndBearing tilts pitch and animates', () =>
+  test('positionAndBearing tilts the pitch and leaves no pitch control', () =>
     expect(followModeChange('positionAndBearing', 0)).toEqual({
       followMode: 'positionAndBearing',
       cameraPitch: 60,
-      pitchAnimated: true,
+      pitchControl: null,
     }))
+})
+
+describe('manualPitchProps', () => {
+  test('a pitch control animated by a tap, follow off: the pitch, eased', () =>
+    expect(manualPitchProps('off', 60, 'animated')).toEqual({ pitch: 60, animationDuration: 300 }))
+  test('a pitch control dragged live, follow off: the pitch, at once', () =>
+    expect(manualPitchProps('off', 42, 'live')).toEqual({ pitch: 42, animationDuration: 0 }))
+  test('no pitch control since the pitch was last set otherwise: no pitch, so a follow-off sends no camera stop', () =>
+    expect(manualPitchProps('off', 0, null)).toEqual({}))
+  test('following: no pitch, follow drives it', () => {
+    expect(manualPitchProps('position', 0, 'animated')).toEqual({})
+    expect(manualPitchProps('positionAndBearing', 60, 'live')).toEqual({})
+  })
 })
 
 describe('mapMode', () => {
@@ -168,24 +183,36 @@ describe('store actions', () => {
       previousMapStyleId: null,
       selection: null,
       cameraPitch: 0,
-      pitchAnimated: false,
+      pitchControl: null,
       cameraHeading: 0,
       northResetNonce: 0,
       pendingFit: null,
       lastCamera: null,
       launchResolved: false,
       startingCamera: null,
+      overviewToggles: { trails: true, activities: true },
     })
   })
   test('defaults to position follow so a first launch centres on the user', () => {
     expect(useMapStore.getInitialState().followMode).toBe('position')
+  })
+  test('shows trails and activities on the map by default (D103)', () => {
+    expect(useMapStore.getInitialState().overviewToggles).toEqual({ trails: true, activities: true })
+  })
+  test('setOverviewToggle turns one kind off and on, leaving the other as set', () => {
+    useMapStore.getState().setOverviewToggle('trails', false)
+    expect(useMapStore.getState().overviewToggles).toEqual({ trails: false, activities: true })
+    useMapStore.getState().setOverviewToggle('activities', false)
+    expect(useMapStore.getState().overviewToggles).toEqual({ trails: false, activities: false })
+    useMapStore.getState().setOverviewToggle('trails', true)
+    expect(useMapStore.getState().overviewToggles).toEqual({ trails: true, activities: false })
   })
   test('setLastCamera records the framing the camera came to rest on', () => {
     useMapStore.getState().setLastCamera(CAMERA)
     expect(useMapStore.getState().lastCamera).toEqual(CAMERA)
   })
   test('restoreCamera holds the camera for the session, follow off, and seeds pitch and heading', () => {
-    useMapStore.setState({ followMode: 'position', pitchAnimated: true })
+    useMapStore.setState({ followMode: 'position', pitchControl: 'animated' })
     useMapStore.getState().restoreCamera(CAMERA)
     const s = useMapStore.getState()
     expect(s.startingCamera).toEqual(CAMERA)
@@ -193,7 +220,7 @@ describe('store actions', () => {
     expect(s.followMode).toBe('off')
     expect(s.cameraPitch).toBe(45)
     expect(s.cameraHeading).toBe(30)
-    expect(s.pitchAnimated).toBe(false)
+    expect(s.pitchControl).toBeNull()
   })
   test('startFollow resolves the launch into the mode and syncs its pitch', () => {
     useMapStore.getState().startFollow('positionAndBearing')
@@ -230,38 +257,75 @@ describe('store actions', () => {
     useMapStore.getState().northPressed()
     expect(useMapStore.getState().followMode).toBe('position')
   })
-  test('setCameraPitch sets the pitch and marks it instant', () => {
-    useMapStore.setState({ pitchAnimated: true })
+  test('setCameraPitch sets the pitch as a live pitch control', () => {
+    useMapStore.setState({ pitchControl: 'animated' })
     useMapStore.getState().setCameraPitch(45)
     expect(useMapStore.getState().cameraPitch).toBe(45)
-    expect(useMapStore.getState().pitchAnimated).toBe(false)
+    expect(useMapStore.getState().pitchControl).toBe('live')
   })
-  test('setCameraPitchAnimated sets the pitch and marks it animated', () => {
+  test('setCameraPitchAnimated sets the pitch as an eased pitch control', () => {
     useMapStore.getState().setCameraPitchAnimated(60)
     expect(useMapStore.getState().cameraPitch).toBe(60)
-    expect(useMapStore.getState().pitchAnimated).toBe(true)
+    expect(useMapStore.getState().pitchControl).toBe('animated')
   })
   test('setCameraHeading updates cameraHeading', () => {
     useMapStore.getState().setCameraHeading(42)
     expect(useMapStore.getState().cameraHeading).toBe(42)
   })
   test('select("trail") selects the trail, turns follow off, marks it pending fit, and flattens to 2D', () => {
-    useMapStore.setState({ followMode: 'positionAndBearing', selection: { kind: 'activity', id: 3 }, pendingFit: null, cameraPitch: 60, pitchAnimated: false })
+    useMapStore.setState({ followMode: 'positionAndBearing', selection: { kind: 'activity', id: 3 }, pendingFit: null, cameraPitch: 60, pitchControl: 'animated' })
     useMapStore.getState().select('trail', 7)
     expect(useMapStore.getState().selection).toEqual({ kind: 'trail', id: 7 })
     expect(useMapStore.getState().followMode).toBe('off')
     expect(useMapStore.getState().pendingFit).toEqual({ kind: 'trail', id: 7 })
     expect(useMapStore.getState().cameraPitch).toBe(0)
-    expect(useMapStore.getState().pitchAnimated).toBe(true)
+    expect(useMapStore.getState().pitchControl).toBeNull()
   })
   test('select("activity") replaces a trail selection, turns follow off, marks it pending fit, and flattens to 2D', () => {
-    useMapStore.setState({ followMode: 'positionAndBearing', selection: { kind: 'trail', id: 9 }, pendingFit: null, cameraPitch: 60, pitchAnimated: false })
+    useMapStore.setState({ followMode: 'positionAndBearing', selection: { kind: 'trail', id: 9 }, pendingFit: null, cameraPitch: 60, pitchControl: 'animated' })
     useMapStore.getState().select('activity', 4)
     expect(useMapStore.getState().selection).toEqual({ kind: 'activity', id: 4 })
     expect(useMapStore.getState().followMode).toBe('off')
     expect(useMapStore.getState().pendingFit).toEqual({ kind: 'activity', id: 4 })
     expect(useMapStore.getState().cameraPitch).toBe(0)
-    expect(useMapStore.getState().pitchAnimated).toBe(true)
+    expect(useMapStore.getState().pitchControl).toBeNull()
+  })
+  test('selectOnMap selects only: follow, pitch and camera stay, a stale fit is dropped (D113, D134)', () => {
+    useMapStore.setState({ followMode: 'positionAndBearing', selection: { kind: 'trail', id: 9 }, pendingFit: { kind: 'trail', id: 9 }, cameraPitch: 60, pitchControl: 'live', northResetNonce: 2 })
+    useMapStore.getState().selectOnMap('activity', 4)
+    const s = useMapStore.getState()
+    expect(s.selection).toEqual({ kind: 'activity', id: 4 })
+    expect(s.pendingFit).toBeNull()
+    expect(s.followMode).toBe('positionAndBearing')
+    expect(s.cameraPitch).toBe(60)
+    expect(s.pitchControl).toBe('live')
+    expect(s.northResetNonce).toBe(2)
+  })
+  test('fitCluster asks for a one-shot fit of the box, ending follow and flattening, the selection kept (D118, D134)', () => {
+    useMapStore.setState({ followMode: 'position', selection: { kind: 'trail', id: 9 }, pendingFit: null, cameraPitch: 60, pitchControl: 'animated' })
+    useMapStore.getState().fitCluster({ ne: [7.002, 45.91], sw: [7.001, 45.9] }, 17)
+    const s = useMapStore.getState()
+    expect(s.pendingFit).toEqual({ kind: 'bounds', bounds: { ne: [7.002, 45.91], sw: [7.001, 45.9] }, maxZoom: 17 })
+    expect(s.followMode).toBe('off')
+    expect(s.cameraPitch).toBe(MapTokens.pitchMin)
+    expect(s.pitchControl).toBeNull()
+    expect(s.selection).toEqual({ kind: 'trail', id: 9 })
+  })
+  test('fitCluster from follow sends the camera no pitch of its own beside the fit, which carries it', () => {
+    useMapStore.setState({ followMode: 'position', cameraPitch: 0, pitchControl: 'animated' })
+    useMapStore.getState().fitCluster({ ne: [7.002, 45.91], sw: [7.001, 45.9] }, 17)
+    const s = useMapStore.getState()
+    expect(manualPitchProps(s.followMode, s.cameraPitch, s.pitchControl)).toEqual({})
+  })
+  test('select and recenter from follow send the camera no pitch of their own beside the fit', () => {
+    useMapStore.setState({ followMode: 'positionAndBearing', cameraPitch: 60, pitchControl: 'animated' })
+    useMapStore.getState().select('trail', 7)
+    let s = useMapStore.getState()
+    expect(manualPitchProps(s.followMode, s.cameraPitch, s.pitchControl)).toEqual({})
+    useMapStore.setState({ followMode: 'position', pitchControl: 'live' })
+    useMapStore.getState().recenter()
+    s = useMapStore.getState()
+    expect(manualPitchProps(s.followMode, s.cameraPitch, s.pitchControl)).toEqual({})
   })
   test('clearSelection clears the selection and pending fit, leaving follow untouched', () => {
     useMapStore.setState({ selection: { kind: 'trail', id: 7 }, pendingFit: { kind: 'trail', id: 7 }, followMode: 'position' })
@@ -301,13 +365,13 @@ describe('store actions', () => {
     expect(useMapStore.getState().selection).toEqual({ kind: 'trail', id: 7 })
   })
   test('recenter re-arms the pending fit for the selected trail, turns follow off, and flattens to 2D', () => {
-    useMapStore.setState({ followMode: 'positionAndBearing', selection: { kind: 'trail', id: 7 }, pendingFit: null, cameraPitch: 60, pitchAnimated: false })
+    useMapStore.setState({ followMode: 'positionAndBearing', selection: { kind: 'trail', id: 7 }, pendingFit: null, cameraPitch: 60, pitchControl: 'animated' })
     useMapStore.getState().recenter()
     expect(useMapStore.getState().pendingFit).toEqual({ kind: 'trail', id: 7 })
     expect(useMapStore.getState().followMode).toBe('off')
     expect(useMapStore.getState().selection).toEqual({ kind: 'trail', id: 7 })
     expect(useMapStore.getState().cameraPitch).toBe(0)
-    expect(useMapStore.getState().pitchAnimated).toBe(true)
+    expect(useMapStore.getState().pitchControl).toBeNull()
   })
   test('recenter re-arms the pending fit for the selected activity and flattens to 2D', () => {
     useMapStore.setState({ followMode: 'position', selection: { kind: 'activity', id: 4 }, pendingFit: null, cameraPitch: 60 })
@@ -337,7 +401,7 @@ describe('store actions', () => {
     expect(useMapStore.getState().followMode).toBe('position')
     // Pitch must flatten so the 2D/3D label stays in sync with the now-flat follow camera.
     expect(useMapStore.getState().cameraPitch).toBe(0)
-    expect(useMapStore.getState().pitchAnimated).toBe(true)
+    expect(useMapStore.getState().pitchControl).toBeNull()
     expect(useMapStore.getState().northResetNonce).toBe(0)
   })
   test('northPressed while off bumps the reset nonce without changing follow', () => {
@@ -384,15 +448,21 @@ describe('store actions', () => {
     expect(useMapStore.getState().mapStyleId).toBe('standard')
     expect(useMapStore.getState().previousMapStyleId).toBeNull()
   })
-  test('partialize persists mapStyleId, a trail selection, the follow state and the last camera', () => {
+  test('partialize persists mapStyleId, a trail selection, the follow state, the last camera and the toggles', () => {
     const partialize = useMapStore.persist.getOptions().partialize!
-    useMapStore.setState({ selection: { kind: 'trail', id: 7 }, followMode: 'off', lastCamera: CAMERA })
+    useMapStore.setState({
+      selection: { kind: 'trail', id: 7 },
+      followMode: 'off',
+      lastCamera: CAMERA,
+      overviewToggles: { trails: false, activities: true },
+    })
     const partial = partialize({ ...useMapStore.getState() } as any)
     expect(partial).toEqual({
       mapStyleId: useMapStore.getState().mapStyleId,
       selection: { kind: 'trail', id: 7 },
       followMode: 'off',
       lastCamera: CAMERA,
+      overviewToggles: { trails: false, activities: true },
     })
     expect(partial).not.toHaveProperty('pendingFit')
     expect(partial).not.toHaveProperty('startingCamera')
@@ -437,6 +507,7 @@ describe('hydration', () => {
       lastCamera: null,
       launchResolved: false,
       hydrationError: null,
+      overviewToggles: { trails: true, activities: true },
     })
     setItem.mockClear()
   })
@@ -463,6 +534,30 @@ describe('hydration', () => {
     expect(s.mapStyleId).toBe('outdoors')
     expect(s.followMode).toBe('off')
     expect(s.lastCamera).toEqual(CAMERA)
+  })
+  test('a stored state from before the toggles hydrates with both on', async () => {
+    getItem.mockResolvedValueOnce(persisted)
+    await useMapStore.persist.rehydrate()
+    expect(useMapStore.getState().overviewToggles).toEqual({ trails: true, activities: true })
+  })
+  test('the stored toggles land on hydration', async () => {
+    getItem.mockResolvedValueOnce(
+      JSON.stringify({ state: { mapStyleId: 'outdoors', overviewToggles: { trails: false, activities: true } }, version: 0 }),
+    )
+    await useMapStore.persist.rehydrate()
+    expect(useMapStore.getState().overviewToggles).toEqual({ trails: false, activities: true })
+  })
+  test('a toggle flipped while hydration is pending is not written, one flipped after it is', async () => {
+    let land: (value: string) => void = () => {}
+    getItem.mockReturnValueOnce(new Promise<string>((resolve) => { land = resolve }))
+    const hydration = useMapStore.persist.rehydrate()
+    useMapStore.getState().setOverviewToggle('activities', false)
+    expect(setItem).not.toHaveBeenCalled()
+    land(JSON.stringify({ state: { overviewToggles: { trails: false, activities: true } }, version: 0 }))
+    await hydration
+    useMapStore.getState().setOverviewToggle('activities', false)
+    expect(setItem).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(setItem.mock.calls[0][1]).state.overviewToggles).toEqual({ trails: false, activities: false })
   })
   test('a hydration landing after a launch resolved on the defaults keeps the session camera state', async () => {
     const live = { ...CAMERA, zoom: 10 }
@@ -514,6 +609,12 @@ describe('fit requests in the debug log', () => {
     expect(logEvent).toHaveBeenCalledWith('info', 'map', 'fit requested', { by: 'recenter', kind: 'activity' })
   })
 
+  test('fitCluster logs who asked, never the box', () => {
+    useMapStore.getState().fitCluster({ ne: [7.002, 45.91], sw: [7.001, 45.9] }, 17)
+    expect(logEvent).toHaveBeenCalledTimes(1)
+    expect(logEvent).toHaveBeenCalledWith('info', 'map', 'fit requested', { by: 'cluster' })
+  })
+
   test('recenter with nothing selected requests no fit and logs nothing', () => {
     useMapStore.getState().recenter()
     expect(useMapStore.getState().pendingFit).toBeNull()
@@ -523,6 +624,7 @@ describe('fit requests in the debug log', () => {
   test('no other action logs a fit', () => {
     useMapStore.setState({ selection: { kind: 'trail', id: 7 }, pendingFit: { kind: 'trail', id: 7 } })
     useMapStore.getState().clearPendingFit()
+    useMapStore.getState().selectOnMap('activity', 4)
     useMapStore.getState().clearSelection()
     useMapStore.getState().restoreCamera(CAMERA)
     expect(logEvent).not.toHaveBeenCalled()

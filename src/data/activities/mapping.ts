@@ -1,11 +1,12 @@
 import { metricsForSegments } from '../geo/metrics'
+import { OverviewColumns, overviewColumns, overviewFromColumns, simplifyToOverview } from '../geo/overview'
 import { movingDurationMs } from './duration'
 import {
-  Activity, ActivityGeometry, ActivityMetrics, ActivitySummary,
+  Activity, ActivityGeometry, ActivityMetrics, ActivityOverviewRow, ActivitySummary,
   Effort, LiveTrackPoint, NewActivityInput, RecordingSession, TrackPoint,
 } from './types'
 
-export interface ActivityRow {
+export interface ActivityRow extends OverviewColumns {
   id: number
   name: string
   effort: string
@@ -20,6 +21,8 @@ export interface ActivityRow {
   endedAt: number
   createdAt: number
 }
+
+export type ActivitySummaryRow = Omit<ActivityRow, 'comments' | 'geometry' | 'endedAt'>
 
 export type ActivityInsertValues = Omit<ActivityRow, 'id'>
 
@@ -96,7 +99,7 @@ export function rowToSession(row: RecordingSessionRow): RecordingSession {
   }
 }
 
-export function rowToSummary(row: ActivityRow): ActivitySummary {
+export function rowToSummary(row: ActivitySummaryRow): ActivitySummary {
   return {
     id: row.id,
     name: row.name,
@@ -111,6 +114,10 @@ export function rowToSummary(row: ActivityRow): ActivitySummary {
     startedAt: row.startedAt,
     createdAt: row.createdAt,
   }
+}
+
+export function rowToOverviewRow(row: ActivitySummaryRow): ActivityOverviewRow {
+  return { ...rowToSummary(row), ...overviewFromColumns(row) }
 }
 
 export function rowToActivity(row: ActivityRow): Activity {
@@ -162,6 +169,7 @@ export function inputToActivityValues(input: NewActivityInput, now: number): Act
     comments: input.comments,
     linkedTrailId: input.linkedTrailId,
     geometry: serializeActivityGeometry(input.geometry),
+    ...overviewColumns(simplifyToOverview(input.geometry.segments)),
     distanceMeters: input.metrics.distanceMeters,
     durationSeconds: input.metrics.durationSeconds,
     elevationGainMeters: input.metrics.elevationGainMeters,

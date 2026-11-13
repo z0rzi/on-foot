@@ -1,9 +1,10 @@
 import { create } from 'zustand'
-import { NewTrailInput, Trail, TrailSummary, TrailUpdate, trailsRepository } from '../data/trails'
+import { NewTrailInput, Trail, TrailOverviewRow, TrailUpdate, trailsRepository } from '../data/trails'
+import { createLatestWins } from '../async/latestWins'
 import { useActivitiesStore } from './activitiesStore'
 
 interface TrailsStore {
-  trails: TrailSummary[]
+  trails: TrailOverviewRow[]
   version: number
   loadTrails: () => Promise<void>
   getTrail: (id: number) => Promise<Trail | null>
@@ -15,18 +16,17 @@ interface TrailsStore {
 export const useTrailsStore = create<TrailsStore>((set, get) => {
   // Reloading the list after a mutation and bumping the version are one operation, so a
   // mutation cannot publish a change the selection revalidation misses. `loadTrails` on its
-  // own — the focus refresh — deliberately leaves the version alone.
+  // own — the focus refresh and the launch load — deliberately leaves the version alone.
   const commit = async () => {
     await get().loadTrails()
     set((s) => ({ version: s.version + 1 }))
   }
+  const latestLoad = createLatestWins()
 
   return {
     trails: [],
     version: 0,
-    loadTrails: async () => {
-      set({ trails: await trailsRepository.listSummaries() })
-    },
+    loadTrails: () => latestLoad(() => trailsRepository.listOverviewRows(), (trails) => set({ trails })),
     getTrail: (id) => trailsRepository.getTrail(id),
     addTrail: async (input) => {
       const id = await trailsRepository.createTrail(input)

@@ -1,3 +1,4 @@
+jest.mock('../../log', () => jest.requireActual('../../log/oneDecimal'))
 import { routeTiming } from '../routeTiming'
 
 const P = { lat: 1, lng: 2, ele: null }

@@ -31,7 +31,9 @@ platform source (`node_modules/<lib>/android|ios`), per platform, not against th
 differently per platform, passes `tsc` and `jest` (the module is mocked) and surfaces only on a
 device.
 **Fix.** Read the native source for the payload the adapter consumes, normalise at the seam, and
-name the platform difference in the adapter.
+name the platform difference in the adapter. For rnmapbox, a change to the camera, a source or a
+layer is also checked against the known cases in `docs/architecture/mapbox-gotchas.md`, and a new
+case found on a device is added there.
 
 ## Derived or cached state has one owner
 
@@ -71,6 +73,16 @@ anything built "for later" count as unused.
 **Why.** Dead code is read, maintained and reviewed for nothing, and a dead control is a promise
 the UI breaks.
 **Fix.** Delete it. If it is needed by work that has not landed, it belongs in that work's diff.
+
+## A generated asset lands with its generator
+
+**What.** An image or data file drawn by a script (a map pin, a puck, a fixture) is committed
+beside the script that draws it, and the script reproduces it byte for byte from the repo
+(`src/map/providers/mapbox/overview-pins.py` is the precedent).
+**Why.** A script left in a scratch folder is gone with the session; the next change to the
+shape is redrawn by hand or by a new script, and stops matching its siblings.
+**Fix.** Commit the script beside the asset, writing to its own directory, and name it from the
+code that loads the asset.
 
 ## Presentation logic stays out of the data layer
 

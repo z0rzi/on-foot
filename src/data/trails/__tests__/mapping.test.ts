@@ -5,6 +5,7 @@ const ROW: TrailRow = {
   id: 7, name: 'Ridge', difficulty: 'hard',
   distanceMeters: 5200, elevationGainMeters: 250, elevationLossMeters: 180,
   description: 'nice', geometry: '{"segments":[[{"lat":1,"lng":2,"ele":10}]],"waypoints":[]}',
+  overviewGeometry: null, startLat: null, startLng: null,
   createdAt: 1000, updatedAt: 2000,
 }
 
@@ -50,8 +51,25 @@ test('inputToInsertValues serializes geometry and stamps both timestamps', () =>
     name: 'A', difficulty: 'easy',
     distanceMeters: 1, elevationGainMeters: 2, elevationLossMeters: 3,
     description: null, geometry: '{"segments":[],"waypoints":[]}',
+    overviewGeometry: '{"type":"MultiLineString","coordinates":[]}', startLat: null, startLng: null,
     createdAt: 555, updatedAt: 555,
   })
+})
+
+test('inputToInsertValues writes the overview geometry and its start point', () => {
+  const input: NewTrailInput = {
+    name: 'A', difficulty: 'easy', description: null,
+    metrics: { distanceMeters: 1, elevationGainMeters: 2, elevationLossMeters: 3 },
+    geometry: {
+      segments: [[{ lat: 45.123456, lng: 6.1, ele: 900 }, { lat: 45.2, lng: 6.2, ele: 950 }]],
+      waypoints: [],
+    },
+  }
+  const v = inputToInsertValues(input, 555)
+  expect(JSON.parse(v.overviewGeometry!)).toEqual({
+    type: 'MultiLineString', coordinates: [[[6.1, 45.12346], [6.2, 45.2]]],
+  })
+  expect([v.startLat, v.startLng]).toEqual([45.12346, 6.1])
 })
 
 test('updateToValues maps editable fields and stamps updatedAt only', () => {

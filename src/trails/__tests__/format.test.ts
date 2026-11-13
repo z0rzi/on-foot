@@ -1,4 +1,4 @@
-import { formatTrailAhead, formatTrailSummary, trailMetricTiles } from '../format'
+import { formatCompleted, formatTrailAhead, formatTrailSummary, trailMetricTiles } from '../format'
 
 describe('formatTrailSummary', () => {
   test('includes gain when known', () => {
@@ -9,6 +9,10 @@ describe('formatTrailSummary', () => {
     expect(formatTrailSummary({ distanceMeters: 1500, elevationGainMeters: null, elevationLossMeters: null }))
       .toBe('1.5 km · no elevation data')
   })
+})
+
+test('formatCompleted counts the times a trail was walked', () => {
+  expect(formatCompleted(3)).toBe('Completed 3×')
 })
 
 describe('trailMetricTiles', () => {

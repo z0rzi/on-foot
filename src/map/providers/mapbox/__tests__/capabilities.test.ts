@@ -14,3 +14,8 @@ test('mapbox capabilities are terrain-capable', () => {
 test('mapbox camera zooms from 0 (whole earth) to 25', () => {
   expect([mapboxCapabilities.minZoom, mapboxCapabilities.maxZoom]).toEqual([0, 25])
 })
+
+// The stack that rendered Latin, Greek, Georgian and ✓ offline on all three layers (spec D133).
+test('every layer declares its own labels’ font stack, for text the map draws offline', () => {
+  for (const style of MAPBOX_STYLES) expect(style.labelFont).toEqual(['DIN Pro Medium', 'Arial Unicode MS Regular'])
+})

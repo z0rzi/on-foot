@@ -2,29 +2,40 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { useMapProvider, useMapCapabilities } from './provider'
 import type { CameraController, EdgePadding } from './provider/types'
-import { useMapStore, followCameraProps } from '../store/mapStore'
+import { useMapStore, followCameraProps, manualPitchProps, type Selection } from '../store/mapStore'
 import { useRecordingStore } from '../recording/recordingStore'
 import { recordingPhase } from '../recording/recordingPhase'
 import { MapTokens } from '../theme/tokens'
 import { Trail } from '../data/trails'
 import { Activity } from '../data/activities/types'
 import { groupPointsBySegment } from '../data/activities/mapping'
-import { boundsForPoints, flattenSegments, pointCount } from './geo'
+import { boundsForPoints, flattenSegments, pointCount, type LngLatBounds } from './geo'
 import { MapOverlays, type OverlayRoute } from './MapOverlays'
 import { useCurrentMapStyle } from './useCurrentMapStyle'
 import { ScrubMarkerLayer } from './ScrubMarkerLayer'
 import { UserPuckLayer } from './UserPuckLayer'
+import { OverviewLayer } from './overview/OverviewLayer'
 import { useRouteColouring } from '../elevation/useRouteColouring'
 import type { RouteDisplay } from '../elevation/routeDisplay'
 import { useInterruptionToast } from '../recording/useInterruptionToast'
 import { useLastCameraCapture } from './useLastCameraCapture'
 import { logEvent } from '../log'
 
+// The route drawn in full dress: the activity when it has a line, else the trail.
+function overlayRoute(trail: Trail | null, activity: Activity | null): OverlayRoute | null {
+  if (activity && pointCount(activity.geometry.segments) >= 2) {
+    return { kind: 'activity', id: activity.id, segments: activity.geometry.segments }
+  }
+  if (trail && pointCount(trail.geometry.segments) >= 2) return { kind: 'trail', id: trail.id, segments: trail.geometry.segments }
+  return null
+}
+
 export function MapCanvas({
   trail,
   activity,
   display,
   camera,
+  onOverviewList,
 }: {
   trail: Trail | null
   activity: Activity | null
@@ -32,6 +43,8 @@ export function MapCanvas({
   // The room the overlays leave the camera for fitting and following (cameraPadding); a fit waits
   // until it is settled.
   camera: { padding: EdgePadding; settled: boolean }
+  // Several overview items under a press, to be listed (D118).
+  onOverviewList: (items: Selection[]) => void
 }) {
   const { components } = useMapProvider()
   const caps = useMapCapabilities()
@@ -41,12 +54,12 @@ export function MapCanvas({
   // The camera is driven declaratively from the store. When a follow mode is active, rnmapbox
   // owns the camera (centres/zooms/tilts to the puck) — this is what moves to the user on a
   // following launch and recentres when the location button is tapped. When follow is off, we
-  // apply the manual pitch (from the 2D/3D button / drag) via the pitch prop. A launch starts on
+  // apply the pitch a pitch control (the 2D/3D button / drag) asked for via the pitch prop. A launch starts on
   // the last camera when it has a usable one, set before the map mounts (MapLaunchGate): a free
   // launch stays there, a following one moves from there to the user.
   const followMode = useMapStore((s) => s.followMode)
   const cameraPitch = useMapStore((s) => s.cameraPitch)
-  const pitchAnimated = useMapStore((s) => s.pitchAnimated)
+  const pitchControl = useMapStore((s) => s.pitchControl)
   const disableFollow = useMapStore((s) => s.disableFollow)
   const setCameraHeading = useMapStore((s) => s.setCameraHeading)
   const northResetNonce = useMapStore((s) => s.northResetNonce)
@@ -58,33 +71,24 @@ export function MapCanvas({
   const [mapLoaded, setMapLoaded] = useState(false)
   useInterruptionToast(mapLoaded)
 
-  // rnmapbox drops any camera move (imperative or declarative) while follow is active, and a
-  // programmatic follow-off only reaches the native camera on the next frame. The store actions
-  // that trigger a one-shot camera op (northPressed / recenter / select) turn follow off in the
-  // same commit, so these effects run the imperative op one frame later — by which point follow is
-  // released and the move lands. Running it synchronously here races the follow-off and is swallowed.
+  // rnmapbox drops any camera move (imperative or declarative) while follow is active. The store
+  // actions that trigger a one-shot camera op (northPressed / recenter / select / fitCluster) turn
+  // follow off in the same commit, and these effects run the op a frame after it. The op and that
+  // commit's props reach the native camera unordered, the op often first: the release of follow
+  // does not cancel it, a camera stop among the props would, so those actions leave no declarative
+  // pitch to send beside it (manualPitchProps).
   useEffect(() => {
     if (northResetNonce <= 0) return
     const id = requestAnimationFrame(() => cameraRef.current?.resetNorth(true))
     return () => cancelAnimationFrame(id)
   }, [northResetNonce])
 
-  const segments = trail?.geometry.segments ?? []
-  const hasTrail = pointCount(segments) >= 2
-
-  const activitySegments = activity?.geometry.segments ?? []
-  const hasActivity = pointCount(activitySegments) >= 2
-
   const active = useRecordingStore((s) => recordingPhase(s.session) !== 'idle')
   const livePoints = useRecordingStore((s) => s.livePoints)
   const liveSegments = useMemo(() => groupPointsBySegment(livePoints), [livePoints])
   const showLiveTrack = active && livePoints.length >= 2
 
-  const route: OverlayRoute | null = hasActivity
-    ? { segments: activitySegments, kind: 'activity' }
-    : hasTrail
-      ? { segments, kind: 'trail' }
-      : null
+  const route = useMemo(() => overlayRoute(trail, activity), [trail, activity])
   // The colouring belongs to the route being displayed, never to the live track, which keeps its
   // own colour so it reads as the live one at a glance.
   const colouredLines = useRouteColouring(route && display?.kind === route.kind ? display : null)
@@ -94,11 +98,11 @@ export function MapCanvas({
   // async), so fitSegments stays null until the prop's id matches pendingFit's — switching A → B
   // skips A's stale geometry and frames B once B loads. trail.geometry.segments and
   // activity.geometry.segments are stable references for a given loaded entity, so fitSegments is
-  // a sound effect dependency. pendingFit is cleared only after the deferred fit fires (not
-  // before), so the effect cleanup can't cancel its own pending frame. A restored selection leaves
-  // pendingFit null, so it never fits: the camera follows the user or stays on the restored camera.
-  // The fit also waits for the padding to settle: the entity's pill mounts with it and is measured
-  // a frame later.
+  // a sound memo dependency. A cluster's box needs nothing loaded and carries its own zoom limit.
+  // pendingFit is cleared only after the deferred fit fires (not before), so the effect cleanup
+  // can't cancel its own pending frame. A restored selection leaves pendingFit null, so it never
+  // fits: the camera follows the user or stays on the restored camera. The fit also waits for the
+  // padding to settle: the entity's pill mounts with it and is measured a frame later.
   const fitSegments =
     pendingFit?.kind === 'trail' && trail?.id === pendingFit.id
       ? trail.geometry.segments
@@ -106,34 +110,36 @@ export function MapCanvas({
         ? activity.geometry.segments
         : null
   const fitKind = pendingFit?.kind
+  const fitBox = useMemo((): { bounds: LngLatBounds; maxZoom?: number } | null => {
+    if (pendingFit?.kind === 'bounds') return pendingFit
+    if (fitSegments == null) return null
+    const flat = flattenSegments(fitSegments)
+    if (flat.length < 2) return null
+    const bounds = boundsForPoints(flat)
+    return bounds && { bounds }
+  }, [pendingFit, fitSegments])
 
   const [padTop, padRight, padBottom, padLeft] = camera.padding
   const padding = useMemo((): EdgePadding => [padTop, padRight, padBottom, padLeft], [padTop, padRight, padBottom, padLeft])
   const paddingSettled = camera.settled
 
   useEffect(() => {
-    if (fitSegments == null || !paddingSettled) return
-    const flat = flattenSegments(fitSegments)
-    if (flat.length < 2) return
-    const bounds = boundsForPoints(flat)
-    if (!bounds) return
+    if (fitBox == null || !paddingSettled) return
+    const { bounds, maxZoom } = fitBox
     const id = requestAnimationFrame(() => {
       const { cameraHeading } = useMapStore.getState()
       const controller = cameraRef.current
       if (controller) {
-        controller.fitBounds(bounds.ne, bounds.sw, padding, MapTokens.trailFitDurationMs, cameraPitch, cameraHeading)
+        controller.fitBounds(bounds.ne, bounds.sw, padding, MapTokens.trailFitDurationMs, cameraPitch, cameraHeading, maxZoom)
         logEvent('info', 'map', 'fit fired', { kind: fitKind })
       }
       clearPendingFit()
     })
     return () => cancelAnimationFrame(id)
-  }, [fitSegments, fitKind, paddingSettled, padding, clearPendingFit, cameraPitch])
+  }, [fitBox, fitKind, paddingSettled, padding, clearPendingFit, cameraPitch])
 
   const follow = followCameraProps(followMode)
-  const manualPitch =
-    followMode === 'off'
-      ? { pitch: cameraPitch, animationDuration: pitchAnimated ? 300 : 0 }
-      : {}
+  const manualPitch = manualPitchProps(followMode, cameraPitch, pitchControl)
 
   return (
     <MapView
@@ -159,6 +165,7 @@ export function MapCanvas({
       />
       {caps.supportsTerrain && <Terrain exaggeration={MapTokens.terrainExaggeration} />}
       <UserPuckLayer />
+      <OverviewLayer loadedRoute={route} onList={onOverviewList} />
       <MapOverlays
         route={route}
         liveSegments={liveSegments}

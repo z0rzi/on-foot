@@ -26,7 +26,7 @@ jest.mock('../../data/activities', () => ({
     getSessionPoints: jest.fn(),
     getLastSegmentPoint: jest.fn(),
     appendPoints: jest.fn(),
-    listSummaries: jest.fn(),
+    listOverviewRows: jest.fn(),
     getActivity: jest.fn(),
   },
 }))
@@ -108,7 +108,7 @@ beforeEach(() => {
     row = null
   })
   repo.getSessionPoints.mockResolvedValue([])
-  repo.listSummaries.mockResolvedValue([])
+  repo.listOverviewRows.mockResolvedValue([])
 
   port.requestForegroundAccess.mockResolvedValue(true)
   port.requestBackgroundAccess.mockResolvedValue(true)

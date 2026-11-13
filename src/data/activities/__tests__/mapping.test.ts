@@ -128,6 +128,11 @@ describe('inputToActivityValues / pointsToInsertValues', () => {
     })
     expect(JSON.parse(v.geometry)).toEqual({ segments: [pts] })
   })
+  it('writes the overview geometry and its start point', () => {
+    const v = inputToActivityValues(input, 9999)
+    expect(JSON.parse(v.overviewGeometry!)).toEqual({ type: 'MultiLineString', coordinates: [[[0, 0], [0.002, 0]]] })
+    expect([v.startLat, v.startLng]).toEqual([0, 0])
+  })
   it('maps points to per-row insert values with segment', () => {
     expect(pointsToInsertValues(7, 2, [pts[0]])).toEqual([{ sessionId: 7, segment: 2, lat: 0, lng: 0, ele: 100, t: 1000 }])
   })
@@ -139,6 +144,7 @@ describe('rowToSummary / rowToActivity', () => {
     geometry: JSON.stringify({ segments: [pts] }),
     distanceMeters: 12, durationSeconds: 6, elevationGainMeters: 10, elevationLossMeters: 5,
     startedAt: 1000, endedAt: 7000, createdAt: 9999,
+    overviewGeometry: null, startLat: null, startLng: null,
   }
   it('summary carries metrics + link, no geometry', () => {
     expect(rowToSummary(row)).toEqual({

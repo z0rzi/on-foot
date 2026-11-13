@@ -1,5 +1,6 @@
 import type { CameraPadding, CameraStop, MapState } from '@rnmapbox/maps'
 import type { CameraFraming, EdgePadding } from '../../provider/types'
+import { WORLD_DP_AT_ZOOM_0 } from '../../provider/zoom'
 
 // rnmapbox types `properties` as always present, but its Android map sends an empty payload while
 // it has no camera state yet; that carries no framing.
@@ -16,9 +17,6 @@ export function cameraStopFor({ center, zoom, pitch, heading }: CameraFraming): 
 export function cameraPaddingFor([paddingTop, paddingRight, paddingBottom, paddingLeft]: EdgePadding): CameraPadding {
   return { paddingTop, paddingRight, paddingBottom, paddingLeft }
 }
-
-// Mapbox draws the world 512 dp wide at zoom 0.
-const WORLD_DP_AT_ZOOM_0 = 512
 
 // Web Mercator, the world as the unit square: x east from the antimeridian, y south from the top.
 function mercatorX(lng: number): number {

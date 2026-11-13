@@ -13,6 +13,12 @@ export interface AppColors {
   pillSurface: string
   pillPausedSurface: string
   activityLine: string
+  // The overview's pins: the teardrop's border and centre, the cluster's border and count
+  // (`pinInk`); the cluster's disc (`pinCluster`); the tag's text (`pinTagText`), dark on the
+  // tag's white image in every theme.
+  pinInk: string
+  pinCluster: string
+  pinTagText: string
   // The user's position, wherever it is drawn: the map provider's puck (its image bakes these in)
   // and the graph puck. Theme-independent, so every rendering reads as one position.
   userPuck: string
@@ -51,6 +57,9 @@ export const lightColors: AppColors = {
   pillSurface: 'rgba(255, 255, 255, 0.70)',
   pillPausedSurface: 'rgba(255, 228, 218, 0.9)',
   activityLine: '#00897B',
+  pinInk: '#FFFFFF',
+  pinCluster: '#222222',
+  pinTagText: '#222222',
   userPuck: '#2196F3',
   userPuckRing: '#FFFFFF',
   panelBackground: '#FFFFFF',
@@ -86,6 +95,9 @@ export const darkColors: AppColors = {
   pillSurface: 'rgba(30, 30, 30, 0.70)',
   pillPausedSurface: 'rgba(76, 46, 37, 0.9)',
   activityLine: '#4DB6AC',
+  pinInk: '#FFFFFF',
+  pinCluster: '#222222',
+  pinTagText: '#222222',
   userPuck: '#2196F3',
   userPuckRing: '#FFFFFF',
   panelBackground: '#1E1E1E',

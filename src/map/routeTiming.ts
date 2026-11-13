@@ -1,5 +1,5 @@
 import { pointCount } from './geo'
-import { toOneDecimal } from './oneDecimal'
+import { toOneDecimal } from '../log'
 
 export type RouteTiming = { kind: 'trail' | 'activity'; points: number; ms: number }
 

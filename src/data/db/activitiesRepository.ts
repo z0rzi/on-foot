@@ -1,11 +1,26 @@
 import { and, asc, desc, eq } from 'drizzle-orm'
 import { ActivitiesRepository } from '../activities/repository'
 import {
-  inputToActivityValues, pointsToInsertValues,
-  rowToActivity, rowToLivePoint, rowToSession, rowToSummary,
+  deserializeActivityGeometry, inputToActivityValues, pointsToInsertValues,
+  rowToActivity, rowToLivePoint, rowToSession, rowToOverviewRow,
 } from '../activities/mapping'
 import { db } from './client'
+import { fillOverview, listIdsWithoutOverview, overviewColumnsOf } from './overviewTable'
 import { activities, recordingPoints, recordingSessions } from './schema'
+
+const overviewRowColumns = {
+  id: activities.id,
+  name: activities.name,
+  effort: activities.effort,
+  linkedTrailId: activities.linkedTrailId,
+  distanceMeters: activities.distanceMeters,
+  durationSeconds: activities.durationSeconds,
+  elevationGainMeters: activities.elevationGainMeters,
+  elevationLossMeters: activities.elevationLossMeters,
+  startedAt: activities.startedAt,
+  createdAt: activities.createdAt,
+  ...overviewColumnsOf(activities),
+}
 
 export const sqliteActivitiesRepository: ActivitiesRepository = {
   async startSession(startedAt) {
@@ -70,9 +85,9 @@ export const sqliteActivitiesRepository: ActivitiesRepository = {
       return inserted.id
     })
   },
-  async listSummaries() {
-    const rows = await db.select().from(activities).orderBy(desc(activities.startedAt))
-    return rows.map(rowToSummary)
+  async listOverviewRows() {
+    const rows = await db.select(overviewRowColumns).from(activities).orderBy(desc(activities.startedAt))
+    return rows.map(rowToOverviewRow)
   },
   async getActivity(id) {
     const rows = await db.select().from(activities).where(eq(activities.id, id)).limit(1)
@@ -81,4 +96,6 @@ export const sqliteActivitiesRepository: ActivitiesRepository = {
   async deleteActivity(id) {
     await db.delete(activities).where(eq(activities.id, id))
   },
+  listIdsWithoutOverview: () => listIdsWithoutOverview(activities),
+  fillOverview: (id) => fillOverview(activities, id, (geometry) => deserializeActivityGeometry(geometry).segments),
 }

@@ -11,13 +11,16 @@ import { MetricsGrid } from '../components/MetricsGrid'
 import type { MenuAnchor } from '../components/ActionsMenu'
 import { ActionsMenuButton } from '../components/ActionsMenuButton'
 import { ActivityActions } from '../activities/ActivityActions'
+import { FamilyList } from '../activities/FamilyList'
 
 export function ActivityInfoSheet({
   activity,
   onViewLinkedTrail,
+  onSelectActivity,
 }: {
   activity: ActivityWithLinkedTrail
   onViewLinkedTrail: (trailId: number) => void
+  onSelectActivity: (id: number) => void
 }) {
   const c = useTheme()
   const { linkedTrail } = activity
@@ -59,6 +62,10 @@ export function ActivityInfoSheet({
             View linked trail: {linkedTrail.name}
           </Text>
         </Pressable>
+      )}
+
+      {linkedTrail && (
+        <FamilyList trailId={linkedTrail.id} shownActivityId={activity.id} onSelectActivity={onSelectActivity} />
       )}
 
       <ActivityActions activity={activity} anchor={menuAnchor} onCloseMenu={() => setMenuAnchor(null)} />

@@ -1,68 +1,62 @@
-import React, { forwardRef, useCallback, useMemo } from 'react'
-import { Image, Pressable, StyleSheet, Text } from 'react-native'
-import {
-  BottomSheetModal,
-  BottomSheetView,
-  BottomSheetBackdrop,
-  type BottomSheetBackdropProps,
-} from '@gorhom/bottom-sheet'
+import React from 'react'
+import { StyleSheet, Text } from 'react-native'
+import type { BottomSheetModal } from '@gorhom/bottom-sheet'
 import { useTheme } from '../theme/useTheme'
 import { useMapCapabilities } from './provider'
-import { useMapStore } from '../store/mapStore'
-import { useSheetBackDismiss } from '../components/useSheetBackDismiss'
+import { useMapStore, type OverviewToggles } from '../store/mapStore'
+import { ModalSheet } from '../components/ModalSheet'
+import { PreviewTile, PreviewTileGrid } from '../components/PreviewTile'
 
-export const LayersSheet = forwardRef<BottomSheetModal>((_props, ref) => {
+const OVERVIEW_TOGGLES: { kind: keyof OverviewToggles; title: string; preview: number }[] = [
+  { kind: 'trails', title: 'Trails', preview: require('../assets/overview/trails.png') },
+  { kind: 'activities', title: 'Activities', preview: require('../assets/overview/activities.png') },
+]
+
+// The map's layer, one of the provider's, and which kinds the overview draws (D119). A choice
+// applies at once on the map behind; the menu stays open (D130).
+export function LayersSheet({ ref }: { ref: React.RefObject<BottomSheetModal | null> }) {
   const c = useTheme()
   const caps = useMapCapabilities()
+  const mapStyleId = useMapStore((s) => s.mapStyleId)
   const setMapStyle = useMapStore((s) => s.setMapStyle)
-  const snapPoints = useMemo(() => ['50%'], [])
-  const onChange = useSheetBackDismiss(
-    useCallback(() => (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss(), [ref]),
-  )
-
-  // Dim + tap-outside-to-close: tapping the backdrop dismisses the sheet (swipe-down still works).
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
-    ),
-    [],
-  )
+  const toggles = useMapStore((s) => s.overviewToggles)
+  const setOverviewToggle = useMapStore((s) => s.setOverviewToggle)
+  const sectionStyle = [styles.section, { color: c.onSurfaceVariant }]
 
   return (
-    <BottomSheetModal
-      ref={ref}
-      snapPoints={snapPoints}
-      backdropComponent={renderBackdrop}
-      onChange={onChange}
-      backgroundStyle={{ backgroundColor: c.panelBackground }}
-    >
-      <BottomSheetView style={styles.content}>
-        <Text style={[styles.title, { color: c.panelContent }]}>Map layers</Text>
+    <ModalSheet ref={ref} title="Map layers">
+      <Text style={sectionStyle}>Map</Text>
+      <PreviewTileGrid>
         {caps.styles.map((s) => (
-          <Pressable
+          <PreviewTile
             key={s.id}
-            accessibilityRole="button"
+            preview={s.preview}
+            title={s.label}
+            role="radio"
+            checked={s.id === mapStyleId}
             accessibilityLabel={`${s.label} map layer`}
-            style={[styles.row, { borderColor: c.panelDivider }]}
-            onPress={() => {
-              setMapStyle(s.id)
-              ;(ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
-            }}
-          >
-            <Image source={s.preview} style={styles.preview} resizeMode="cover" />
-            <Text style={[styles.label, { color: c.panelContent }]}>{s.label}</Text>
-          </Pressable>
+            onPress={() => setMapStyle(s.id)}
+          />
         ))}
-      </BottomSheetView>
-    </BottomSheetModal>
+      </PreviewTileGrid>
+      <Text style={sectionStyle}>Show on map</Text>
+      <PreviewTileGrid>
+        {OVERVIEW_TOGGLES.map((t) => (
+          <PreviewTile
+            key={t.kind}
+            preview={t.preview}
+            title={t.title}
+            role="checkbox"
+            checked={toggles[t.kind]}
+            accessibilityLabel={`Show ${t.title.toLowerCase()} on map`}
+            onPress={() => setOverviewToggle(t.kind, !toggles[t.kind])}
+          />
+        ))}
+      </PreviewTileGrid>
+    </ModalSheet>
   )
-})
-LayersSheet.displayName = 'LayersSheet'
+}
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 16, paddingBottom: 32 },
-  title: { textAlign: 'center', fontWeight: 'bold', fontSize: 16, marginBottom: 16 },
-  row: { flexDirection: 'row', alignItems: 'center', height: 84, borderWidth: 1, borderRadius: 10, marginBottom: 8, overflow: 'hidden' },
-  preview: { width: 84, height: 84 },
-  label: { marginLeft: 8, fontWeight: 'bold', fontSize: 14 },
+  section: { fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginTop: 4 },
 })

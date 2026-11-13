@@ -3,6 +3,11 @@ import { formatDistance, formatDuration, formatElevation } from '../format/units
 import type { ClimbAhead, TrailAhead } from '../elevation/trailAhead'
 import type { MetricTile } from '../components/MetricsGrid'
 
+// How many activities a trail's family holds (D105).
+export function formatCompleted(count: number): string {
+  return `Completed ${count}×`
+}
+
 export function formatTrailSummary(metrics: TrailMetrics): string {
   const distance = formatDistance(metrics.distanceMeters)
   return metrics.elevationGainMeters === null

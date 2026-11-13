@@ -6,10 +6,12 @@ import { MapTokens } from '../theme/tokens'
 import { segmentLines, connectorLines, overallEndpoints } from './geo'
 import type { GpxPoint } from '../data/trails/types'
 import type { TrackPoint } from '../data/activities/types'
+import type { Selection } from '../store/mapStore'
 
 const trailArrow = require('../assets/trail-arrow.png')
 
-export type OverlayRoute = { segments: GpxPoint[][]; kind: 'trail' | 'activity' }
+// The trail or activity drawn in full dress, by its geometry and which entity it is.
+export type OverlayRoute = Selection & { segments: GpxPoint[][] }
 
 // The map's data overlays: the route (trail or activity) and the live recording track. Each names
 // its tier on the port, and the provider stacks the live track's line above the route's lines

@@ -1,13 +1,25 @@
 import { desc, eq } from 'drizzle-orm'
 import { TrailsRepository } from '../trails/repository'
-import { inputToInsertValues, rowToSummary, rowToTrail, updateToValues } from '../trails/mapping'
+import { deserializeGeometry, inputToInsertValues, rowToOverviewRow, rowToTrail, updateToValues } from '../trails/mapping'
 import { db } from './client'
+import { fillOverview, listIdsWithoutOverview, overviewColumnsOf } from './overviewTable'
 import { activities, recordingSessions, trails } from './schema'
 
+const overviewRowColumns = {
+  id: trails.id,
+  name: trails.name,
+  difficulty: trails.difficulty,
+  distanceMeters: trails.distanceMeters,
+  elevationGainMeters: trails.elevationGainMeters,
+  elevationLossMeters: trails.elevationLossMeters,
+  createdAt: trails.createdAt,
+  ...overviewColumnsOf(trails),
+}
+
 export const sqliteTrailsRepository: TrailsRepository = {
-  async listSummaries() {
-    const rows = await db.select().from(trails).orderBy(desc(trails.createdAt))
-    return rows.map(rowToSummary)
+  async listOverviewRows() {
+    const rows = await db.select(overviewRowColumns).from(trails).orderBy(desc(trails.createdAt))
+    return rows.map(rowToOverviewRow)
   },
   async getTrail(id) {
     const rows = await db.select().from(trails).where(eq(trails.id, id)).limit(1)
@@ -30,4 +42,6 @@ export const sqliteTrailsRepository: TrailsRepository = {
       tx.delete(trails).where(eq(trails.id, id)).run()
     })
   },
+  listIdsWithoutOverview: () => listIdsWithoutOverview(trails),
+  fillOverview: (id) => fillOverview(trails, id, (geometry) => deserializeGeometry(geometry).segments),
 }

@@ -64,6 +64,13 @@
       "when": 1793026158690,
       "tag": "0008_clear_dangling_trail_links",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794438350707,
+      "tag": "0009_overview_geometry",
+      "breakpoints": true
     }
   ]
 }

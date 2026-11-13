@@ -1,3 +1,4 @@
+jest.mock('../../log', () => jest.requireActual('../../log/oneDecimal'))
 import { headingReading, headingTick, metresMovedSince, startHeadingMonitor } from '../headingMonitor'
 
 const T0 = 1_000_000

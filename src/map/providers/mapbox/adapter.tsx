@@ -1,19 +1,26 @@
-import React, { createContext, forwardRef, useContext, useImperativeHandle, useRef, useState } from 'react'
+import React, { createContext, forwardRef, useContext, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { StyleSheet, View as RNView } from 'react-native'
 import Mapbox, { type MapState } from '@rnmapbox/maps'
 import type {
   MapProvider, MapViewProps, CameraProps, TerrainProps, CameraController, RouteOverlayProps,
-  ScrubMarkerProps, UserPuckProps,
+  ScrubMarkerProps, UserPuckProps, OverviewItem, OverviewProps,
 } from '../../provider/types'
-import type { RouteLayer } from '../../provider/routeTiers'
+import { OVERVIEW_LINE_SLOTS, type OverviewLineSlot, type RouteLayer } from '../../provider/stacking'
 import { mapboxCapabilities } from './capabilities'
 import { mapboxOfflineController } from './offline'
 import { trackingModeFor } from './followMode'
 import { cameraPaddingFor, cameraStopFor, fitCameraFor, framingFromMapState, type ViewSize } from './camera'
 import { TERRAIN_DEM } from './styles'
-import { SLOT_ANCHORS, anchorLayerIdForSlot } from './tiers'
+import { SLOT_ANCHORS, anchorLayerIdForOverviewSlot, anchorLayerIdForSlot } from './tiers'
+import { linesFile, linesFileCounts } from './overviewLinesFile'
+import { overviewLineFilters, type OverviewLineFilter } from './overviewLineFilters'
+import { useOverviewFile, type OverviewFileKind } from './useOverviewFile'
+import { OverviewPins } from './overviewPins'
+import { OVERVIEW_SOURCES, overviewLineLayerId } from './overviewLayers'
+import { MapPressContext, type MapPressListener } from './mapPress'
+import { useOverviewPress } from './useOverviewPress'
 import { MAPBOX_ACCESS_TOKEN } from './token'
-import { logEvent } from '../../../log'
+import { logEvent, toOneDecimal } from '../../../log'
 
 void Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN)
 
@@ -29,6 +36,8 @@ const MapSizeContext = createContext<React.RefObject<ViewSize | null>>({ current
 const View = ({ styleURL, onCameraChanged, onMapLoaded, style, children }: MapViewProps) => {
   const [loaded, setLoaded] = useState(false)
   const size = useRef<ViewSize | null>(null)
+  const map = useRef<Mapbox.MapView>(null)
+  const [pressListeners] = useState(() => new Set<MapPressListener>())
   return (
     <RNView
       style={style}
@@ -37,6 +46,7 @@ const View = ({ styleURL, onCameraChanged, onMapLoaded, style, children }: MapVi
       }}
     >
       <Mapbox.MapView
+        ref={map}
         style={StyleSheet.absoluteFill}
         styleURL={styleURL}
         scaleBarEnabled={false}
@@ -52,6 +62,10 @@ const View = ({ styleURL, onCameraChanged, onMapLoaded, style, children }: MapVi
           const framing = framingFromMapState(e)
           if (framing && loaded) onCameraChanged?.(framing)
         }}
+        onPress={(press) => {
+          const view = map.current
+          if (view) pressListeners.forEach((listener) => listener(press, view))
+        }}
         onDidFinishLoadingMap={() => {
           setLoaded(true)
           onMapLoaded?.()
@@ -59,10 +73,11 @@ const View = ({ styleURL, onCameraChanged, onMapLoaded, style, children }: MapVi
       >
         {/* rnmapbox adds a layer on top of the stack as it mounts once the style has loaded,
             unless it is given an aboveLayerID, belowLayerID or layerIndex; child order only
-            orders the layers queued before the style loads. So the route tiers, and the layers
-            of an overlay inside its tier, are held by one invisible anchor layer per slot (tier
-            and kind of layer), mounted in stacking order as the map's first children, and every
-            route overlay layer is inserted below its slot's anchor (belowLayerID, which waits for
+            orders the layers queued before the style loads. So the overview's lines, the route
+            tiers, and the layers of an overlay inside its tier, are held by one invisible anchor
+            layer per slot (an overview line layer, or a tier and kind of layer), mounted in
+            stacking order as the map's first children, and every overview and route overlay layer
+            is inserted below its slot's anchor (belowLayerID, which waits for
             the anchor if it is not on the map yet). On a style reload rnmapbox re-adds the map's
             children in child order, so the anchors come back first, in order. With terrain on,
             Mapbox draws the symbol and circle layers (arrows, endpoints) above every line layer,
@@ -71,7 +86,9 @@ const View = ({ styleURL, onCameraChanged, onMapLoaded, style, children }: MapVi
           <Mapbox.BackgroundLayer key={id} id={id} style={{ visibility: 'none' }} />
         ))}
         <MapLoadedContext.Provider value={loaded}>
-          <MapSizeContext.Provider value={size}>{children}</MapSizeContext.Provider>
+          <MapSizeContext.Provider value={size}>
+            <MapPressContext.Provider value={pressListeners}>{children}</MapPressContext.Provider>
+          </MapSizeContext.Provider>
         </MapLoadedContext.Provider>
       </Mapbox.MapView>
     </RNView>
@@ -81,7 +98,7 @@ const View = ({ styleURL, onCameraChanged, onMapLoaded, style, children }: MapVi
 // The camera is driven declaratively (follow props / pitch) — see MapCanvas. Two imperative
 // affordances remain, both only ever called when follow is off, so the rnmapbox "imperative move is
 // a no-op while following" trap does not apply: resetNorth, a one-shot rotate to bearing 0, and
-// fitBounds, which frames a trail. The port describes both (`src/map/provider/types.ts`). Pull out
+// fitBounds, which frames a trail, an activity or a cluster's starts. The port describes both (`src/map/provider/types.ts`). Pull out
 // fields whose neutral shape differs from rnmapbox's before spreading the rest.
 // The initial camera, read at mount, is rnmapbox's `defaultSettings`. On Android the native camera
 // applies it only once the map view is attached to the window, but starts a follow transition at
@@ -100,13 +117,20 @@ const Camera = forwardRef<CameraController, CameraProps>(
         inner.current?.setCamera({ heading: 0, animationDuration: animated ? 300 : 0 }),
       // The padding travels with the stop, so the camera ends holding exactly the padding it was
       // framed for.
-      fitBounds: (ne, sw, padding, duration, pitch, heading) => {
+      fitBounds: (ne, sw, padding, duration, pitch, heading, maxZoom) => {
         const size = mapSize.current
         if (!size) {
           logEvent('warn', 'map', 'fit dropped: map view not laid out yet')
           return
         }
-        const { center, zoom } = fitCameraFor({ ne, sw, size, padding, heading, maxZoom: mapboxCapabilities.maxZoom })
+        const { center, zoom } = fitCameraFor({
+          ne,
+          sw,
+          size,
+          padding,
+          heading,
+          maxZoom: Math.min(maxZoom ?? mapboxCapabilities.maxZoom, mapboxCapabilities.maxZoom),
+        })
         inner.current?.setCamera({
           centerCoordinate: center,
           zoomLevel: zoom,
@@ -302,8 +326,76 @@ const ScrubMarker = ({ coordinate, color, radius, strokeColor, strokeWidth }: Sc
   </Mapbox.ShapeSource>
 )
 
+const LINES_FILE: OverviewFileKind<readonly OverviewItem[]> = {
+  source: 'lines',
+  build: linesFile,
+  onWritten: (items, ms) => logEvent('info', 'map', 'overview loaded', { ...linesFileCounts(items), ms: toOneDecimal(ms) }),
+}
+
+type OverviewLinesProps = Pick<OverviewProps, 'trailColor' | 'activityColor' | 'lineWidth' | 'lineZoom'> & {
+  slot: OverviewLineSlot
+  filter: OverviewLineFilter
+  opacity: number
+}
+
+// One of the overview's line layers, in its slot, at a constant opacity faded in by zoom only. It
+// names its source itself: a source hands its id to its direct children only, which this wrapper is.
+const OverviewLines = ({ slot, filter, opacity, trailColor, activityColor, lineWidth, lineZoom }: OverviewLinesProps) => (
+  <Mapbox.LineLayer
+    id={overviewLineLayerId(slot)}
+    sourceID={OVERVIEW_SOURCES.lines}
+    belowLayerID={anchorLayerIdForOverviewSlot(slot)}
+    minZoomLevel={lineZoom.from}
+    filter={filter}
+    style={{
+      lineColor: ['match', ['get', 'class'], 'trail', trailColor, activityColor],
+      lineWidth,
+      lineOpacity: ['interpolate', ['linear'], ['zoom'], lineZoom.from, 0, lineZoom.to, opacity],
+      lineCap: 'round',
+      lineJoin: 'round',
+    }}
+  />
+)
+
+// The overview reaches the map as a file the engine reads on its own threads (D138): the source
+// only takes the file's short url, so a re-render costs nothing, and the focus restyles the layers
+// without touching the file. The lines are drawn by three layers, the dimmed rest, the rest at full
+// strength and the family, each holding its lines by a filter (D127). Lines are hidden by those
+// filters, never by an opacity per line, which would leave them pressable; below the zoom fade's
+// start they are not laid out at all (D107). The pins have a file and a source of their own, with no
+// line in it: the lines live in a source with no text, so a font that fails offline takes no line
+// with it (D133).
+const Overview = ({ items, focus, lineWidth, lineZoom, pressTolerance, onPress, ...forPins }: OverviewProps) => {
+  const linesUrl = useOverviewFile(LINES_FILE, items)
+  const pinsSource = useRef<Mapbox.ShapeSource>(null)
+  useOverviewPress(pinsSource, pressTolerance, onPress)
+  const filters = useMemo(() => overviewLineFilters(focus), [focus])
+  const { trailColor, activityColor, dimmedOpacity } = forPins
+  return (
+    <>
+      {linesUrl != null && (
+        <Mapbox.ShapeSource id={OVERVIEW_SOURCES.lines} url={linesUrl}>
+          {OVERVIEW_LINE_SLOTS.map((slot) => (
+            <OverviewLines
+              key={slot}
+              slot={slot}
+              filter={filters[slot]}
+              opacity={slot === 'dimmed' ? dimmedOpacity : 1}
+              trailColor={trailColor}
+              activityColor={activityColor}
+              lineWidth={lineWidth}
+              lineZoom={lineZoom}
+            />
+          ))}
+        </Mapbox.ShapeSource>
+      )}
+      <OverviewPins {...forPins} sourceRef={pinsSource} />
+    </>
+  )
+}
+
 export const mapboxProvider: MapProvider = {
   capabilities: mapboxCapabilities,
-  components: { View, Camera, Terrain, UserPuck, RouteOverlay, ScrubMarker },
+  components: { View, Camera, Terrain, UserPuck, RouteOverlay, ScrubMarker, Overview },
   offline: mapboxOfflineController,
 }

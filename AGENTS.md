@@ -25,7 +25,8 @@ uphold the original design, do not let it erode one expedient change at a time.
   confines a native SDK/engine to one directory so the rest of the app stays provider-agnostic
   and swappable. Today: the **map SDK** (`@rnmapbox/maps` → `src/map/providers/<provider>/`;
   shared code talks to the semantic port `src/map/provider/`, and MapLibre is the intended
-  escape hatch — keep it reachable), the **database engine** (`expo-sqlite`/`drizzle-orm` →
+  escape hatch — keep it reachable; read `docs/architecture/mapbox-gotchas.md` before changing
+  the camera, a source or a layer), the **database engine** (`expo-sqlite`/`drizzle-orm` →
   `src/data/db/`), **connectivity** (`@react-native-community/netinfo` → `src/net/`), and
   **location** (`expo-location`/`expo-task-manager` → `src/location/`; recording and map code
   use the location port, never the SDK).

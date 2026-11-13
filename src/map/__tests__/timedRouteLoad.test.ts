@@ -1,4 +1,4 @@
-jest.mock('../../log', () => ({ logEvent: jest.fn() }))
+jest.mock('../../log', () => ({ ...jest.requireActual('../../log/oneDecimal'), logEvent: jest.fn() }))
 
 import { logEvent } from '../../log'
 import { timedRouteLoad } from '../timedRouteLoad'

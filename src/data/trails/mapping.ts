@@ -1,6 +1,7 @@
-import { Difficulty, GpxPoint, GpxWaypoint, NewTrailInput, Trail, TrailGeometry, TrailSummary, TrailUpdate } from './types'
+import { OverviewColumns, overviewColumns, overviewFromColumns, simplifyToOverview } from '../geo/overview'
+import { Difficulty, GpxPoint, GpxWaypoint, NewTrailInput, Trail, TrailGeometry, TrailOverviewRow, TrailSummary, TrailUpdate } from './types'
 
-export interface TrailRow {
+export interface TrailRow extends OverviewColumns {
   id: number
   name: string
   difficulty: string
@@ -12,6 +13,8 @@ export interface TrailRow {
   createdAt: number
   updatedAt: number
 }
+
+export type TrailSummaryRow = Omit<TrailRow, 'description' | 'geometry' | 'updatedAt'>
 
 export type TrailInsertValues = Omit<TrailRow, 'id'>
 
@@ -27,7 +30,7 @@ export function deserializeGeometry(json: string): TrailGeometry {
   return { segments, waypoints: parsed.waypoints ?? [] }
 }
 
-export function rowToSummary(row: TrailRow): TrailSummary {
+export function rowToSummary(row: TrailSummaryRow): TrailSummary {
   return {
     id: row.id,
     name: row.name,
@@ -39,6 +42,10 @@ export function rowToSummary(row: TrailRow): TrailSummary {
     },
     createdAt: row.createdAt,
   }
+}
+
+export function rowToOverviewRow(row: TrailSummaryRow): TrailOverviewRow {
+  return { ...rowToSummary(row), ...overviewFromColumns(row) }
 }
 
 export function rowToTrail(row: TrailRow): Trail {
@@ -59,6 +66,7 @@ export function inputToInsertValues(input: NewTrailInput, now: number): TrailIns
     elevationLossMeters: input.metrics.elevationLossMeters,
     description: input.description,
     geometry: serializeGeometry(input.geometry),
+    ...overviewColumns(simplifyToOverview(input.geometry.segments)),
     createdAt: now,
     updatedAt: now,
   }
