@@ -115,6 +115,15 @@ The five canonical roles, each label string equal to its name. See `docs/agents/
 Single-context: one root `GLOSSARY.md` and one `docs/adr/`.
 See `docs/agents/domain.md`.
 
+# Git history
+
+A feature lands on `master` as **one squashed commit**, never a merge commit or its branch's
+commit trail: `git merge --squash <branch>` then one commit. This holds for a plan's
+integration branch `<slug>` and a ticket branch `ticket/T-n` alike; how worker branches
+`<slug>-NN` join the integration branch is free, since it is squashed on landing. The subject is
+`type(scope): summary (<slug>)` or `(T-n)`, matching the existing log. History already on
+`master` is never rewritten.
+
 # About comments
 
 Refrain from over-commenting. Don't describe changes in comments, just describe the current state of the code.

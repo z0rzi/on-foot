@@ -145,7 +145,8 @@ Read the plan folder; the frontier is every `status: open` item whose `blocked_b
 it by setting `status: claimed` in a commit on the worker branch `<slug>-NN`. Resolve it the way
 the tracker closes work: the merge into the integration branch deletes the item file and the
 tickets it closes. A worker that passes a ticket reference (`T-n`) instead works a worklist ticket
-on `ticket/T-n` as before.
+on `ticket/T-n` as before. Either branch lands on `master` squashed into one commit (see
+`AGENTS.md`, Git history).
 
 ## When a skill says "fetch the relevant ticket"
 
