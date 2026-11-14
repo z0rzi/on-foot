@@ -34,7 +34,10 @@ prefix; see `README.md`.
   2-minute indoor standstill (no segment longer than ~50 m, `droppedAccuracy > 0` in at least one
   `fix batch`), and a walk of known length under open sky (distance within ~5 %, `droppedJump` 0 or
   near it). The four constants are reasoned, not calibrated; the new `fix batch` fields are what
-  calibrates them.
+  calibrates them. The standstill was run on 2026-11-14 (release build installed 2026-11-13, real
+  GPS, phone still on its cable, 2 min 13 s) and is inconclusive: the recording read 0 m, but only
+  two deliveries arrived, both at 3 m accuracy, so `droppedAccuracy` stayed 0 and rule 1 never
+  fired. It is still owed, somewhere the GPS is poor. The open-sky walk is still owed.
 - **The 2026-11-01 batch** (PROP-41, PROP-40, PROP-6, FIELD-35, PROP-42, PROP-39, PROP-2, PROP-3)
   was checked on the device on 2026-11-02, release build. Confirmed: a re-imported GPX lists `d'`
   and `&`; deleting a linked trail with its activity selected logs no `linked trail not found`
