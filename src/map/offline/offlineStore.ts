@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { errorClass, logEvent } from '../../log'
 import type { OfflineController, OfflinePackDescriptor, OfflinePackInfo } from '../provider/types'
 import type { LiveProgress } from './types'
-import { parsePackId } from './packId'
+import { livePacks, packsForTrail } from './packId'
 import { createDownloadBatches, type DownloadSettled } from './downloadBatches'
 
 interface OfflineStore {
@@ -123,9 +123,10 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
     // Ids come from in-memory state (registry packs + tracked progress), not a fresh listPacks, so a
     // pending download not yet in the registry — and an offline listPacks — can't block the cancel.
     removeForTrail: async (controller, trailId) => {
-      const ids = new Set<string>()
-      for (const p of get().packs) if (parsePackId(p.id)?.trailId === trailId) ids.add(p.id)
-      for (const id of Object.keys(get().progress)) if (parsePackId(id)?.trailId === trailId) ids.add(id)
+      const { packs, progress } = get()
+      const ids = new Set(
+        [...packsForTrail(packs, trailId), ...packsForTrail(livePacks(progress), trailId)].map(({ pack }) => pack.id),
+      )
       await get().remove(controller, [...ids])
     },
   }

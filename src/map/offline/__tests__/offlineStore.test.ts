@@ -137,6 +137,29 @@ describe('offlineStore ownership', () => {
     expect(useOfflineStore.getState().progress[packId(7, 'a')]).toBeUndefined()
   })
 
+  test('removeForTrail leaves the progress of another trail and of a key that is no pack id', async () => {
+    useOfflineStore.setState({
+      packs: [],
+      progress: {
+        [packId(7, 'a')]: { percentage: 10, failed: false },
+        [packId(8, 'a')]: { percentage: 20, failed: false },
+        'not-a-pack-id': { percentage: 30, failed: false },
+      },
+    })
+    const controller = makeController({ packs: [] })
+    await useOfflineStore.getState().removeForTrail(controller, 7)
+    expect(controller.deleted).toEqual([packId(7, 'a')])
+    expect(Object.keys(useOfflineStore.getState().progress).sort()).toEqual([packId(8, 'a'), 'not-a-pack-id'].sort())
+  })
+
+  test('removeForTrail deletes a pack both registered and tracked once', async () => {
+    const id = packId(7, 'a')
+    useOfflineStore.setState({ packs: [info(id, 'incomplete', 40)], progress: { [id]: { percentage: 40, failed: false } } })
+    const controller = makeController({ packs: [] })
+    await useOfflineStore.getState().removeForTrail(controller, 7)
+    expect(controller.deleted).toEqual([id])
+  })
+
   test('remove is best-effort: a rejecting deletePack still clears local state and does not throw', async () => {
     const id = packId(1, 'a')
     useOfflineStore.setState({ packs: [info(id)], progress: { [id]: { percentage: 50, failed: true } } })

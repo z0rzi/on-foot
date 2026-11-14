@@ -1,11 +1,11 @@
 import { useCallback, useState } from 'react'
 import { Alert, Pressable, StyleSheet, Text } from 'react-native'
 import { ActivityMetrics, Effort } from '../data/activities/types'
-import { formatDistance, formatDuration, formatElevation } from '../format/units'
 import { EnumSelector } from '../components/EnumSelector'
 import { MetricsGrid } from '../components/MetricsGrid'
 import { FormField, FormScreen, FormTextInput, SubmitButton } from '../components/form'
 import { effortField } from './effort'
+import { activityMetricTiles } from './format'
 import { useTheme } from '../theme/useTheme'
 import { errorClass, logEvent } from '../log'
 
@@ -74,13 +74,7 @@ export function ActivityForm({
 
   return (
     <FormScreen>
-      <MetricsGrid
-        items={[
-          { label: 'Distance', value: formatDistance(metrics.distanceMeters) },
-          { label: 'Duration', value: formatDuration(metrics.durationSeconds) },
-          { label: 'Elevation gain', value: formatElevation(metrics.elevationGainMeters) },
-        ]}
-      />
+      <MetricsGrid items={activityMetricTiles(metrics, 'form')} />
 
       <FormField label="Name *">
         <FormTextInput value={name} onChangeText={setName} placeholder="Activity name" />

@@ -158,13 +158,13 @@ sheet lives in `src/trails/` and the recording sheet in `src/recording/`, but th
 the duplication gate because the copies are short or renamed. · Fix: `activityMetricTiles(metrics,
 variant)` in `src/activities/format.ts`, a shared sheet title-row component (or style), the activity
 refresh failure as a named constant beside the trails one, and `ActivityInfoSheet` moved to
-`src/activities/`. · **minor, S**.
+`src/activities/`. · **minor, S**. · **Done** (T-104): `useActivityActionsMenu` and `ACTIVITIES_REFRESH_FAILURE` sit beside the trails ones; `activityMetricTiles(metrics, 'card' | 'form')` serves the activity card and the save form, whose lists differ; the two cards draw `CardTitleRow` and `CardSummaryRow` (`src/components/CardRows.tsx`); `ActivityInfoSheet` is in `src/activities/`. Device check owed (`device-checks.md`).
 
 **DUP-4 — `PausedControls` re-derives the recording's trail** · `src/map/PausedControls.tsx:34-35`
 (`sel?.kind === 'trail' ? sel.id : null`) duplicates `alongTrailId` (`src/recording/alongTrail.ts:15-18`),
 whose comment names this very call site as the consumer ("the shown trail is linked to the activity
 at Stop (PausedControls)"). `currentAlongTrailId()` (`src/recording/currentAlongTrail.ts:5`) exists
-for imperative reads. · Fix: `linkTrailForSave(currentAlongTrailId())`. · **minor, S**.
+for imperative reads. · Fix: `linkTrailForSave(currentAlongTrailId())`. · **minor, S**. · **Done** (T-104).
 
 **DUP-5 — Two near-identical layer blocks in `RouteOverlay`** · `src/map/providers/mapbox/adapter.tsx:237-256`
 (slope source) and `:257-278` (plain source). Casing plus line plus arrows are repeated, differing
@@ -176,7 +176,7 @@ only in ids and `lineColor`, and each block is under the gate's 8-line window. �
 `src/map/offline/offlineStore.ts:123-124` (`parsePackId(p.id)?.trailId === trailId`, twice) · DUP-7
 of the previous report created `packsForTrail` (`src/map/offline/packId.ts:17`), but this site
 carried no non-null assertion and was missed. · Fix: use `packsForTrail` for the registry packs and
-the same predicate for the progress keys. · **minor, S**.
+the same predicate for the progress keys. · **minor, S**. · **Done** (T-104): `packsForTrail` over the registry and over `livePacks(progress)`, the progress-as-packs view `status.ts` and `operations.ts` now share.
 
 ### 3.3 Dead code
 
@@ -364,7 +364,7 @@ area list match the code. Every spec since the 2026-10-11 rule carries `## Exist
 | 4 | `useLiveSegments()`, one owner of the live track's segments | DUP-1 | Medium: the derived-state rule held for the recording's hottest value | S | Low | **next** |
 | 5 | Doc refresh: `lint-debt.md` disables, `AGENTS.md` seam and gate list, the port's follow comment | DOC-1..3 | Medium: first-read docs match the registry | S | None | **next** |
 | 6 | File the unused-export triage ticket; relabel test seams honestly | DEAD-1 | Medium: the gate's escape list becomes trustworthy | S (ticket), M (triage) | None | **next** |
-| 7 | Trail/activity sibling alignment: activity tiles helper, named refresh failure, sheet title row, `ActivityInfoSheet` → `src/activities/`; `PausedControls` → `currentAlongTrailId`; `removeForTrail` → `packsForTrail` | DUP-3, DUP-4, DUP-6 | Medium: the next agent copies one pattern, not two | S | Low | **next** |
+| 7 | ~~Trail/activity sibling alignment: activity tiles helper, named refresh failure, sheet title row, `ActivityInfoSheet` → `src/activities/`; `PausedControls` → `currentAlongTrailId`; `removeForTrail` → `packsForTrail`~~ | DUP-3, DUP-4, DUP-6 | Medium: the next agent copies one pattern, not two | S | Low | **done** (device check pending) |
 | 8 | Config hygiene: declare `globals`, jest ignores `.scratch/`, pin the three patched deps, draw the tag in `overview-pins.py`, declare `tools/` gate scope | DEP-1..3, ARCH-3, ARCH-4 | Low-medium | S | Low | **next** |
 | 9 | Split `mapStore.ts`: follow-camera and style-switch helpers into their own modules | ARCH-1 | Medium: smaller units, about 11 fewer exemptions | M | Low | **later** |
 | 10 | Small leftovers: leaf type imports (ARCH-2), adapter layer helper (DUP-5, device-check), offline and preference failure logs (ERR-3, ERR-4), linked-trail summary read (PERF-1) | ARCH-2, DUP-5, ERR-3, ERR-4, PERF-1 | Low-medium | S | Low (DUP-5: medium, layers) | **later** |

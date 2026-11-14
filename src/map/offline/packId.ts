@@ -1,3 +1,5 @@
+import type { LiveProgress } from './types'
+
 const PREFIX = 'offline'
 
 export function packId(trailId: number, styleId: string): string {
@@ -24,4 +26,9 @@ export function packsForTrail<T extends { id: string }>(
     if (parsed?.trailId === trailId) matches.push({ pack: item, styleId: parsed.styleId })
   }
   return matches
+}
+
+// The live progress, keyed by pack id, as packs packsForTrail can read.
+export function livePacks(progress: Record<string, LiveProgress>): ({ id: string } & LiveProgress)[] {
+  return Object.entries(progress).map(([id, p]) => ({ id, ...p }))
 }

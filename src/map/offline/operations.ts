@@ -1,6 +1,6 @@
 import type { OfflinePackInfo } from '../provider/types'
 import type { LiveProgress } from './types'
-import { packId, packsForTrail } from './packId'
+import { livePacks, packId, packsForTrail } from './packId'
 
 interface RetryTarget {
   id: string
@@ -23,10 +23,7 @@ export function retryTargetsForTrail(
   for (const { pack, styleId } of trailPacks) {
     if (pack.state === 'error' || pack.state === 'incomplete') styleIds.add(styleId)
   }
-  for (const { pack, styleId } of packsForTrail(
-    Object.entries(progress).map(([id, p]) => ({ id, ...p })),
-    trailId,
-  )) {
+  for (const { pack, styleId } of packsForTrail(livePacks(progress), trailId)) {
     if (pack.failed) styleIds.add(styleId)
   }
   return [...styleIds].map((styleId) => ({

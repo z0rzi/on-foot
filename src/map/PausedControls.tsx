@@ -6,7 +6,7 @@ import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
 import { resumeRecording, linkTrailForSave } from '../recording/recordingController'
 import { captureRefusalAlert } from '../recording/captureAlerts'
-import { useMapStore } from '../store/mapStore'
+import { currentAlongTrailId } from '../recording/currentAlongTrail'
 import { errorClass, logEvent } from '../log'
 import { ControlButton } from '../components/ControlButton'
 import { PlayIcon } from '../assets/icons/play'
@@ -31,9 +31,7 @@ export function PausedControls({ animatedBottom }: { animatedBottom: SharedValue
 
   const onStop = useCallback(async () => {
     try {
-      const sel = useMapStore.getState().selection
-      const linkedTrailId = sel?.kind === 'trail' ? sel.id : null
-      await linkTrailForSave(linkedTrailId)
+      await linkTrailForSave(currentAlongTrailId())
       router.push('/activity/save')
     } catch (error) {
       logEvent('error', 'error', 'stop recording threw', { errorClass: errorClass(error) })

@@ -1,4 +1,4 @@
-import { formatCalendarClockSeconds, formatClockSeconds, formatClockTime, formatActivityDate, formatActivitySummary, formatAveragePace, formatPace, formatSpeed, formatStopwatch } from '../format'
+import { formatCalendarClockSeconds, formatClockSeconds, formatClockTime, formatActivityDate, formatActivitySummary, formatPace, formatSpeed, formatStopwatch, activityMetricTiles } from '../format'
 import { ActivityMetrics } from '../../data/activities/types'
 
 describe('formatActivityDate', () => {
@@ -25,18 +25,18 @@ describe('formatActivitySummary', () => {
   })
 })
 
-describe('formatAveragePace', () => {
-  const metrics = (distanceMeters: number, durationSeconds: number): ActivityMetrics => ({
-    distanceMeters, durationSeconds, elevationGainMeters: null, elevationLossMeters: null,
-  })
+describe('the average pace tile', () => {
+  const pace = (distanceMeters: number, durationSeconds: number) =>
+    activityMetricTiles({ distanceMeters, durationSeconds, elevationGainMeters: null, elevationLossMeters: null }, 'card')
+      .find((t) => t.label === 'Average pace')?.value
   test('minutes per kilometre over the whole activity, with its unit', () => {
-    expect(formatAveragePace(metrics(4000, 3000))).toBe('12:30 /km')
+    expect(pace(4000, 3000)).toBe('12:30 /km')
   })
   test('no distance: a dash, no unit', () => {
-    expect(formatAveragePace(metrics(0, 3000))).toBe('—')
+    expect(pace(0, 3000)).toBe('—')
   })
   test('no duration: a dash, no unit', () => {
-    expect(formatAveragePace(metrics(4000, 0))).toBe('—')
+    expect(pace(4000, 0)).toBe('—')
   })
 })
 
@@ -112,5 +112,32 @@ describe('formatCalendarClockSeconds', () => {
   it('pads a single-digit month', () => {
     const t = new Date(2026, 0, 9, 23, 59, 59).getTime()
     expect(formatCalendarClockSeconds(t)).toBe('01-09 23:59:59')
+  })
+})
+
+describe('activityMetricTiles', () => {
+  const metrics: ActivityMetrics = { distanceMeters: 5000, durationSeconds: 3000, elevationGainMeters: 340, elevationLossMeters: 300 }
+
+  test('the card shows the distance, the duration, the average pace, the elevation gain and loss, in that order', () => {
+    expect(activityMetricTiles(metrics, 'card')).toEqual([
+      { label: 'Distance', value: '5.0 km' },
+      { label: 'Duration', value: '50 min' },
+      { label: 'Average pace', value: '10:00 /km' },
+      { label: 'Elevation gain', value: '340 m' },
+      { label: 'Elevation loss', value: '300 m' },
+    ])
+  })
+
+  test('the form shows the distance, the duration and the elevation gain, in that order', () => {
+    expect(activityMetricTiles(metrics, 'form')).toEqual([
+      { label: 'Distance', value: '5.0 km' },
+      { label: 'Duration', value: '50 min' },
+      { label: 'Elevation gain', value: '340 m' },
+    ])
+  })
+
+  test('an elevation it does not know reads as a dash', () => {
+    const flat = { ...metrics, elevationGainMeters: null, elevationLossMeters: null }
+    expect(activityMetricTiles(flat, 'card').map((t) => t.value).slice(3)).toEqual(['—', '—'])
   })
 })

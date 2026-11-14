@@ -214,3 +214,10 @@ prefix; see `README.md`.
   recording. Unobservable without a forced failure: `stream stop failed`, and discard completing
   with the notification left up until the next launch. ERR-1's `fix batch not stored` needs a
   failing write and stays unobserved the same way.
+- **T-104, the cards' title and summary rows** (DUP-3 of [[2026-11-14-full-review]], the shared
+  `CardTitleRow` and `CardSummaryRow`) is built and unit-tested, never run on a device; no
+  rendered change is intended. Owed, both schemes: the trail card's name wrapping beside its ⋮, the
+  offline mark (`✓ Offline`, `⬇ n%`, `⚠ Failed`) between them, and the difficulty badge under it,
+  swapped for the progress bar while a download runs; the activity card's name and ⋮, the effort
+  badge with the date beside it, and its five tiles; the save-activity form's three tiles; the
+  Activities list's ⋮ menu opening and deleting.

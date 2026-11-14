@@ -1,5 +1,5 @@
 import type { OfflinePackInfo } from '../provider/types'
-import { packsForTrail } from './packId'
+import { livePacks, packsForTrail } from './packId'
 import { LiveProgress, TrailOfflineStatus } from './types'
 
 export function offlineStatusForTrail(
@@ -7,10 +7,7 @@ export function offlineStatusForTrail(
   packs: OfflinePackInfo[],
   progress: Record<string, LiveProgress>,
 ): TrailOfflineStatus {
-  const live = packsForTrail(
-    Object.entries(progress).map(([id, p]) => ({ id, ...p })),
-    trailId,
-  )
+  const live = packsForTrail(livePacks(progress), trailId)
   const liveIds = new Set(live.map(({ pack }) => pack.id))
   const trailPacks = packsForTrail(packs, trailId)
 

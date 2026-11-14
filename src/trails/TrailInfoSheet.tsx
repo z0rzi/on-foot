@@ -3,7 +3,6 @@ import { StyleSheet, Text, View } from 'react-native'
 import { Trail } from '../data/trails/types'
 import { useTheme } from '../theme/useTheme'
 import { MetricsGrid } from '../components/MetricsGrid'
-import { EnumBadge } from '../components/EnumBadge'
 import { difficultyField } from './difficulty'
 import { TrailDescription } from './TrailDescription'
 import { trailMetricTiles } from './format'
@@ -11,7 +10,7 @@ import { useMapCapabilities } from '../map/provider'
 import { useOfflineStore } from '../map/offline/offlineStore'
 import { offlineStatusForTrail } from '../map/offline/status'
 import type { MenuAnchor } from '../components/ActionsMenu'
-import { ActionsMenuButton } from '../components/ActionsMenuButton'
+import { CardSummaryRow, CardTitleRow } from '../components/CardRows'
 import { TrailActions } from './TrailActions'
 import { FamilyList } from '../activities/FamilyList'
 
@@ -37,8 +36,7 @@ export function TrailInfoSheet({
 
   return (
     <>
-      <View style={styles.titleRow}>
-        <Text style={[styles.name, { color: c.panelContent }]}>{trail.name}</Text>
+      <CardTitleRow name={trail.name} actions={{ accessibilityLabel: 'Trail actions', onOpen: setMenuAnchor }}>
         {state.kind === 'downloading' && (
           <Text style={[styles.badge, { color: c.controlAccent }]}>⬇ {state.pct}%</Text>
         )}
@@ -48,22 +46,19 @@ export function TrailInfoSheet({
         {state.kind === 'failed' && (
           <Text style={[styles.badge, { color: c.danger }]}>⚠ Failed</Text>
         )}
-        <ActionsMenuButton accessibilityLabel="Trail actions" onOpen={setMenuAnchor} />
-      </View>
+      </CardTitleRow>
 
       {state.kind === 'downloading' ? (
         <View style={styles.progressWrap}>
           <View style={[styles.progressTrack, { backgroundColor: c.panelDivider }]}>
             <View style={[styles.progressFill, { backgroundColor: c.controlAccent, width: `${state.pct}%` }]} />
           </View>
-          <Text style={[styles.summary, { color: c.onSurfaceVariant }]}>
+          <Text style={[styles.progressLabel, { color: c.onSurfaceVariant }]}>
             Downloading {downloadingLabel} · {state.pct}%
           </Text>
         </View>
       ) : (
-        <View style={styles.summaryRow}>
-          <EnumBadge field={difficultyField} value={trail.difficulty} />
-        </View>
+        <CardSummaryRow badge={{ field: difficultyField, value: trail.difficulty }} />
       )}
 
       <MetricsGrid items={trailMetricTiles(trail.metrics)} />
@@ -78,11 +73,8 @@ export function TrailInfoSheet({
 }
 
 const styles = StyleSheet.create({
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  name: { fontSize: 18, fontWeight: '700', flex: 1 },
   badge: { fontSize: 12, fontWeight: '700' },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  summary: { fontSize: 13, flexShrink: 1 },
+  progressLabel: { fontSize: 13, flexShrink: 1 },
   progressWrap: { gap: 6 },
   progressTrack: { height: 4, borderRadius: 2, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 2 },

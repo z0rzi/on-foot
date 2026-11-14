@@ -1,5 +1,6 @@
 import { ActivityMetrics } from '../data/activities/types'
-import { formatDistance, formatDuration, twoDigits } from '../format/units'
+import { formatDistance, formatDuration, formatElevation, twoDigits } from '../format/units'
+import type { MetricTile } from '../components/MetricsGrid'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -22,6 +23,21 @@ export function formatActivitySummary(metrics: ActivityMetrics): string {
   return `${formatDistance(metrics.distanceMeters)} · ${formatDuration(metrics.durationSeconds)}`
 }
 
+// An activity's metrics as the activity card shows them, or the three the save form shows.
+export function activityMetricTiles(metrics: ActivityMetrics, variant: 'card' | 'form'): MetricTile[] {
+  const distance = { label: 'Distance', value: formatDistance(metrics.distanceMeters) }
+  const duration = { label: 'Duration', value: formatDuration(metrics.durationSeconds) }
+  const gain = { label: 'Elevation gain', value: formatElevation(metrics.elevationGainMeters) }
+  if (variant === 'form') return [distance, duration, gain]
+  return [
+    distance,
+    duration,
+    { label: 'Average pace', value: formatAveragePace(metrics) },
+    gain,
+    { label: 'Elevation loss', value: formatElevation(metrics.elevationLossMeters) },
+  ]
+}
+
 function secondsPerKm(distanceMeters: number, durationSeconds: number): number | null {
   if (distanceMeters <= 0 || durationSeconds <= 0) return null
   return durationSeconds / (distanceMeters / 1000)
@@ -42,7 +58,7 @@ export function formatPace(distanceMeters: number, durationSeconds: number): str
   return secPerKm == null ? '—' : formatSecondsPerKm(secPerKm)
 }
 
-export function formatAveragePace(metrics: ActivityMetrics): string {
+function formatAveragePace(metrics: ActivityMetrics): string {
   const secPerKm = secondsPerKm(metrics.distanceMeters, metrics.durationSeconds)
   return secPerKm == null ? '—' : `${formatSecondsPerKm(secPerKm)} /km`
 }

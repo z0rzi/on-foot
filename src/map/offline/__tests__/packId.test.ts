@@ -1,4 +1,4 @@
-import { packId, parsePackId, packsForTrail } from '../packId'
+import { packId, parsePackId, packsForTrail, livePacks } from '../packId'
 
 describe('packId / parsePackId', () => {
   test('builds the canonical name', () => {
@@ -37,5 +37,17 @@ describe('packsForTrail', () => {
 
   test('drops ids that do not parse', () => {
     expect(packsForTrail([{ id: 'not-a-pack-id' }], 7)).toEqual([])
+  })
+})
+
+describe('livePacks', () => {
+  test('gives each live progress its pack id, so packsForTrail reads it', () => {
+    const progress = {
+      [packId(7, 'outdoors')]: { percentage: 40, failed: false },
+      [packId(9, 'outdoors')]: { percentage: 0, failed: true },
+    }
+    expect(packsForTrail(livePacks(progress), 7)).toEqual([
+      { pack: { id: packId(7, 'outdoors'), percentage: 40, failed: false }, styleId: 'outdoors' },
+    ])
   })
 })
