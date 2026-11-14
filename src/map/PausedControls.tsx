@@ -7,7 +7,7 @@ import { MapTokens } from '../theme/tokens'
 import { resumeRecording, linkTrailForSave } from '../recording/recordingController'
 import { captureRefusalAlert } from '../recording/captureAlerts'
 import { useMapStore } from '../store/mapStore'
-import { logEvent } from '../log'
+import { errorClass, logEvent } from '../log'
 import { ControlButton } from '../components/ControlButton'
 import { PlayIcon } from '../assets/icons/play'
 import { StopIcon } from '../assets/icons/stop'
@@ -24,7 +24,7 @@ export function PausedControls({ animatedBottom }: { animatedBottom: SharedValue
         Alert.alert(title, message)
       }
     } catch (error) {
-      logEvent('error', 'error', 'resume recording threw', { error: String(error) })
+      logEvent('error', 'error', 'resume recording threw', { errorClass: errorClass(error) })
       Alert.alert('Could not resume recording', 'Something went wrong. Please try again.')
     }
   }, [])
@@ -36,7 +36,7 @@ export function PausedControls({ animatedBottom }: { animatedBottom: SharedValue
       await linkTrailForSave(linkedTrailId)
       router.push('/activity/save')
     } catch (error) {
-      logEvent('error', 'error', 'stop recording threw', { error: String(error) })
+      logEvent('error', 'error', 'stop recording threw', { errorClass: errorClass(error) })
       Alert.alert('Could not stop recording', 'Something went wrong. Please try again.')
     }
   }, [router])

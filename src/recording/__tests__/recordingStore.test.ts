@@ -1,4 +1,4 @@
-jest.mock('../../log', () => ({ logEvent: jest.fn() }))
+jest.mock('../../log', () => ({ ...jest.requireActual('../../log/errorClass'), logEvent: jest.fn() }))
 jest.mock('../../data/activities', () => ({
   activitiesRepository: { listOverviewRows: jest.fn(), getActivity: jest.fn() },
 }))
@@ -190,7 +190,7 @@ describe('history factor', () => {
     useRecordingStore.getState().beginSession(recordingSession)
     await settle()
     expect(factor()).toBe(1)
-    expect(logEvent).toHaveBeenCalledWith('warn', 'recording', 'personal factor history read failed', { error: 'Error: database is locked' })
+    expect(logEvent).toHaveBeenCalledWith('warn', 'recording', 'personal factor history read failed', { errorClass: 'Error' })
   })
   it('is dropped with the recording', async () => {
     useRecordingStore.getState().beginSession(recordingSession)

@@ -12,7 +12,7 @@ import { useMapStore } from '../store/mapStore'
 import { startRecording, pauseRecording } from '../recording/recordingController'
 import { captureRefusalAlert } from '../recording/captureAlerts'
 import { showToast } from '../components/toast'
-import { logEvent } from '../log'
+import { errorClass, logEvent } from '../log'
 import { ControlButton, controlSurfaceStyle } from '../components/ControlButton'
 import { PlayIcon } from '../assets/icons/play'
 import { PauseIcon } from '../assets/icons/pause'
@@ -50,7 +50,7 @@ export function RecordButton({ animatedBottom }: { animatedBottom: SharedValue<n
         Alert.alert(title, message)
       }
     } catch (error) {
-      logEvent('error', 'error', 'start recording threw', { error: String(error) })
+      logEvent('error', 'error', 'start recording threw', { errorClass: errorClass(error) })
       Alert.alert('Could not start recording', 'Something went wrong. Please try again.')
     }
   }, [router])
@@ -60,7 +60,7 @@ export function RecordButton({ animatedBottom }: { animatedBottom: SharedValue<n
     try {
       await pauseRecording()
     } catch (error) {
-      logEvent('error', 'error', 'pause recording threw', { error: String(error) })
+      logEvent('error', 'error', 'pause recording threw', { errorClass: errorClass(error) })
       Alert.alert('Could not pause recording', 'Something went wrong. Please try again.')
     }
   }, [])

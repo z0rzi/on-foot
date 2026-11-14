@@ -1,6 +1,6 @@
 import { openURL } from 'expo-linking'
 import { showToast } from '../components/toast'
-import { logEvent } from '../log'
+import { errorClass, logEvent } from '../log'
 import { geoUri } from './geoUri'
 import type { Destination } from './types'
 
@@ -13,7 +13,7 @@ export async function openMapApp(point: Destination, label: string): Promise<voi
     await openURL(geoUri(point, label))
     logEvent('info', 'map', 'handed destination to the OS chooser')
   } catch (error) {
-    logEvent('warn', 'map', 'map app launch failed', { error: String(error) })
+    logEvent('warn', 'map', 'map app launch failed', { errorClass: errorClass(error) })
     showToast('No map app found')
   }
 }

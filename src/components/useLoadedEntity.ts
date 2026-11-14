@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { logEvent } from '../log'
+import { errorClass, logEvent } from '../log'
 import { LoadOutcome, LoadedState, resolveLoad } from './loadedEntity'
 
 export function useLoadedEntity<T>(
@@ -37,7 +37,7 @@ export function useLoadedEntity<T>(
       },
       (err: unknown) => {
         // Logged before the liveness check: a rejection that lands after unmount still happened.
-        logEvent('error', 'error', `${label} load failed`, { id, error: String(err) })
+        logEvent('error', 'error', `${label} load failed`, { id, errorClass: errorClass(err) })
         if (!active) return
         setLoaded({ id, result: { ok: false } })
         unavailable.current?.('error')

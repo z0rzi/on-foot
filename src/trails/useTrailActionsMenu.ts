@@ -3,7 +3,7 @@ import { useTrailsStore } from '../store/trailsStore'
 import type { Trail, TrailSummary } from '../data/trails/types'
 import type { MenuAnchor } from '../components/ActionsMenu'
 import { showToast } from '../components/toast'
-import { logEvent } from '../log'
+import { errorClass, logEvent } from '../log'
 
 const LOAD_FAILURE_TOAST = 'Could not open the trail'
 
@@ -25,7 +25,7 @@ export function useTrailActionsMenu(trails: TrailSummary[]) {
         setTarget({ trail, anchor })
       },
       (error: unknown) => {
-        logEvent('error', 'error', 'loading the trail for its actions menu failed', { id: summary.id, error: String(error) })
+        logEvent('error', 'error', 'loading the trail for its actions menu failed', { id: summary.id, errorClass: errorClass(error) })
         showToast(LOAD_FAILURE_TOAST)
       },
     )

@@ -11,7 +11,7 @@ import { classifyGpxFailure, GpxImportFailure, gpxImportAlert } from '../../src/
 import { useGoBackOrHome } from '../../src/components/useGoBackOrHome'
 import { useShowTrail } from '../../src/trails/useShowTrail'
 import { LoadingScreen } from '../../src/components/LoadingScreen'
-import { logEvent } from '../../src/log'
+import { errorClass, logEvent } from '../../src/log'
 
 const IMPORT_FAILURE_LOG_PHRASE: Record<GpxImportFailure, string> = {
   read: 'file could not be read',
@@ -39,10 +39,9 @@ export default function NewTrailScreen() {
         return
       }
       const fail = (failure: GpxImportFailure, err: unknown) => {
-        // A read failure's own message says nothing a reader can act on; its cause, the permission
-        // or missing-file error, is what the log needs.
+        // The phrase already names a read failure, so the log takes the class of its cause.
         logEvent('error', 'error', `gpx import failed, ${IMPORT_FAILURE_LOG_PHRASE[failure]}`, {
-          error: String(err instanceof GpxReadError ? err.cause : err),
+          errorClass: errorClass(err instanceof GpxReadError ? err.cause : err),
         })
         const alert = gpxImportAlert(failure)
         Alert.alert(alert.title, alert.message)

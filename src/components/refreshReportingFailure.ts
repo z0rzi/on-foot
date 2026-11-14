@@ -1,4 +1,4 @@
-import { logEvent } from '../log'
+import { errorClass, logEvent } from '../log'
 import { showToast } from './toast'
 
 export type RefreshFailure = { logMessage: string; toast: string }
@@ -11,7 +11,7 @@ export async function refreshReportingFailure(
   try {
     await load()
   } catch (error) {
-    logEvent('error', 'error', failure.logMessage, { error: String(error) })
+    logEvent('error', 'error', failure.logMessage, { errorClass: errorClass(error) })
     showToast(failure.toast)
   }
 }

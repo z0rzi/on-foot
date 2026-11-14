@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { activitiesRepository, LiveTrackPoint, RecordingSession, TrackPoint } from '../data/activities'
-import { logEvent } from '../log'
+import { errorClass, logEvent } from '../log'
 import type { InterruptionGap } from './interruption'
 import { historyActivityIds, historyFactor } from './personalFactor'
 import { recordingPhase, type RecordingPhase } from './recordingPhase'
@@ -60,7 +60,7 @@ export const useRecordingStore = create<RecordingStore>((set, get) => {
     try {
       factor = await historyFactorOfSavedActivities()
     } catch (error) {
-      logEvent('warn', 'recording', 'personal factor history read failed', { error: String(error) })
+      logEvent('warn', 'recording', 'personal factor history read failed', { errorClass: errorClass(error) })
     }
     if (get().session?.id === sessionId) set({ historyFactor: factor })
   }

@@ -1,4 +1,4 @@
-jest.mock('../../log', () => ({ logEvent: jest.fn() }))
+jest.mock('../../log', () => ({ ...jest.requireActual('../../log/errorClass'), logEvent: jest.fn() }))
 
 import { logEvent } from '../../log'
 import { loadActivityWithLinkedTrail } from '../linkedTrail'
@@ -46,7 +46,7 @@ test('a failed trail read keeps the activity, carries no trail and is logged', a
   const loaded = await loadActivityWithLinkedTrail(1, async () => activity(43), () => Promise.reject(new Error('db')))
   expect(loaded?.id).toBe(1)
   expect(loaded?.linkedTrail).toBeNull()
-  expect(logged).toHaveBeenCalledWith('error', 'error', 'linked trail load failed', { id: 43, error: 'Error: db' })
+  expect(logged).toHaveBeenCalledWith('error', 'error', 'linked trail load failed', { id: 43, errorClass: 'Error' })
 })
 
 test('a missing activity is missing, with no trail lookup', async () => {

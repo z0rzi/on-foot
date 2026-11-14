@@ -1,5 +1,5 @@
 jest.mock('expo-linking', () => ({ openURL: jest.fn() }))
-jest.mock('../../log', () => ({ logEvent: jest.fn() }))
+jest.mock('../../log', () => ({ ...jest.requireActual('../../log/errorClass'), logEvent: jest.fn() }))
 jest.mock('../../components/toast', () => ({ showToast: jest.fn() }))
 
 import { openURL } from 'expo-linking'
@@ -29,14 +29,14 @@ describe('openMapApp', () => {
     expect(toasted).not.toHaveBeenCalled()
   })
 
-  // A rejection means the hand-off failed; the cause is only in the log detail.
+  // A rejection means the hand-off failed; the log holds its class.
   test('reports exactly once when no app handles the intent', async () => {
     opened.mockRejectedValue(new Error('No Activity found to handle Intent'))
     await openMapApp(point, 'Col de Bise')
     expect(toasted).toHaveBeenCalledTimes(1)
     expect(toasted).toHaveBeenCalledWith('No map app found')
     expect(logged).toHaveBeenCalledWith('warn', 'map', 'map app launch failed', {
-      error: 'Error: No Activity found to handle Intent',
+      errorClass: 'Error',
     })
   })
 

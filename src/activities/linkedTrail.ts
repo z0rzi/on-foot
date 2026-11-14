@@ -1,6 +1,6 @@
 import type { Activity } from '../data/activities/types'
 import type { Trail } from '../data/trails/types'
-import { logEvent } from '../log'
+import { errorClass, logEvent } from '../log'
 
 export interface ActivityWithLinkedTrail extends Activity {
   linkedTrail: Trail | null
@@ -23,7 +23,7 @@ export async function loadActivityWithLinkedTrail(
     if (linkedTrail == null) logEvent('warn', 'error', 'linked trail not found', { id: trailId })
     return { ...activity, linkedTrail }
   } catch (err) {
-    logEvent('error', 'error', 'linked trail load failed', { id: trailId, error: String(err) })
+    logEvent('error', 'error', 'linked trail load failed', { id: trailId, errorClass: errorClass(err) })
     return { ...activity, linkedTrail: null }
   }
 }

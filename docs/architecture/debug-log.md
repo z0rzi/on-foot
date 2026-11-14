@@ -46,7 +46,7 @@ write is swallowed; the next entry still gets its turn.
   external map app (`openMapApp`), a failed launch-time load of the offline packs (the offline
   maps list retries it on focus) or of the trails or activities store (`loadStoresAtLaunch`; a
   list's focus refresh or the next change retries it), and the launch camera falling back: the map store's hydration
-  failing (with the error class, never its message) or timing out (with the bound), and a persisted
+  failing (with the error class) or timing out (with the bound), and a persisted
   launch camera ignored (with the fault: `missing`, `non-finite`, `out-of-range` or
   `unknown-follow-state`), the launch's camera choice and every fit of the camera to a route (below),
   the two route timing entries (below), the compass watch held while recording with the puck's
@@ -144,8 +144,7 @@ or ending.
 
 
 Rows saved before overviews existed are filled by one pass at launch, once no recording session
-exists (`overviewBackfill`). Errors are logged by class, never by message: a parse error's message
-can quote the geometry it failed on.
+exists (`overviewBackfill`).
 
 - `overview backfill` `{ rows, failed, slowestMs, ms }`: once per pass that found rows to fill, at
   its end. `rows` is the rows filled, `failed` those of them whose stored geometry could not be
@@ -212,12 +211,30 @@ A delivery of the background task can end before `fix batch` on two JS paths (T-
 A delivery dropped natively, before JS, writes neither: only logcat shows it (T-95). One whose
 reads or write reject writes `fix batch not stored` (above).
 
-## Native error messages
+## Errors in the log
 
-`delivery fault` and the rejected `heading watch` log the native error's message, where the map
-store's hydration failure logs only the error's class. These messages are written by the task
-manager and the heading module: they describe the failure and carry no payload, and the class
-alone would say nothing.
+An error enters the log by its class, never its message: `{ errorClass: errorClass(error) }`
+(`src/log/errorClass.ts`), the `name` of an `Error` or the `typeof` of anything else thrown. A
+message may quote the data at fault (a parse error the geometry it failed on, a database error the
+row it refused); a class never does. The phrase and the other fields say what failed and where;
+the class says which kind of failure it was.
+
+Two kinds of entry keep a message, each for a reason the class cannot stand in for:
+
+- **Native messages with no payload.** `delivery fault` and the rejected `heading watch` log the
+  message the task manager or the heading module wrote. It describes the failure and carries no
+  data, and the class alone would say nothing.
+- **Uncaught errors** (`installGlobalErrorHandler`) log `{ message, stack }`, and **render errors**
+  (`ErrorBoundary`) `{ message, stack, componentStack }`. Nobody anticipated them, so these are
+  their only trace, and no failure the user is told about lands here.
+
+`src/architecture/__tests__/logErrorDetail.test.ts` holds the rule: it reads the detail argument
+of every `logEvent` call and fails on a `String(…)`, a `.message` or a `.stack` there, outside the
+files in `LOG_MESSAGE_EXEMPT` (`src/architecture/logErrorDetail.ts`), each with its reason. An
+exemption that stops covering a message fails too. The test reads the call's own arguments, so a
+detail built before the call is not read and its file needs no exemption: the global handler builds
+`{ message, stack }` first, and `delivery fault` receives the message as a string from the location
+port. The rule binds where the check cannot see.
 
 ## No coordinates, ever
 

@@ -1,4 +1,4 @@
-jest.mock('../../log', () => ({ logEvent: jest.fn() }))
+jest.mock('../../log', () => ({ ...jest.requireActual('../../log/errorClass'), logEvent: jest.fn() }))
 jest.mock('../toast', () => ({ showToast: jest.fn() }))
 
 import { logEvent } from '../../log'
@@ -27,7 +27,7 @@ describe('refreshReportingFailure', () => {
       refreshReportingFailure(() => Promise.reject(new Error('disk I/O')), failure),
     ).resolves.toBeUndefined()
     expect(logged).toHaveBeenCalledWith('error', 'error', 'refreshing the activities list failed', {
-      error: 'Error: disk I/O',
+      errorClass: 'Error',
     })
     expect(toasted).toHaveBeenCalledWith('Could not refresh the activities')
   })

@@ -7,7 +7,7 @@ import { EnumMultiSelector } from '../components/EnumMultiSelector'
 import { LoadingScreen } from '../components/LoadingScreen'
 import { useTheme } from '../theme/useTheme'
 import { formatActivityDate, formatClockSeconds } from '../activities/format'
-import { deviceInfo, filterByArea, LOG_MAX_ENTRIES, logEvent, logExportText } from '../log'
+import { deviceInfo, errorClass, filterByArea, LOG_MAX_ENTRIES, logEvent, logExportText } from '../log'
 import { logAreaField } from './logAreaField'
 
 // The list is newest-first, so an entry opens a day whenever the entry above it falls on another one:
@@ -62,7 +62,7 @@ export function LogList() {
             .clear()
             .then(() => setEntries([]))
             .catch((error) => {
-              logEvent('error', 'error', 'clearing the log failed', { error: String(error) })
+              logEvent('error', 'error', 'clearing the log failed', { errorClass: errorClass(error) })
               Alert.alert('Could not clear the log', 'Please try again.')
             })
         },

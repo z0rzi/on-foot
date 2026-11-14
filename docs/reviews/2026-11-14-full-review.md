@@ -143,7 +143,7 @@ one place and not everywhere (`AGENTS.md` "change it deliberately and everywhere
 · Fix: decide the rule once in `debug-log.md`, for example class everywhere except native messages
 and stacks with no payload, and migrate the read paths (`useLoadedEntity`, `linkedTrail`,
 `useTrailActionsMenu`, `save.tsx`) to `errorClass`. Whether Hermes's `JSON.parse` messages actually
-quote input is unverified (§7). · **should-fix, S–M**.
+quote input is unverified (§7). · **should-fix, S–M**. · **Done**: the rule is `debug-log.md` "Errors in the log": class everywhere, except native messages with no payload (`delivery fault`, `heading watch`) and uncaught and render errors, which keep message and stack. The 22 handled-failure sites log `errorClass`; `logErrorDetail.test.ts` rejects `String(…)`, `.message` and `.stack` in a `logEvent` detail outside two named exemptions.
 
 **DUP-3 — The trail and activity siblings have made different choices** · Lists:
 `app/trails.tsx:23,25` uses a hook (`useTrailActionsMenu`) and a named failure
@@ -360,7 +360,7 @@ area list match the code. Every spec since the 2026-10-11 rule carries `## Exist
 |---|---|---|---|---|---|---|
 | 1 | ~~Catch and log a failed fix-batch write; log `fix batch` after the append; test first~~ | ERR-1, TEST-1 | High: the one silent data-loss path in the recording becomes visible in the field log | S | Low (locationTask tests) | **done** |
 | 2 | ~~One tolerant stream-stop helper that logs its outcome; decide discard's choice~~ | ERR-2 | High: the log stops claiming a stop that failed; siblings agree | S | Low-medium (controller tests; device check of the notification) | **done** (device check pending) |
-| 3 | One rule for error detail in the log, written in `debug-log.md`; migrate the geometry-read sites to `errorClass` | DUP-2 | Medium-high: closes a fork with a privacy invariant behind it | S–M | Low | **now** |
+| 3 | ~~One rule for error detail in the log, written in `debug-log.md`; migrate the geometry-read sites to `errorClass`~~ | DUP-2 | Medium-high: closes a fork with a privacy invariant behind it | S–M | Low | **done** |
 | 4 | `useLiveSegments()`, one owner of the live track's segments | DUP-1 | Medium: the derived-state rule held for the recording's hottest value | S | Low | **next** |
 | 5 | Doc refresh: `lint-debt.md` disables, `AGENTS.md` seam and gate list, the port's follow comment | DOC-1..3 | Medium: first-read docs match the registry | S | None | **next** |
 | 6 | File the unused-export triage ticket; relabel test seams honestly | DEAD-1 | Medium: the gate's escape list becomes trustworthy | S (ticket), M (triage) | None | **next** |

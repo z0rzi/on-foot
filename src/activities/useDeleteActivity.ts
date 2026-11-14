@@ -3,7 +3,7 @@ import { Alert } from 'react-native'
 import { useActivitiesStore } from '../store/activitiesStore'
 import { useMapStore } from '../store/mapStore'
 import { showToast } from '../components/toast'
-import { logEvent } from '../log'
+import { errorClass, logEvent } from '../log'
 
 // The activity's Delete action, the same from the map sheet and the Activities list: confirm,
 // remove, and drop it from the map if it was shown.
@@ -17,7 +17,7 @@ export function useDeleteActivity(): (activity: { id: number; name: string }) =>
         try {
           await removeActivity(activity.id)
         } catch (error) {
-          logEvent('error', 'error', 'deleting the activity failed', { error: String(error) })
+          logEvent('error', 'error', 'deleting the activity failed', { errorClass: errorClass(error) })
           showToast('Could not delete the activity')
           return
         }

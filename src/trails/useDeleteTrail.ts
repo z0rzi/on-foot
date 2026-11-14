@@ -5,7 +5,7 @@ import { useMapStore } from '../store/mapStore'
 import { useOfflineController } from '../map/provider'
 import { useOfflineStore } from '../map/offline/offlineStore'
 import { showToast } from '../components/toast'
-import { logEvent } from '../log'
+import { errorClass, logEvent } from '../log'
 import { currentAlongTrailId } from '../recording/currentAlongTrail'
 
 // The trail's Delete action, the same from the map sheet and the Trails list: confirm, remove its
@@ -24,7 +24,7 @@ export function useDeleteTrail(): (trail: { id: number; name: string }) => void 
           await removeForTrail(controller, trail.id)
           await removeTrail(trail.id)
         } catch (error) {
-          logEvent('error', 'error', 'deleting the trail failed', { error: String(error) })
+          logEvent('error', 'error', 'deleting the trail failed', { errorClass: errorClass(error) })
           Alert.alert('Could not delete', 'Something went wrong deleting this trail. Please try again.')
           return
         }

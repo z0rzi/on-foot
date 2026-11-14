@@ -23,7 +23,7 @@ import { useRecordingStream } from '../src/recording/useRecordingStream'
 import { useAlongTrailLog } from '../src/recording/useAlongTrailLog'
 import { useIncomingShare } from '../src/trails/useIncomingShare'
 import { getNavigationTheme } from '../src/theme/navigationTheme'
-import { installGlobalErrorHandler, logEvent, useLogRetention } from '../src/log'
+import { errorClass, installGlobalErrorHandler, logEvent, useLogRetention } from '../src/log'
 
 installGlobalErrorHandler()
 // Held until the map can mount on its launch camera, so a restored camera never shows the globe first.
@@ -55,7 +55,7 @@ function OfflineInitHandler() {
   const reload = useOfflineStore((s) => s.reload)
   useEffect(() => {
     reload(controller).catch((error) =>
-      logEvent('warn', 'map', 'loading offline packs at launch failed', { error: String(error) }),
+      logEvent('warn', 'map', 'loading offline packs at launch failed', { errorClass: errorClass(error) }),
     )
   }, [reload, controller])
   return null

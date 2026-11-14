@@ -8,7 +8,7 @@ import { useReturnToMap } from '../../src/components/useReturnToMap'
 import { LoadingScreen } from '../../src/components/LoadingScreen'
 import { showToast } from '../../src/components/toast'
 import { useMapStore } from '../../src/store/mapStore'
-import { logEvent } from '../../src/log'
+import { errorClass, logEvent } from '../../src/log'
 
 export default function SaveActivityScreen() {
   const goToMap = useReturnToMap()
@@ -37,7 +37,7 @@ export default function SaveActivityScreen() {
       })
       .catch((err: unknown) => {
         // Logged before the liveness check: a rejection that lands after unmount still happened.
-        logEvent('error', 'error', 'save screen load failed', { error: String(err) })
+        logEvent('error', 'error', 'save screen load failed', { errorClass: errorClass(err) })
         if (!active) return
         Alert.alert('Could not open this recording', 'Something went wrong. Please try again.')
         goToMap()

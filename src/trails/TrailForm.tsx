@@ -6,7 +6,7 @@ import { MetricsGrid } from '../components/MetricsGrid'
 import { FormField, FormScreen, FormTextInput, SubmitButton } from '../components/form'
 import { difficultyField } from './difficulty'
 import { trailMetricTiles } from './format'
-import { logEvent } from '../log'
+import { errorClass, logEvent } from '../log'
 
 export interface TrailFormValues {
   name: string
@@ -46,7 +46,7 @@ export function TrailForm({
         description: description.trim().length > 0 ? description.trim() : null,
       })
     } catch (error) {
-      logEvent('error', 'error', 'saving the trail failed', { error: String(error) })
+      logEvent('error', 'error', 'saving the trail failed', { errorClass: errorClass(error) })
       Alert.alert('Could not save trail', 'Something went wrong while saving. Please try again.')
       setSaving(false)
     }

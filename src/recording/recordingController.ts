@@ -40,7 +40,7 @@ async function issueStream(): Promise<void> {
   try {
     await startBackgroundTracking(RECORDING_OPTIONS)
   } catch (error) {
-    logEvent('error', 'capture', 'stream start failed', { error: String(error) })
+    logEvent('error', 'capture', 'stream start failed', { errorClass: errorClass(error) })
     useRecordingStore.getState().setStreamState({
       stream: isAppActive() ? { kind: 'faulted', fault: 'start-failed' } : { kind: 'stopped' },
     })

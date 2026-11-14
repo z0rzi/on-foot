@@ -6,7 +6,7 @@ import { useTrailsStore } from '../src/store/trailsStore'
 import { TrailListItem } from '../src/trails/TrailListItem'
 import { ListScreen } from '../src/components/ListScreen'
 import { useTheme } from '../src/theme/useTheme'
-import { logEvent } from '../src/log'
+import { errorClass, logEvent } from '../src/log'
 import { useShowTrail } from '../src/trails/useShowTrail'
 import { newTrailHref } from '../src/trails/newTrailHref'
 import { useRefreshOnFocus } from '../src/components/useRefreshOnFocus'
@@ -40,7 +40,7 @@ export default function TrailsScreen() {
         copyToCacheDirectory: true,
       })
     } catch (error) {
-      logEvent('error', 'error', 'opening the file picker failed', { error: String(error) })
+      logEvent('error', 'error', 'opening the file picker failed', { errorClass: errorClass(error) })
       Alert.alert('Could not open the file picker', 'Something went wrong opening the file picker. Please try again.')
       return
     }
