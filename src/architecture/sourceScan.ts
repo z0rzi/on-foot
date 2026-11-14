@@ -10,8 +10,13 @@ const SOURCE_EXT = /\.tsx?$/
 const TEST_FILE = /\.(test|spec)\.tsx?$/
 const SKIPPED_DIRS = new Set(['__tests__', 'build', 'node_modules'])
 
+// The app's own source, then with the agent tooling under tools/ for the gates that read code shape
+// alone (docs/architecture/seams.md says which).
+const APP_ROOTS = ['src', 'app', 'modules']
+export const APP_AND_TOOLING_ROOTS = [...APP_ROOTS, 'tools']
+
 export function collectSourceFiles(
-  roots: string[] = ['src', 'app', 'modules'],
+  roots: string[] = APP_ROOTS,
   rootDir: string = process.cwd(),
 ): SourceFile[] {
   const out: SourceFile[] = []

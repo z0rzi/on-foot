@@ -1,3 +1,6 @@
+jest.mock('../../../log', () => ({ ...jest.requireActual('../../../log/errorClass'), logEvent: jest.fn() }))
+
+import { logEvent } from '../../../log'
 import { useOfflineStore } from '../offlineStore'
 import { packId } from '../packId'
 import type { OfflineController, OfflinePackInfo } from '../../provider/types'
@@ -274,5 +277,31 @@ describe('offlineStore settled downloads', () => {
     useOfflineStore.setState({ settled: [first, second] })
     useOfflineStore.getState().dismissSettled([first])
     expect(useOfflineStore.getState().settled).toEqual([second])
+  })
+})
+
+describe('offlineStore download failures in the debug log', () => {
+  beforeEach(() => jest.mocked(logEvent).mockClear())
+
+  test('a pack failing mid-download is logged, without the SDK message', async () => {
+    const controller = makeController({ onSubscribe: (id, _p, onError) => onError(id, 'pack trail-1 failed') })
+    useOfflineStore.getState().download(controller, descriptor(packId(1, 'a')))
+    await flush()
+    expect(logEvent).toHaveBeenCalledWith('warn', 'error', 'download failed', { stage: 'progress' })
+  })
+
+  test('a kickoff that rejects is logged by its class', async () => {
+    const controller = makeController()
+    controller.downloadPack = async () => { throw new TypeError('network request failed') }
+    useOfflineStore.getState().download(controller, descriptor(packId(1, 'a')))
+    await flush()
+    expect(logEvent).toHaveBeenCalledWith('warn', 'error', 'download failed', { stage: 'start', errorClass: 'TypeError' })
+  })
+
+  test('a download that completes logs nothing', async () => {
+    const controller = makeController({ onSubscribe: (id, onProgress) => onProgress(info(id, 'complete', 100)) })
+    useOfflineStore.getState().download(controller, descriptor(packId(1, 'a')))
+    await flush()
+    expect(logEvent).not.toHaveBeenCalled()
   })
 })

@@ -1,6 +1,7 @@
 import { create, type Mutate, type StoreApi, type UseBoundStore } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { errorClass, logEvent } from '../log'
 import { writesAfterHydration } from '../store/writesAfterHydration'
 
 export type PaceSpeedMode = 'pace' | 'speed'
@@ -45,6 +46,10 @@ export const usePreferencesStore: PreferencesStoreHook = create<PreferencesStore
         paceSpeedMode: s.paceSpeedMode,
         elevationSmoothingMeters: s.elevationSmoothingMeters,
       }),
+      // Defaults are a complete state, so nothing waits on hydration: a failure is only logged.
+      onRehydrateStorage: () => (_, error) => {
+        if (error) logEvent('warn', 'launch', 'preferences hydration failed, defaults used', { errorClass: errorClass(error) })
+      },
     },
   ),
 )

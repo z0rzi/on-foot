@@ -13,3 +13,7 @@ blocked_by: []
 Owner, first look at the overview build on 2026-11-12: the pins draw the eye a lot and feel heavy
 on the map. Parked for later. The pin's look is D116 (teardrop and tag) and D128 (tinted images);
 its parameters sit in `src/map/providers/mapbox/overviewPins.tsx` and `pinLayout.ts`.
+
+The tag image, `src/map/providers/mapbox/overview-pin-tag.png`, has no generator yet
+(ARCH-4 in [[2026-11-14-full-review]]). When this ticket redraws the pins, draw the tag in
+`overview-pins.py` with them, so the image is drawn once.

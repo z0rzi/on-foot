@@ -36,6 +36,18 @@ All five fail `npm run verify` with a report naming the files. For `importRules.
 never an inline disable; `exportRules.ts` and `moduleEntries.ts` have no exemption mechanism at
 all.
 
+The cycle (`importGraph.ts`) and duplication gates also scan the agent tooling under `tools/`
+(`APP_AND_TOOLING_ROOTS` in `sourceScan.ts`): it is agent-written code of the same risk as `src/`. The
+seam, import-rule, export-rule, module-entry and unused-export gates model the app and leave it out;
+the unused-export gate would also misread `tools/device-check/cli.ts`, an entry point nothing imports.
+
+Three more gates in `src/architecture/` read the repo's docs and config rather than its imports:
+`lintDebt.ts` (every source file under `src`, `app`, `modules` or `tools` holding an
+`eslint-disable` is named in `lint-debt.md`'s standing exceptions), `gateScopes.ts` (jest, `tsc`
+and eslint all ignore every agent directory in `AGENT_DIRS`) and `patchPins.ts` (every package
+under `patches/` is declared at exactly the version its patch file names). None has an exemption
+mechanism: the fix is the doc line, the ignore entry or the pin.
+
 ## How to add a seam
 
 When a change introduces a new boundary — a wrapper around a native SDK, or a new provider

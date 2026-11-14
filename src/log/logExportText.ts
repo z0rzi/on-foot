@@ -1,4 +1,4 @@
-import { LogEntry } from '../data/log'
+import type { LogEntry } from '../data/log/types'
 import { formatActivityDate, formatCalendarClockSeconds, formatClockSeconds } from '../activities/format'
 
 export const LOG_EXPORT_MAX_CHARS = 200_000

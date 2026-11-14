@@ -39,7 +39,9 @@ write is swallowed; the next entry still gets its turn.
   batch (`fixBatchSummary`), a delivery that never reached the fix gate (`delivery fault`,
   `delivery waiting`, below), and interruption recovery decisions.
 - **`launch`** — cold start, the action `useResumeRecording` took, an interruption it detects
-  (with its range), and the moment that interruption is announced, once the map has loaded.
+  (with its range), the moment that interruption is announced, once the map has loaded, and the
+  preferences store's hydration failing (`preferences hydration failed, defaults used` (`warn`),
+  `{ errorClass }`; the app runs on the defaults).
 - **`map`** — the recording sheet mounting, every map-mode transition, the sheet settling on a snap
   point (`sheet settled`, with the mode and the index), the sheet/root/graph geometry sampled on
   `AppState` becoming `'active'` (`useSheetGeometryLog`), each hand-off of a destination to an
@@ -50,13 +52,18 @@ write is swallowed; the next entry still gets its turn.
   launch camera ignored (with the fault: `missing`, `non-finite`, `out-of-range` or
   `unknown-follow-state`), the launch's camera choice and every fit of the camera to a route (below),
   the two route timing entries (below), the compass watch held while recording with the puck's
-  mounts (below), and the overview's lines and pins files and backfill (below).
+  mounts (below), the overview's lines and pins files and backfill (below), and a trail's offline
+  download settling, once per trail whatever its number of packs (`offline download complete`, or
+  `offline download failed` (`warn`), with the toast).
 - **`error`** — uncaught errors (the global `ErrorUtils` handler), render errors caught by
   `ErrorBoundary`, and every failure or refusal the user is told about in an alert or a toast:
   start, pause, resume and stop recording, opening an activity while recording, saving or
   discarding an activity, saving a trail, opening the file picker, importing a GPX file or measuring
   its route, refreshing the trails or activities list, reloading the offline maps, deleting a trail or an activity, clearing the log, and the
-  offline-download refusals (offline, not enough space, a trail with no route).
+  offline-download refusals (offline, not enough space, a trail with no route). A pack whose
+  download fails once started logs `download failed` (`warn`) `{ stage }`: `start` when the kickoff
+  rejects, with its `errorClass`; `progress` when the SDK reports it mid-download, with no class,
+  since the port hands over only the SDK's message. The trail's outcome is the `map` entry above.
 
 ## The `fix batch` entry
 

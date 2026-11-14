@@ -23,13 +23,13 @@ uphold the original design, do not let it erode one expedient change at a time.
   mechanical gate, so this is a design step, not a lint.
 - **Architectural seams are inviolable and declared in `src/architecture/seams.ts`.** A seam
   confines a native SDK/engine to one directory so the rest of the app stays provider-agnostic
-  and swappable. Today: the **map SDK** (`@rnmapbox/maps` → `src/map/providers/<provider>/`;
+  and swappable. Among them: the **map SDK** (`@rnmapbox/maps` → `src/map/providers/<provider>/`;
   shared code talks to the semantic port `src/map/provider/`, and MapLibre is the intended
   escape hatch — keep it reachable; read `docs/architecture/mapbox-gotchas.md` before changing
   the camera, a source or a layer), the **database engine** (`expo-sqlite`/`drizzle-orm` →
   `src/data/db/`), **connectivity** (`@react-native-community/netinfo` → `src/net/`), and
   **location** (`expo-location`/`expo-task-manager` → `src/location/`; recording and map code
-  use the location port, never the SDK).
+  use the location port, never the SDK). `seams.ts` holds the full list.
   Provider-specific concepts are declared on the port (e.g. semantic flags on descriptors),
   never leaked as literals into shared code. When a change introduces a new boundary (a
   native-SDK wrapper, a new port), register it in `seams.ts` in the same change — the `seams`
@@ -46,7 +46,7 @@ uphold the original design, do not let it erode one expedient change at a time.
   `partialize`); session/UI state stays in-memory.
 - **Hold the type and quality line.** No new `any`/`as any`/`@ts-ignore`/`eslint-disable`
   without a one-line justification of why it is necessary. `npm run verify` (types, tests,
-  seams/secrets/cycles/duplication, lint) must be green before a change is done — it runs in the pre-push
+  the architecture gates in `src/architecture/__tests__/`, lint) must be green before a change is done — it runs in the pre-push
   hook and in CI.
 - **A check enforces a *response*, not an *outcome*.** Lint rules are heuristics, not oracles:
   going red does not always mean the code is wrong (`react-hooks/exhaustive-deps` and friends
@@ -55,7 +55,7 @@ uphold the original design, do not let it erode one expedient change at a time.
   disable is a first-class outcome, not a failure. **Never reshape correct, clear code solely to
   satisfy a rule** — that is the linter contorting your architecture. But if you cannot write an
   *honest* justification, it is a real finding: fix it at the source. (Facts — type errors, test
-  failures, the seam/secret/cycle/duplication tests — are not heuristics and have no discretionary
+  failures, the architecture gates — are not heuristics and have no discretionary
   escape; the duplication test's only escape is a `DUPLICATION_EXEMPT` entry with a rationale.)
 - **Icon-only controls carry an `accessibilityLabel`.** Prefer routing icon buttons through
   `ControlButton`, which requires the label at compile time; text buttons are auto-labeled by

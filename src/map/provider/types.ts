@@ -228,15 +228,14 @@ export interface MapViewProps {
   style?: StyleProp<ViewStyle>
 }
 
-// The imperative camera affordances: one-shot moves with no declarative equivalent. Both are only
-// meaningful when follow is off — an imperative move is a no-op while rnmapbox is following, and the
-// compass-follow case is handled by a declarative follow demote instead.
+// The imperative camera affordances: one-shot moves with no declarative equivalent. Callers turn
+// follow off first: a provider may drop a move while following. The compass-follow case is handled
+// by a declarative follow demote instead.
 export interface CameraController {
   resetNorth(animated: boolean): void
   // One-shot fit to a geographic box (used to frame a selected trail). padding is
   // [top, right, bottom, left] in points, the whole room left around the box, whatever padding the
-  // camera holds from following; duration in ms. Like resetNorth, only meaningful when follow is
-  // off (an imperative camera move is a no-op while rnmapbox is following).
+  // camera holds from following; duration in ms. Like resetNorth, called with follow off.
   // pitch travels with the fit, which is how a fit flattens: a camera stop without one keeps
   // whatever pitch the native camera has.
   // heading is the camera's current one, kept: the box is framed as it turns on screen.

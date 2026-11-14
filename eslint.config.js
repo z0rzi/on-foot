@@ -13,7 +13,8 @@ module.exports = tseslint.config(
       'node_modules/*',
       'src/data/db/migrations/*',
       // Agent scratch: a worktree checked out under .claude/ would otherwise be linted a second
-      // time from the root, reporting every finding twice. jest and tsc exclude these too.
+      // time from the root, reporting every finding twice. jest and tsc exclude these too
+      // (src/architecture/gateScopes.ts).
       '.claude/**',
       '.scratch/**',
     ],

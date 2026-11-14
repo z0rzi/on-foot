@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { errorClass, logEvent } from '../../log'
 import type { OfflineController, OfflinePackDescriptor, OfflinePackInfo } from '../provider/types'
 import type { LiveProgress } from './types'
 import { parsePackId } from './packId'
@@ -62,7 +63,9 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
               void reload(controller)
             }
           },
+          // The port's failure is the SDK's message alone: no class to log, and the message stays out.
           () => {
+            logEvent('warn', 'error', 'download failed', { stage: 'progress' })
             setProgress(id, 0, true)
             stopTracking(id)
             publish(batches.settle(id, true))
@@ -86,7 +89,8 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
           // ignore — the active subscription will still report completion
         }
       })
-      .catch(() => {
+      .catch((error: unknown) => {
+        logEvent('warn', 'error', 'download failed', { stage: 'start', errorClass: errorClass(error) })
         setProgress(id, 0, true)
         stopTracking(id)
         publish(batches.settle(id, true))

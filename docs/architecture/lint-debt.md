@@ -15,7 +15,7 @@ correct, clear code just to satisfy a rule.** If you can't write an honest justi
 real finding: fix it. `reportUnusedDisableDirectives: error` keeps the disables honest — one that
 stops suppressing anything (e.g. the compiler fixes its false positive) errors, so they can't rot.
 
-Facts (type errors, test failures, the seam/secret/cycle/duplication/import-rule tests) are not
+Facts (type errors, test failures, the architecture gates) are not
 heuristics and have no discretionary escape. See the "A check enforces a response, not an outcome" principle in `AGENTS.md`.
 
 ## What was fixed (real findings)
@@ -34,6 +34,8 @@ heuristics and have no discretionary escape. See the "A check enforces a respons
 
 ## Standing inline exceptions (justified disables)
 
+Every source file holding an `eslint-disable` is named in this section; `lintDebt.test.ts` holds it.
+
 - **`react-hooks/refs`** in `src/map/MapControls.tsx` (`pan`, on `dragSeed`) and **`react-hooks/refs` +
   `react-hooks/immutability`** in `src/map/RecordButton.tsx` (`hold`, on the `pressScale`/`progress`
   shared values) — **false positives**: every access is inside a deferred gesture callback (runs at
@@ -45,6 +47,11 @@ heuristics and have no discretionary escape. See the "A check enforces a respons
   without it the timer jumps back by the pause duration for one frame. Every local alternative only
   moves the finding; the only warning-free version is a data-model refactor (a resume timestamp on
   the session) not worth doing to satisfy a rule that can't model "I need the current time here."
+- **`react-hooks/purity`** in `src/map/useRouteDisplay.ts` — **deliberate**: two `performance.now()`
+  reads time the route computation for the debug log. The duration is logged, never rendered, so
+  the impurity cannot reach the output.
+- **`react-hooks/refs`** in `src/trails/TrailActions.tsx` — **false positive**: the chooser ref sits
+  inside a menu item's handler, read when the item is pressed, never during render.
 - **`@typescript-eslint/no-explicit-any`** in `src/data/trails/gpx/parse.ts` — the `fast-xml-parser`
   boundary emits untyped nodes; leaf values are validated by `num()`/`str()`, so typing the tree
   rigorously would add casts without adding safety.

@@ -1,9 +1,9 @@
 import { findImportCycles } from '../importGraph'
-import { collectSourceFiles } from '../sourceScan'
+import { APP_AND_TOOLING_ROOTS, collectSourceFiles } from '../sourceScan'
 
 describe('import cycles', () => {
   test('the source graph has no circular imports', () => {
-    const cycles = findImportCycles(collectSourceFiles())
+    const cycles = findImportCycles(collectSourceFiles(APP_AND_TOOLING_ROOTS))
     const report = cycles.map((c) => `  ${c.join(' -> ')}`).join('\n')
     expect(cycles.length === 0 ? '' : `\nCircular imports:\n${report}\n`).toBe('')
   })

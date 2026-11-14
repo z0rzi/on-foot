@@ -1,5 +1,5 @@
 import { DUPLICATION_EXEMPT, DUPLICATION_WINDOW, findDuplicateBlocks, significantLines } from '../duplication'
-import { collectSourceFiles } from '../sourceScan'
+import { APP_AND_TOOLING_ROOTS, collectSourceFiles } from '../sourceScan'
 
 const block = (n: number, line: (i: number) => string) =>
   Array.from({ length: n }, (_, i) => line(i)).join('\n')
@@ -8,7 +8,7 @@ const tenLines = block(10, (i) => `const value${i} = compute(${i}, input)`)
 
 describe('verbatim duplication', () => {
   test('the source tree has no verbatim block of DUPLICATION_WINDOW significant lines or more', () => {
-    const blocks = findDuplicateBlocks(collectSourceFiles(), DUPLICATION_WINDOW, DUPLICATION_EXEMPT)
+    const blocks = findDuplicateBlocks(collectSourceFiles(APP_AND_TOOLING_ROOTS), DUPLICATION_WINDOW, DUPLICATION_EXEMPT)
     const report = blocks
       .map(
         (b) =>

@@ -6,7 +6,7 @@ import { useMapStore, followCameraProps, manualPitchProps, type Selection } from
 import { useRecordingStore } from '../recording/recordingStore'
 import { recordingPhase } from '../recording/recordingPhase'
 import { MapTokens } from '../theme/tokens'
-import { Trail } from '../data/trails'
+import type { Trail } from '../data/trails/types'
 import { Activity } from '../data/activities/types'
 import { groupPointsBySegment } from '../data/activities/mapping'
 import { boundsForPoints, flattenSegments, pointCount, type LngLatBounds } from './geo'

@@ -1,4 +1,7 @@
+jest.mock('../../log', () => ({ ...jest.requireActual('../../log/errorClass'), logEvent: jest.fn() }))
+
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { logEvent } from '../../log'
 import { nextPaceSpeedMode, usePreferencesStore, ELEVATION_SMOOTHING_PRESETS } from '../preferencesStore'
 
 describe('nextPaceSpeedMode', () => {
@@ -56,6 +59,21 @@ describe('hydration', () => {
     usePreferencesStore.getState().togglePaceSpeed()
     expect(usePreferencesStore.getState().paceSpeedMode).toBe('speed')
     expect(setItem).not.toHaveBeenCalled()
+  })
+  it('a failed hydration is logged by its class, and the defaults stay', async () => {
+    jest.mocked(logEvent).mockClear()
+    getItem.mockRejectedValueOnce(new TypeError('storage unavailable'))
+    await usePreferencesStore.persist.rehydrate()
+    expect(logEvent).toHaveBeenCalledWith('warn', 'launch', 'preferences hydration failed, defaults used', {
+      errorClass: 'TypeError',
+    })
+    expect(usePreferencesStore.getState().paceSpeedMode).toBe('pace')
+  })
+  it('a hydration that lands logs nothing', async () => {
+    jest.mocked(logEvent).mockClear()
+    getItem.mockResolvedValueOnce(persisted)
+    await usePreferencesStore.persist.rehydrate()
+    expect(logEvent).not.toHaveBeenCalled()
   })
   it('nothing is written while hydration is pending, and writes resume once it lands', async () => {
     let land: (value: string) => void = () => {}
