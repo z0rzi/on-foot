@@ -4,148 +4,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { errorClass, logEvent } from '../log'
 import { MapTokens } from '../theme/tokens'
 import { writesAfterHydration } from './writesAfterHydration'
-import type { CameraFraming, CameraProps, FollowUserMode } from '../map/provider/types'
+import { followModeChange, nextFollowMode, demoteBearing, type FollowMode, type PitchControl } from '../map/followCamera'
+import { resolveQuickSwitch, type StyleChoice } from '../map/styleSwitch'
+import type { CameraFraming, FollowUserMode } from '../map/provider/types'
 import type { LngLatBounds } from '../map/geo'
-
-export type FollowMode = 'off' | FollowUserMode
-
-export function nextFollowMode(current: FollowMode): FollowMode {
-  switch (current) {
-    case 'off': return 'position'
-    case 'position': return 'positionAndBearing'
-    case 'positionAndBearing': return 'position'
-  }
-}
-
-export function demoteBearing(current: FollowMode): FollowMode {
-  return current === 'positionAndBearing' ? 'position' : current
-}
-
-// Pure toggle helper for the 2D/3D control: when flat (<= pitchMin), toggling
-// animates up to pitchToggle; when tilted, toggling flattens back to pitchMin.
-export function nextPitchOnToggle(current: number): number {
-  return current <= MapTokens.pitchMin ? MapTokens.pitchToggle : MapTokens.pitchMin
-}
-
-// Clamp a live-drag pitch target into the allowed [pitchMin, pitchMax] range.
-export function clampPitch(v: number): number {
-  return Math.min(MapTokens.pitchMax, Math.max(MapTokens.pitchMin, v))
-}
-
-// Normalize any angle (degrees) to the half-open range (-180, 180], so 359° reads as -1°.
-export function normalizeDeg(deg: number): number {
-  const m = ((deg % 360) + 360) % 360 // [0, 360)
-  return m > 180 ? m - 360 : m
-}
-
-// The North button shows when the map camera is rotated more than `threshold` degrees off
-// north (either direction). Pure so it can drive a re-render-cheap derived selector.
-export function shouldShowNorthButton(heading: number, threshold: number): boolean {
-  return Math.abs(normalizeDeg(heading)) > threshold
-}
-
-// The camera pitch each follow mode implies, so the 2D/3D label stays in sync with the
-// follow-driven camera without reading back the live camera: Position is flat (north-up 2D),
-// PositionAndBearing tilts to the 3D angle (mirrors the Kotlin location-button flyTo, which
-// enters PositionAndBearing at pitchToggle). 'off' leaves pitch under manual/gesture control.
-export function pitchForFollowMode(mode: FollowMode, current: number): number {
-  switch (mode) {
-    case 'position': return MapTokens.pitchMin
-    case 'positionAndBearing': return MapTokens.pitchToggle
-    case 'off': return current
-  }
-}
-
-// A follow-mode change also syncs the pitch that mode implies, so the 2D/3D label stays consistent
-// with the follow-driven camera, which brings the camera there itself (no pitch control). Shared by
-// every action that changes followMode (cycleFollowMode, northPressed) so the two paths can't drift
-// out of sync.
-export interface FollowModeChange {
-  followMode: FollowMode
-  cameraPitch: number
-  pitchControl: null
-}
-export function followModeChange(mode: FollowMode, currentPitch: number): FollowModeChange {
-  return { followMode: mode, cameraPitch: pitchForFollowMode(mode, currentPitch), pitchControl: null }
-}
-
-// SDK-neutral <Camera> follow configuration for a given follow mode. Mirrors the Kotlin
-// FollowPuckViewportState options: Position = follow location north-up & flat; PositionAndBearing
-// = follow location + device heading, tilted to 3D. 'off' releases the camera to the user.
-export type FollowCameraProps = Required<Pick<CameraProps, 'followUserLocation'>> &
-  Pick<CameraProps, 'followUserMode' | 'followZoomLevel' | 'followPitch'>
-export function followCameraProps(mode: FollowMode): FollowCameraProps {
-  switch (mode) {
-    case 'off':
-      return { followUserLocation: false }
-    case 'position':
-      return {
-        followUserLocation: true,
-        followUserMode: 'position',
-        followZoomLevel: MapTokens.locationZoom,
-        followPitch: MapTokens.pitchMin,
-      }
-    case 'positionAndBearing':
-      return {
-        followUserLocation: true,
-        followUserMode: 'positionAndBearing',
-        followZoomLevel: MapTokens.locationZoom,
-        followPitch: MapTokens.pitchToggle,
-      }
-  }
-}
-
-// How a pitch control (the 2D/3D toggle, the tilt drag) last set the pitch: eased or live.
-type PitchControl = 'animated' | 'live'
-
-// The declarative pitch the camera is given: a pitch control's, once follow is off. None when the
-// pitch was last set otherwise (a follow mode, a fit, the launch camera), which brings the camera
-// there itself. rnmapbox turns a pitch prop into a camera stop of its own, sent with the commit's
-// other props, and the native camera gets those and an imperative move unordered: a pitch prop
-// appearing with the follow-off of a fit could land after the fit and cancel it.
-export function manualPitchProps(
-  mode: FollowMode,
-  pitch: number,
-  control: PitchControl | null,
-): Pick<CameraProps, 'pitch' | 'animationDuration'> {
-  if (mode !== 'off' || control === null) return {}
-  return { pitch, animationDuration: control === 'animated' ? 300 : 0 }
-}
-
-// A style choice as the quick-switch logic needs to see it: an id plus the semantic satellite
-// marker declared on the provider port. The store stays provider-agnostic — callers (MapControls)
-// pass the provider's style list in, so no provider style id is ever hardcoded here.
-export interface StyleChoice {
-  id: string
-  satellite?: boolean
-}
-
-// The cold-start fallback for quick-switch when there is no usable previous layer: from any
-// non-satellite layer, switch to the satellite one; from satellite, switch to the first
-// non-satellite layer in the list. Degenerate lists (no satellite / no non-satellite) leave the
-// style unchanged by returning the current id.
-export function satelliteToggleTarget(currentId: string, styles: StyleChoice[]): string {
-  const current = styles.find((s) => s.id === currentId)
-  const target = current?.satellite
-    ? styles.find((s) => !s.satellite)
-    : styles.find((s) => s.satellite)
-  return target?.id ?? currentId
-}
-
-// Resolve the quick-switch (swipe) target: the previously selected layer when it is still a
-// valid, different, in-list choice (the A/B toggle); otherwise the satellite-toggle fallback.
-export function resolveQuickSwitch(
-  currentId: string,
-  previousId: string | null,
-  styles: StyleChoice[],
-): string {
-  if (previousId && previousId !== currentId && styles.some((s) => s.id === previousId)) {
-    return previousId
-  }
-  return satelliteToggleTarget(currentId, styles)
-}
-
-export type MapMode = 'free' | 'trail' | 'recording' | 'activity'
 
 // Which kinds the overview draws, each on or off; both off is allowed (D119).
 export interface OverviewToggles {
@@ -160,25 +22,10 @@ export interface Selection {
   id: number
 }
 
-// The single map's mode, derived (never stored) so it can't drift from reality. Recording takes
-// precedence over any selection.
-export function mapMode(input: { recording: boolean; selection: Selection | null }): MapMode {
-  if (input.recording) return 'recording'
-  if (input.selection?.kind === 'activity') return 'activity'
-  if (input.selection?.kind === 'trail') return 'trail'
-  return 'free'
-}
-
-// The trail to draw on the map: the selected trail is shown both when viewing it and while
-// recording (so the followed trail stays visible), never in free or activity mode.
-export function trailToShow<T>(mode: MapMode, selectedTrail: T | null): T | null {
-  return mode === 'trail' || mode === 'recording' ? selectedTrail : null
-}
-
 // A pending one-shot camera fit (see MapCanvas): of whichever selection requested it, consumed once
 // its geometry loads, trail and activity framed identically; or of a box known at once, never
 // zooming past its limit, as a cluster's starts are.
-export type PendingFit =
+type PendingFit =
   | { kind: 'trail' | 'activity'; id: number }
   | { kind: 'bounds'; bounds: LngLatBounds; maxZoom: number }
 

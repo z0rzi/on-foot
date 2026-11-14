@@ -1,6 +1,6 @@
 import { groupPointsBySegment } from '../data/activities/mapping'
 import type { RouteSource } from '../elevation/routeDisplay'
-import type { MapMode } from '../store/mapStore'
+import type { MapMode } from './mapMode'
 import type { Trail } from '../data/trails/types'
 import type { Activity, LiveTrackPoint } from '../data/activities/types'
 import type { ElePoint } from '../elevation/profile'

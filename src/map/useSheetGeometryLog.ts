@@ -3,7 +3,7 @@ import { AppState, Dimensions } from 'react-native'
 import type { SharedValue } from 'react-native-reanimated'
 import { runOnUISync } from 'react-native-worklets'
 import { logEvent } from '../log'
-import type { MapMode } from '../store/mapStore'
+import type { MapMode } from './mapMode'
 
 // FIELD-2: the sheet is sometimes left at the window height after the app is reopened, which drives
 // the sheet height to 0 and the overlays to the root's bottom. The three shared values are read in

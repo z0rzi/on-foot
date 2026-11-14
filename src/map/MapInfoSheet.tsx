@@ -15,7 +15,7 @@ import type { SheetRest } from './sheetRest'
 import { useSheetOpen } from './useSheetOpen'
 import { ElevationGraph } from '../elevation/ElevationGraph'
 import type { RouteDisplay } from '../elevation/routeDisplay'
-import type { MapMode } from '../store/mapStore'
+import type { MapMode } from './mapMode'
 
 const DRAG_OFFSET: [number, number] = [-10, 10]
 

@@ -1,6 +1,6 @@
 import { launchCamera, launchCameraDetail } from '../launchCamera'
 import type { CameraFraming } from '../provider/types'
-import type { FollowMode } from '../../store/mapStore'
+import type { FollowMode } from '../followCamera'
 
 const RANGE = { minZoom: 0, maxZoom: 22 }
 const CAMERA: CameraFraming = { center: [6.86, 45.92], zoom: 14, pitch: 45, heading: 30 }

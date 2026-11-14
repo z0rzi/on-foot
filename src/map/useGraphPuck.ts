@@ -3,7 +3,7 @@ import { useIsFocused } from 'expo-router'
 import { advanceReplay, indexTrail, puckDistance, type TrailIndex, type TrailReplay } from '../elevation/trailProgress'
 import { useAppActive } from '../recording/appActivity'
 import type { RouteDisplay } from '../elevation/routeDisplay'
-import type { MapMode } from '../store/mapStore'
+import type { MapMode } from './mapMode'
 import type { LiveTrackPoint } from '../data/activities/types'
 
 // Where the graph's puck sits, as a profile distance, or null for none. Only a recording has one:

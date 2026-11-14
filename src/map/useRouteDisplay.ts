@@ -4,7 +4,7 @@ import { usePreferencesStore } from '../settings/preferencesStore'
 import { logEvent } from '../log'
 import { profileSourceFor } from './profileSource'
 import { routeTiming } from './routeTiming'
-import type { MapMode } from '../store/mapStore'
+import type { MapMode } from './mapMode'
 import type { Trail } from '../data/trails/types'
 import type { Activity, LiveTrackPoint } from '../data/activities/types'
 

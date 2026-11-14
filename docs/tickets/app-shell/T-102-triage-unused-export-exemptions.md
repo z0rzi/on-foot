@@ -8,12 +8,11 @@ filed: 2026-11-14
 from: "DEAD-1 in [[2026-11-14-full-review]]"
 blocked_by: []
 ---
-# T-102: 97 unused-export exemptions carry the placeholder rationale `'pre-existing, triage'`
+# T-102: 86 unused-export exemptions carry the placeholder rationale `'pre-existing, triage'`
 
 The unused-export gate (`c527106`) exempted every export it found unused on the day it landed, under
-`PRE_EXISTING = 'pre-existing, triage'` (`src/architecture/unusedExports.ts:18`). 97 entries use it.
-The largest groups are `src/store/mapStore.ts` (11), `src/data/activities/mapping.ts` (7) and
-`src/elevation/trailProgress.ts` (5).
+`PRE_EXISTING = 'pre-existing, triage'` (`src/architecture/unusedExports.ts:18`). 86 entries use it.
+The largest groups are `src/data/activities/mapping.ts` (7) and `src/elevation/trailProgress.ts` (5).
 
 The review sampled 19 of them, and each one was a test seam rather than dead code: used inside its own
 file and imported by its test (`computeMetrics`, `slopeBands`, `toLocationFix`, `flushLog`, and the
@@ -27,5 +26,4 @@ Each entry gets one of three outcomes:
 - a test that can go through the public function does, and the `export` goes;
 - an export nothing reaches is deleted.
 
-Done when `PRE_EXISTING` is gone. `ARCH-1`'s `mapStore` split removes about 11 of the entries by
-moving the helpers into modules of their own, so the `mapStore` group can wait for it.
+Done when `PRE_EXISTING` is gone.

@@ -1,4 +1,4 @@
-import type { FollowMode } from '../store/mapStore'
+import type { FollowMode } from './followCamera'
 import type { CameraFraming, FollowUserMode, MapCapabilities } from './provider/types'
 
 type ZoomRange = Pick<MapCapabilities, 'minZoom' | 'maxZoom'>

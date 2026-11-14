@@ -1,4 +1,4 @@
-import type { MapMode } from '../store/mapStore'
+import type { MapMode } from './mapMode'
 import type { RecordingHealth, RecordingWarning } from '../recording/streamHealth'
 import { recordingWarning } from '../recording/streamHealth'
 import { formatDistance, formatElevation } from '../format/units'

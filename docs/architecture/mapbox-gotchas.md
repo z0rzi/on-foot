@@ -13,7 +13,7 @@ a device is added here in the change that handles it.
 - **A declarative `pitch` prop is a camera stop of its own.** rnmapbox sends it with the commit's
   props, unordered with an imperative `fitBounds`; landing after the fit, it cancels or tilts it.
   The pitch travels inside the fit (`CameraController.fitBounds` takes `pitch`), and only a pitch
-  control's pitch is declarative (`manualPitchProps` in `src/store/mapStore.ts`). Found 2026-09-08
+  control's pitch is declarative (`manualPitchProps` in `src/map/followCamera.ts`). Found 2026-09-08
   (a fit from 3D stayed tilted) and again 2026-11-12 (a cluster fit from 2D follow never moved).
 - **A manual pan, zoom or tilt cancels tracking.** `onUserTrackingModeChange` drops the app's
   follow mode to match (`src/map/MapCanvas.tsx`).

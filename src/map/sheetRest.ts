@@ -1,4 +1,4 @@
-import type { MapMode } from '../store/mapStore'
+import type { MapMode } from './mapMode'
 import { MapTokens } from '../theme/tokens'
 import { sheetHeaderHeight } from './sheetHeader'
 

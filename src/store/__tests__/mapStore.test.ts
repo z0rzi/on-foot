@@ -1,23 +1,8 @@
 jest.mock('../../log', () => ({ ...jest.requireActual('../../log/errorClass'), logEvent: jest.fn() }))
 
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import {
-  nextFollowMode,
-  demoteBearing,
-  nextPitchOnToggle,
-  clampPitch,
-  pitchForFollowMode,
-  followCameraProps,
-  satelliteToggleTarget,
-  resolveQuickSwitch,
-  normalizeDeg,
-  shouldShowNorthButton,
-  followModeChange,
-  manualPitchProps,
-  mapMode,
-  trailToShow,
-  useMapStore,
-} from '../mapStore'
+import { useMapStore } from '../mapStore'
+import { manualPitchProps } from '../../map/followCamera'
 import { logEvent } from '../../log'
 import { MapTokens } from '../../theme/tokens'
 
@@ -30,150 +15,6 @@ const STYLES = [
   { id: 'satellite', satellite: true },
   { id: 'outdoors' },
 ]
-
-describe('nextFollowMode', () => {
-  test('off -> position', () => expect(nextFollowMode('off')).toBe('position'))
-  test('position -> positionAndBearing', () =>
-    expect(nextFollowMode('position')).toBe('positionAndBearing'))
-  test('positionAndBearing -> position', () =>
-    expect(nextFollowMode('positionAndBearing')).toBe('position'))
-})
-
-describe('demoteBearing', () => {
-  test('positionAndBearing -> position', () =>
-    expect(demoteBearing('positionAndBearing')).toBe('position'))
-  test('position unchanged', () => expect(demoteBearing('position')).toBe('position'))
-  test('off unchanged', () => expect(demoteBearing('off')).toBe('off'))
-})
-
-describe('nextPitchOnToggle', () => {
-  test('flat (0) -> pitchToggle (60)', () => expect(nextPitchOnToggle(0)).toBe(60))
-  test('at pitchToggle (60) -> flat (0)', () => expect(nextPitchOnToggle(60)).toBe(0))
-  test('any tilt above pitchMin (30) -> flat (0)', () => expect(nextPitchOnToggle(30)).toBe(0))
-})
-
-describe('clampPitch', () => {
-  test('clamps below pitchMin up to 0', () => expect(clampPitch(-10)).toBe(0))
-  test('clamps above pitchMax down to 85', () => expect(clampPitch(100)).toBe(85))
-  test('passes through in-range values', () => expect(clampPitch(40)).toBe(40))
-})
-
-describe('pitchForFollowMode', () => {
-  test('position -> flat (pitchMin)', () => expect(pitchForFollowMode('position', 60)).toBe(0))
-  test('positionAndBearing -> tilted (pitchToggle)', () =>
-    expect(pitchForFollowMode('positionAndBearing', 0)).toBe(60))
-  test('off keeps the current pitch', () => expect(pitchForFollowMode('off', 42)).toBe(42))
-})
-
-describe('followCameraProps', () => {
-  test('off releases the camera', () =>
-    expect(followCameraProps('off')).toEqual({ followUserLocation: false }))
-  test('position follows location, north-up and flat', () =>
-    expect(followCameraProps('position')).toEqual({
-      followUserLocation: true,
-      followUserMode: 'position',
-      followZoomLevel: 15,
-      followPitch: 0,
-    }))
-  test('positionAndBearing follows location + heading, tilted', () =>
-    expect(followCameraProps('positionAndBearing')).toEqual({
-      followUserLocation: true,
-      followUserMode: 'positionAndBearing',
-      followZoomLevel: 15,
-      followPitch: 60,
-    }))
-})
-
-describe('satelliteToggleTarget', () => {
-  test('non-satellite layer -> satellite', () =>
-    expect(satelliteToggleTarget('standard', STYLES)).toBe('satellite'))
-  test('another non-satellite layer -> satellite', () =>
-    expect(satelliteToggleTarget('outdoors', STYLES)).toBe('satellite'))
-  test('satellite -> first non-satellite in the list', () =>
-    expect(satelliteToggleTarget('satellite', STYLES)).toBe('standard'))
-  test('no satellite in list -> falls back to current id', () =>
-    expect(satelliteToggleTarget('standard', [{ id: 'standard' }])).toBe('standard'))
-  test('only-satellite list -> falls back to current id', () =>
-    expect(satelliteToggleTarget('satellite', [{ id: 'satellite', satellite: true }])).toBe('satellite'))
-})
-
-describe('resolveQuickSwitch', () => {
-  test('valid, different, in-list previous wins', () =>
-    expect(resolveQuickSwitch('standard', 'outdoors', STYLES)).toBe('outdoors'))
-  test('null previous falls through to the satellite toggle', () =>
-    expect(resolveQuickSwitch('standard', null, STYLES)).toBe('satellite'))
-  test('previous equal to current falls through to the satellite toggle', () =>
-    expect(resolveQuickSwitch('satellite', 'satellite', STYLES)).toBe('standard'))
-  test('previous absent from the list falls through to the satellite toggle', () =>
-    expect(resolveQuickSwitch('standard', 'ghost', STYLES)).toBe('satellite'))
-})
-
-describe('normalizeDeg', () => {
-  test('passes through in-range angles', () => {
-    expect(normalizeDeg(0)).toBe(0)
-    expect(normalizeDeg(90)).toBe(90)
-    expect(normalizeDeg(180)).toBe(180)
-    expect(normalizeDeg(-1)).toBe(-1)
-  })
-  test('wraps out-of-range angles into (-180, 180]', () => {
-    expect(normalizeDeg(181)).toBe(-179)
-    expect(normalizeDeg(359)).toBe(-1)
-    expect(normalizeDeg(360)).toBe(0)
-    expect(normalizeDeg(720)).toBe(0)
-  })
-})
-
-describe('shouldShowNorthButton', () => {
-  test('hidden within the dead-zone (<= threshold)', () => {
-    expect(shouldShowNorthButton(0, 1)).toBe(false)
-    expect(shouldShowNorthButton(0.5, 1)).toBe(false)
-    expect(shouldShowNorthButton(359, 1)).toBe(false) // 359° = 1° off = at threshold
-  })
-  test('shown when rotated beyond the threshold, including wrap-around', () => {
-    expect(shouldShowNorthButton(2, 1)).toBe(true)
-    expect(shouldShowNorthButton(-2, 1)).toBe(true)
-    expect(shouldShowNorthButton(358, 1)).toBe(true) // 358° ≈ -2°
-  })
-})
-
-describe('followModeChange', () => {
-  test('position flattens the pitch and leaves no pitch control, follow drives the camera', () =>
-    expect(followModeChange('position', 60)).toEqual({
-      followMode: 'position',
-      cameraPitch: 0,
-      pitchControl: null,
-    }))
-  test('positionAndBearing tilts the pitch and leaves no pitch control', () =>
-    expect(followModeChange('positionAndBearing', 0)).toEqual({
-      followMode: 'positionAndBearing',
-      cameraPitch: 60,
-      pitchControl: null,
-    }))
-})
-
-describe('manualPitchProps', () => {
-  test('a pitch control animated by a tap, follow off: the pitch, eased', () =>
-    expect(manualPitchProps('off', 60, 'animated')).toEqual({ pitch: 60, animationDuration: 300 }))
-  test('a pitch control dragged live, follow off: the pitch, at once', () =>
-    expect(manualPitchProps('off', 42, 'live')).toEqual({ pitch: 42, animationDuration: 0 }))
-  test('no pitch control since the pitch was last set otherwise: no pitch, so a follow-off sends no camera stop', () =>
-    expect(manualPitchProps('off', 0, null)).toEqual({}))
-  test('following: no pitch, follow drives it', () => {
-    expect(manualPitchProps('position', 0, 'animated')).toEqual({})
-    expect(manualPitchProps('positionAndBearing', 60, 'live')).toEqual({})
-  })
-})
-
-describe('mapMode', () => {
-  test('recording takes precedence over any selection', () =>
-    expect(mapMode({ recording: true, selection: { kind: 'activity', id: 5 } })).toBe('recording'))
-  test('activity selection (no recording) -> activity', () =>
-    expect(mapMode({ recording: false, selection: { kind: 'activity', id: 5 } })).toBe('activity'))
-  test('trail selection (no recording) -> trail', () =>
-    expect(mapMode({ recording: false, selection: { kind: 'trail', id: 9 } })).toBe('trail'))
-  test('no selection -> free', () =>
-    expect(mapMode({ recording: false, selection: null })).toBe('free'))
-})
 
 describe('store actions', () => {
   beforeEach(() => {
@@ -473,23 +314,6 @@ describe('store actions', () => {
     useMapStore.setState({ selection: { kind: 'activity', id: 4 } })
     const partial = partialize({ ...useMapStore.getState() } as any)
     expect(partial).toMatchObject({ mapStyleId: useMapStore.getState().mapStyleId, selection: null })
-  })
-})
-
-describe('trailToShow', () => {
-  const trail = { id: 1 }
-  it('shows the selected trail when viewing a trail', () => {
-    expect(trailToShow('trail', trail)).toBe(trail)
-  })
-  it('shows the selected trail while recording (the followed trail)', () => {
-    expect(trailToShow('recording', trail)).toBe(trail)
-  })
-  it('shows nothing in free or activity mode', () => {
-    expect(trailToShow('free', trail)).toBeNull()
-    expect(trailToShow('activity', trail)).toBeNull()
-  })
-  it('shows nothing when no trail is selected', () => {
-    expect(trailToShow('recording', null)).toBeNull()
   })
 })
 
