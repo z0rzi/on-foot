@@ -79,10 +79,11 @@ export async function startBackgroundTracking(options: BackgroundTrackingOptions
   await Location.startLocationUpdatesAsync(RECORDING_TASK, toTaskOptions(options))
 }
 
-export async function stopBackgroundTracking(): Promise<void> {
-  if (await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK)) {
-    await Location.stopLocationUpdatesAsync(RECORDING_TASK)
-  }
+// Resolves to whether a running stream was stopped; with none running it does nothing.
+export async function stopBackgroundTracking(): Promise<boolean> {
+  if (!(await Location.hasStartedLocationUpdatesAsync(RECORDING_TASK))) return false
+  await Location.stopLocationUpdatesAsync(RECORDING_TASK)
+  return true
 }
 
 // Resolves to the function that ends the watch. Android sends a reading only when the compass has

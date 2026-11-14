@@ -32,7 +32,10 @@ write is swallowed; the next entry still gets its turn.
 - **`recording`** — the recording lifecycle: start, pause, resume, segment boundaries, discard,
   finish, refusals (e.g. "start already-active"), and a failed read of the personal factor's
   history (`recordingStore`; the times fall back to factor 1).
-- **`capture`** — the location stream: start/stop, permission and location-off refusals, each fix
+- **`capture`** — the location stream: start/stop (`stream stopped` once a stop ends a running
+  stream, nothing when none was running; `stream stop failed` (`warn`) `{ errorClass }` when it
+  rejects, and the pause, discard, finish or launch that asked for it goes on), permission and
+  location-off refusals, each fix
   batch (`fixBatchSummary`), a delivery that never reached the fix gate (`delivery fault`,
   `delivery waiting`, below), and interruption recovery decisions.
 - **`launch`** — cold start, the action `useResumeRecording` took, an interruption it detects
@@ -57,8 +60,8 @@ write is swallowed; the next entry still gets its turn.
 
 ## The `fix batch` entry
 
-One per delivery of fixes to a recording session (`capture`, `fixBatchSummary`), written after the
-fix gate (`src/recording/fixGate.ts`) has judged them and before the kept ones are stored:
+One per delivery of fixes to a recording session (`capture`, `fixBatchSummary`), written once the
+fix gate (`src/recording/fixGate.ts`) has judged them and the kept ones are stored:
 
 | field | meaning |
 |---|---|
@@ -74,7 +77,11 @@ fix gate (`src/recording/fixGate.ts`) has judged them and before the kept ones a
 | `worstJump` | `{ metres, allowedMetres, seconds }` of the rejected jump that most exceeded its allowance, or null |
 | `metresFromAnchor` | whole metres from the segment's last stored point to the first fix of the segment, kept or not, so a rejected jump still shows its size; null with no stored point or no fix in the segment |
 
-A paused session or no session logs `fixes ignored, …` with `arrived` instead.
+A paused session or no session logs `fixes ignored, …` with `arrived` instead. A delivery whose
+session read, anchor read or point write rejects logs `fix batch not stored` (`warn`) instead, with
+`errorClass` and the fields above when the gate has run (a failed write, where `kept` is the size of
+the hole in the track), or `arrived` alone when a read failed first. None of its fixes is stored or
+shown, and the gate's recovery candidate stays the one the previous stored delivery left.
 
 ## The launch camera and fit entries
 
@@ -202,7 +209,8 @@ A delivery of the background task can end before `fix batch` on two JS paths (T-
   the oldest, the arriving one included; `oldestS` is how long the oldest has been pending, in
   whole seconds. Written at most once per 30 s.
 
-A delivery dropped natively, before JS, writes neither: only logcat shows it (T-95).
+A delivery dropped natively, before JS, writes neither: only logcat shows it (T-95). One whose
+reads or write reject writes `fix batch not stored` (above).
 
 ## Native error messages
 

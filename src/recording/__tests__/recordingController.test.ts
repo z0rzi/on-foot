@@ -14,7 +14,7 @@ jest.mock('../notificationAccess', () => ({ ensureTrackingNotificationAccess: je
 jest.mock('../../store/activitiesStore', () => ({
   useActivitiesStore: { getState: () => ({ saveActivity: mockSaveActivity }) },
 }))
-jest.mock('../../log', () => ({ logEvent: jest.fn() }))
+jest.mock('../../log', () => ({ ...jest.requireActual('../../log/errorClass'), logEvent: jest.fn() }))
 jest.mock('../../data/activities', () => ({
   activitiesRepository: {
     getActiveSession: jest.fn(),
@@ -69,6 +69,10 @@ function deferred<T = void>() {
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
 
+const stopOutcomes = () =>
+  jest.mocked(logEvent).mock.calls.filter((call) => call[2] === 'stream stopped' || call[2] === 'stream stop failed')
+const failedStop = ['warn', 'capture', 'stream stop failed', { errorClass: 'Error' }]
+
 // A fake database row and a fake location service. Registration flips when start or stop is called
 // rather than when they settle, so an interleaving that issues a start after a pause is observable.
 let row: RecordingSession | null
@@ -120,8 +124,10 @@ beforeEach(() => {
     calls.push('start')
   })
   port.stopBackgroundTracking.mockImplementation(async () => {
+    const wasRunning = registered
     registered = false
     calls.push('stop')
+    return wasRunning
   })
 
   app.isAppActive.mockReturnValue(true)
@@ -448,6 +454,15 @@ describe('pauseRecording', () => {
     await expect(pauseRecording()).resolves.toBeUndefined()
     expect(useRecordingStore.getState().session?.pausedAt).toEqual(expect.any(Number))
     expect(useRecordingStore.getState().stream).toEqual({ kind: 'stopped' })
+    expect(stopOutcomes()).toEqual([failedStop])
+  })
+
+  it('logs the stream stopped once the stop succeeds', async () => {
+    row = recording
+    registered = true
+    useRecordingStore.setState({ session: recording, stream: { kind: 'live' } })
+    await pauseRecording()
+    expect(stopOutcomes()).toEqual([['info', 'capture', 'stream stopped']])
   })
 
   it('discards a recorded fault, not only a live stream', async () => {
@@ -459,10 +474,15 @@ describe('pauseRecording', () => {
 })
 
 describe('discardRecording', () => {
-  it('propagates a failure to stop the stream', async () => {
+  it('still discards when the stream cannot be stopped, and logs the failed stop', async () => {
     row = paused
+    useRecordingStore.setState({ session: paused, stream: { kind: 'live' } })
     port.stopBackgroundTracking.mockRejectedValue(new Error('service already gone'))
-    await expect(discardRecording(7)).rejects.toThrow('service already gone')
+    await expect(discardRecording(7)).resolves.toBeUndefined()
+    expect(row).toBeNull()
+    expect(useRecordingStore.getState().session).toBeNull()
+    expect(useRecordingStore.getState().stream).toEqual({ kind: 'stopped' })
+    expect(stopOutcomes()).toEqual([failedStop])
   })
 
   it('marks the stream dead before the database write, even when the write rejects', async () => {
@@ -473,12 +493,11 @@ describe('discardRecording', () => {
     expect(useRecordingStore.getState().stream).toEqual({ kind: 'stopped' })
   })
 
-  it('clears the stream before stopping, even when the stop rejects', async () => {
+  it('logs the stream stopped once the stop succeeds', async () => {
     row = paused
-    useRecordingStore.setState({ stream: { kind: 'live' } })
-    port.stopBackgroundTracking.mockRejectedValue(new Error('service already gone'))
-    await expect(discardRecording(7)).rejects.toThrow('service already gone')
-    expect(useRecordingStore.getState().stream).toEqual({ kind: 'stopped' })
+    registered = true
+    await discardRecording(7)
+    expect(stopOutcomes()).toEqual([['info', 'capture', 'stream stopped']])
   })
 })
 
@@ -487,6 +506,20 @@ describe('resumeIfActive', () => {
     registered = true
     await resumeIfActive()
     expect(registered).toBe(false)
+    expect(stopOutcomes()).toEqual([['info', 'capture', 'stream stopped']])
+    expect(useRecordingStore.getState().resumeSettled).toBe(true)
+  })
+
+  it('logs no stop when there is no session and no stream was running', async () => {
+    await resumeIfActive()
+    expect(port.stopBackgroundTracking).toHaveBeenCalledTimes(1)
+    expect(stopOutcomes()).toEqual([])
+  })
+
+  it('logs a failed stop of an orphaned stream and still settles', async () => {
+    port.stopBackgroundTracking.mockRejectedValue(new Error('service already gone'))
+    await expect(resumeIfActive()).resolves.toEqual({ action: 'none', sessionId: null })
+    expect(stopOutcomes()).toEqual([failedStop])
     expect(useRecordingStore.getState().resumeSettled).toBe(true)
   })
 
@@ -582,6 +615,7 @@ describe('finishRecording', () => {
     port.stopBackgroundTracking.mockRejectedValue(new Error('service already gone'))
     await expect(finishRecording(7, input)).resolves.toBe(99)
     expect(mockSaveActivity).toHaveBeenCalledWith(7, input)
+    expect(stopOutcomes()).toEqual([failedStop])
   })
 
   it('marks the stream dead before the database write, even when the write rejects', async () => {

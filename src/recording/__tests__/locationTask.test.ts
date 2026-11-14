@@ -1,5 +1,5 @@
 jest.mock('../../location', () => ({ defineBackgroundFixHandler: jest.fn() }))
-jest.mock('../../log', () => ({ logEvent: jest.fn() }))
+jest.mock('../../log', () => ({ ...jest.requireActual('../../log/errorClass'), logEvent: jest.fn() }))
 jest.mock('../../data/activities', () => ({
   activitiesRepository: { getActiveSession: jest.fn(), getLastSegmentPoint: jest.fn(), appendPoints: jest.fn() },
 }))
@@ -118,6 +118,29 @@ it('ignores a candidate left by another segment', async () => {
   await handleFixes([fix(11_000, 8, farLat + 0.00009)])
   expect(repo.appendPoints).not.toHaveBeenCalled()
   expect(batchSummaries()[1]).toEqual(expect.objectContaining({ kept: 0, droppedJump: 1, recovered: 0 }))
+})
+
+it('logs a batch it could not store, and keeps neither its points nor its candidate', async () => {
+  repo.getLastSegmentPoint.mockResolvedValue(anchor)
+  repo.appendPoints.mockRejectedValueOnce(new TypeError('disk full'))
+  await handleFixes([fix(6000, 5, 45.0001), fix(7000, 8, farLat)])
+  expect(logged).toHaveBeenCalledWith(
+    'warn',
+    'capture',
+    'fix batch not stored',
+    expect.objectContaining({ arrived: 2, kept: 1, droppedJump: 1, errorClass: 'TypeError' }),
+  )
+  expect(batchSummaries()).toEqual([])
+  expect(store.getState().livePoints).toEqual([])
+
+  await handleFixes([fix(11_000, 8, farLat + 0.00009)])
+  expect(batchSummaries()).toEqual([expect.objectContaining({ kept: 0, droppedJump: 1, recovered: 0 })])
+})
+
+it('logs only the arrived count of a batch whose session could not be read', async () => {
+  repo.getActiveSession.mockRejectedValueOnce(new TypeError('db gone'))
+  await handleFixes([fix(6000)])
+  expect(logged).toHaveBeenCalledWith('warn', 'capture', 'fix batch not stored', { arrived: 1, errorClass: 'TypeError' })
 })
 
 it('handles an overlapping delivery only once the previous one has finished', async () => {

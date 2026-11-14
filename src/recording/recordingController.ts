@@ -16,7 +16,7 @@ import { useRecordingStore } from './recordingStore'
 import { resumeActionFor, ResumeAction } from './resume'
 import { applyPause, applyRelaunch, applyResume } from './session'
 import { createSerialQueue } from '../async/serialQueue'
-import { logEvent } from '../log'
+import { errorClass, logEvent } from '../log'
 import { formatClockTime } from '../activities/format'
 
 export type CaptureReadiness = 'ready' | 'permission-denied' | 'location-off'
@@ -64,6 +64,20 @@ async function refreshAvailability(): Promise<boolean> {
 
 async function issueStreamIfAvailable(): Promise<void> {
   if (await refreshAvailability()) await issueStream()
+}
+
+// A stream left running costs battery, not correctness: the background task drops fixes for a paused
+// session or none, a later resume replaces it, and the next launch stops an orphaned one. So no
+// operation fails on a stop that fails. With no stream running it logs nothing.
+async function stopStreamTolerant(): Promise<void> {
+  let stopped: boolean
+  try {
+    stopped = await stopBackgroundTracking()
+  } catch (error) {
+    logEvent('warn', 'capture', 'stream stop failed', { errorClass: errorClass(error) })
+    return
+  }
+  if (stopped) logEvent('info', 'capture', 'stream stopped')
 }
 
 // What capturing needs before a session may record: location access and a location provider, or the
@@ -132,14 +146,7 @@ export function pauseRecording(): Promise<void> {
     const store = useRecordingStore.getState()
     store.setSession(applyPause(session, now))
     store.setStreamState({ stream: { kind: 'stopped' } })
-    logEvent('info', 'capture', 'stream stopped')
-    // The pause is already durable and the background task drops fixes whenever pausedAt is set, so
-    // failing to stop the stream costs battery, not correctness — it must not fail the pause.
-    try {
-      await stopBackgroundTracking()
-    } catch {
-      // Left running; discard or finish stops it, and a later resume replaces it.
-    }
+    await stopStreamTolerant()
   })
 }
 
@@ -188,8 +195,7 @@ export function linkTrailForSave(linkedTrailId: number | null): Promise<void> {
 export function discardRecording(sessionId: number): Promise<void> {
   return exclusive(async () => {
     useRecordingStore.getState().setStreamState({ stream: { kind: 'stopped' } })
-    logEvent('info', 'capture', 'stream stopped')
-    await stopBackgroundTracking()
+    await stopStreamTolerant()
     await activitiesRepository.discardSession(sessionId)
     logEvent('info', 'recording', 'discarded', { sessionId })
     useRecordingStore.getState().reset()
@@ -251,11 +257,7 @@ export function resumeIfActive(): Promise<{ action: ResumeAction; sessionId: num
       const store = useRecordingStore.getState()
       if (!session) {
         if (store.session) store.reset()
-        try {
-          await stopBackgroundTracking()
-        } catch {
-          // A stream that cannot be stopped now is stopped by the next launch.
-        }
+        await stopStreamTolerant()
       } else if (!store.session) {
         if (action === 'resume') await resumeAfterProcessDeath(session)
         else store.hydrate(session, await activitiesRepository.getSessionPoints(session.id))
@@ -267,17 +269,10 @@ export function resumeIfActive(): Promise<{ action: ResumeAction; sessionId: num
   })
 }
 
-// The saved activity matters more than a lingering service, so a stop failure does not block the
-// save; the next launch stops an orphaned stream.
 export function finishRecording(sessionId: number, input: NewActivityInput): Promise<number> {
   return exclusive(async () => {
-    try {
-      await stopBackgroundTracking()
-    } catch {
-      // Stopped by the next launch.
-    }
+    await stopStreamTolerant()
     useRecordingStore.getState().setStreamState({ stream: { kind: 'stopped' } })
-    logEvent('info', 'capture', 'stream stopped')
     const activityId = await useActivitiesStore.getState().saveActivity(sessionId, input)
     logEvent('info', 'recording', 'finished', { sessionId })
     useRecordingStore.getState().reset()

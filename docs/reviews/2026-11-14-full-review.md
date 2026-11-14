@@ -208,7 +208,7 @@ does not. A field report of a gap in a track would show a healthy `fix batch` en
 batch that was dropped. · Fix: log `fix batch` after the append (or log a `kept` outcome there),
 and wrap `recordDelivery` in a `.catch` that writes `warn capture 'fix batch not stored'` with
 `errorClass` and the counts. `heldCandidate` should not advance on a failed append. Write the test
-first (TEST-1). · **should-fix, S**. · **Done** on branch `recording-failure-logs` (not landed yet): `fix batch` is logged after the write; a failed write logs `fix batch not stored` with the gate's counts and `errorClass`; the candidate does not move forward.
+first (TEST-1). · **should-fix, S**. · **Done**: `fix batch` is logged after the write; a failed write logs `fix batch not stored` with the gate's counts and `errorClass`; the candidate does not move forward.
 
 **ERR-2 — Stream-stop failures are swallowed and logged as success; discard disagrees with finish**
 · `src/recording/recordingController.ts:135-142` (pause logs `stream stopped` **before** it tries,
@@ -222,7 +222,7 @@ debug log is the first place a field bug is read. · Fix: one `stopStreamToleran
 the controller that tries the stop, logs `stream stopped` or `warn capture 'stream stop failed'`
 (`errorClass`), and never throws. Pause, finish, discard and launch then use it (or discard keeps
 aborting, stated in a comment). Add the failure-path tests beside the existing ones. · **should-fix,
-S**. · **Done** on branch `recording-failure-logs` (not landed yet): `stopStreamTolerant()` is used by all four paths, and discard is now tolerant like finish. The port's stop reports whether a stream was running, so `stream stopped` is logged only when one was. Device check still pending.
+S**. · **Done**: `stopStreamTolerant()` is used by all four paths, and discard is now tolerant like finish. The port's stop reports whether a stream was running, so `stream stopped` is logged only when one was. Device check still pending.
 
 **ERR-3 — Offline download failures are invisible in the debug log** ·
 `src/map/offline/offlineStore.ts:65-69` (subscription `onError` drops its `message`) and `:89-93`
@@ -248,7 +248,7 @@ are also sound.
 **TEST-1 — The background task's failure path is untested** · `src/recording/__tests__/locationTask.test.ts`
 covers gating, anchoring, candidates, serial deliveries and faults (16 cases) but has no case where
 the repository rejects. · Fix: one test where `appendPoints` rejects, asserting the log entry and
-that the live store and `heldCandidate` are unchanged. Write it before ERR-1. · **minor, S**. · **Done** on branch `recording-failure-logs` (not landed yet).
+that the live store and `heldCandidate` are unchanged. Write it before ERR-1. · **minor, S**. · **Done**.
 
 Clean otherwise. Every pure decision added since the last review has a test file, among them the
 press resolution, line focus, pin list, cluster list, file lifecycle, tag throttle, launch camera,
@@ -358,8 +358,8 @@ area list match the code. Every spec since the 2026-10-11 rule carries `## Exist
 
 | # | Item | Resolves | Benefit | Cost | Regression risk | Recommendation |
 |---|---|---|---|---|---|---|
-| 1 | ~~Catch and log a failed fix-batch write; log `fix batch` after the append; test first~~ | ERR-1, TEST-1 | High: the one silent data-loss path in the recording becomes visible in the field log | S | Low (locationTask tests) | **done**, branch `recording-failure-logs` |
-| 2 | ~~One tolerant stream-stop helper that logs its outcome; decide discard's choice~~ | ERR-2 | High: the log stops claiming a stop that failed; siblings agree | S | Low-medium (controller tests; device check of the notification) | **done**, branch `recording-failure-logs` (device check pending) |
+| 1 | ~~Catch and log a failed fix-batch write; log `fix batch` after the append; test first~~ | ERR-1, TEST-1 | High: the one silent data-loss path in the recording becomes visible in the field log | S | Low (locationTask tests) | **done** |
+| 2 | ~~One tolerant stream-stop helper that logs its outcome; decide discard's choice~~ | ERR-2 | High: the log stops claiming a stop that failed; siblings agree | S | Low-medium (controller tests; device check of the notification) | **done** (device check pending) |
 | 3 | One rule for error detail in the log, written in `debug-log.md`; migrate the geometry-read sites to `errorClass` | DUP-2 | Medium-high: closes a fork with a privacy invariant behind it | S–M | Low | **now** |
 | 4 | `useLiveSegments()`, one owner of the live track's segments | DUP-1 | Medium: the derived-state rule held for the recording's hottest value | S | Low | **next** |
 | 5 | Doc refresh: `lint-debt.md` disables, `AGENTS.md` seam and gate list, the port's follow comment | DOC-1..3 | Medium: first-read docs match the registry | S | None | **next** |

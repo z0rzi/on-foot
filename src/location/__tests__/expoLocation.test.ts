@@ -131,14 +131,14 @@ describe('startBackgroundTracking', () => {
 })
 
 describe('stopBackgroundTracking', () => {
-  it('stops the task when it is registered', async () => {
+  it('stops the task when it is registered, and says it stopped one', async () => {
     jest.mocked(Location.hasStartedLocationUpdatesAsync).mockResolvedValue(true)
-    await stopBackgroundTracking()
+    await expect(stopBackgroundTracking()).resolves.toBe(true)
     expect(Location.stopLocationUpdatesAsync).toHaveBeenCalledWith('onfoot-location-recording')
   })
-  it('does nothing when no task is registered', async () => {
+  it('does nothing when no task is registered, and says none was running', async () => {
     jest.mocked(Location.hasStartedLocationUpdatesAsync).mockResolvedValue(false)
-    await stopBackgroundTracking()
+    await expect(stopBackgroundTracking()).resolves.toBe(false)
     expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled()
   })
 })
