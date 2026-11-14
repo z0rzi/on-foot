@@ -207,3 +207,10 @@ prefix; see `README.md`.
   camera with follow on (it shifts with the card's padding, as D113 accepts), and a press whose
   query fails doing nothing (no failure was hit). Owed to the owner: the dimming level at 0.55 and
   whether the reach around the selected route feels right.
+- **ERR-2 of the 2026-11-14 review** ([[2026-11-14-full-review]], `ac2c1e3`, the tolerant stream
+  stop) is built and unit-tested, never run on a device. Owed: pause, discard, finish and a cold
+  launch each take the foreground-service notification away, and the debug log holds one
+  `stream stopped` after `paused`, `discarded` and `finished`, and none on a cold launch with no
+  recording. Unobservable without a forced failure: `stream stop failed`, and discard completing
+  with the notification left up until the next launch. ERR-1's `fix batch not stored` needs a
+  failing write and stays unobserved the same way.
