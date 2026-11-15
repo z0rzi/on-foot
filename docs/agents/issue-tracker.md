@@ -22,7 +22,8 @@ the end of this file.
   `T-<n>` on one counter shared by every ticket. The next number is the highest **ever issued** plus
   one, not the highest on disk: closed tickets are deleted, so look through git as well
   (`git log --all --diff-filter=A --name-only -- docs/tickets docs/reviews/open-work | sort -u`). The folder is the ticket's **area**, the product surface it belongs to, one of `map`,
-  `recording`, `trails`, `activities`, `elevation`, `offline`, `settings`, `app-shell`. An area
+  `recording`, `trails`, `activities`, `elevation`, `offline`, `settings`, `app-shell`, or
+  `tooling` for the development tools themselves (the device-check toolkit, the gates). An area
   folder exists only while it holds a ticket; a ticket touching two areas goes in the one its fix
   lands in. `docs/tickets/README.md` explains the folder, `docs/tickets/tickets.base` is the
   Obsidian view, `docs/tickets/device-checks.md` lists the device claims no device has confirmed.

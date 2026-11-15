@@ -55,7 +55,7 @@ describe('worklist ticket conventions', () => {
   })
 
   test('accepts every declared area', () => {
-    const areas = ['map', 'recording', 'trails', 'activities', 'elevation', 'offline', 'settings', 'app-shell']
+    const areas = ['map', 'recording', 'trails', 'activities', 'elevation', 'offline', 'settings', 'app-shell', 'tooling']
     expect(findTicketViolations(areas.map((area, n) => ticket(`${area}/T-${n}-x.md`)))).toEqual([])
   })
 

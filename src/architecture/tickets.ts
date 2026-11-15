@@ -13,7 +13,7 @@ import {
 export type TicketFile = ItemFile
 export type TicketViolation = ItemViolation
 
-const AREAS = ['map', 'recording', 'trails', 'activities', 'elevation', 'offline', 'settings', 'app-shell']
+const AREAS = ['map', 'recording', 'trails', 'activities', 'elevation', 'offline', 'settings', 'app-shell', 'tooling']
 
 const TICKET_LIKE = /^T-/
 const FILE_NAME = /^(T-\d+)-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/

@@ -3,7 +3,8 @@
 The worklist: every open piece of internal work, one file per ticket, `<area>/T-<n>-<slug>.md`. A
 file that exists is open; closing a ticket deletes its file in the commit that closes it, and git
 keeps its history. The folder a ticket sits in is its **area**, the product surface it belongs to:
-`map`, `recording`, `trails`, `activities`, `elevation`, `offline`, `settings`, `app-shell`. An area
+`map`, `recording`, `trails`, `activities`, `elevation`, `offline`, `settings`, `app-shell`, or
+`tooling` for the development tools themselves (the device-check toolkit, the gates). An area
 folder exists only while it holds a ticket.
 
 `tickets.base` is the Obsidian view: by area (newest first), by severity, ready for an agent, the
