@@ -1,6 +1,6 @@
 ---
 name: device-check
-description: Drive the owner's plugged-in Android phone over adb to check On Foot's runtime behaviour (screens, map, puck and camera, recording, persisted data), including faking a walk with mock GPS. Use for any device check or device verification, or when a behaviour needs the real app on the real phone.
+description: Drive the owner's plugged-in Android phone over adb to check On Foot's runtime behaviour (screens, map, puck and camera, recording, persisted data), including faking a walk with mock GPS. Use for any device check or device verification, or when a behaviour needs the real app on the real phone. Dispatching one to another agent: brief it with a check plan (`.claude/skills/device-check/BRIEF.md`).
 ---
 
 # Device check
@@ -23,15 +23,17 @@ Report those as `owner to verify` and never claim them.
 ## Steps
 
 1. **Preflight.** `devcheck build-has '<string>'` with a string the change introduced (a log
-   message, a label, a function name; Hermes drops constant names). Found: name the build by the
+   message, a label, a function name; Hermes drops constant names), the check plan's when the
+   brief carries one (step 2). Found: name the build by the
    install time it prints. Missing, or the change touches native code (which `build-has` cannot
    see): build in the background with `nix-shell ../shell.nix --run 'npx expo run:android --variant release --no-bundler'`
    from the repo root (it installs and opens the app), and say in the report that a build was
    needed. Then `devcheck native-errors`: any line it prints is evidence before the first check
    (quote it under **Other observations**, or as the cause of a check it explains). Done when you
    can name the build you are checking and have its native errors.
-2. **List the checks.** Each claim to check gets a one-line expected observation and, if it
-   moves, its pace (see Walks). Done when every claim has one.
+2. **List the checks.** A brief carrying a check plan ([BRIEF.md](BRIEF.md)) is the list: run it, read the files it names when a step does not go as it
+   says, and report where you departed from it. Without one, each claim to check gets a one-line
+   expected observation and, if it moves, its pace (see Walks). Done when every claim has one.
 3. **Run them.** Make the data and movement each check needs: create test activities and fake
    walks freely, since a check run on whatever data happens to be on the phone proves little.
    Wait on events (a label named with `tap --until` or `wait-for`, a walk's own return), and run
