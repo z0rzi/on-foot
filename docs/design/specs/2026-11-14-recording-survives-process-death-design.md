@@ -1,6 +1,6 @@
 # A recording survives the death of its process — Design
 
-**Status:** Spec, not built. Owner's calls taken 2026-11-15. Challenged on 2026-11-15 by a fact
+**Status:** Spec, not built. Plan: [[2026-11-15-recording-survives-process-death]]. Owner's calls taken 2026-11-15. Challenged on 2026-11-15 by a fact
 check and a design critique, and its runtime unknowns settled on the device the same day
 (`.scratch/device-checks/2026-11-15-t95-runtime/`, spike branch `spike/t95-runtime`).
 **From:** [[T-95-new-recording-takes-no-fixes]].

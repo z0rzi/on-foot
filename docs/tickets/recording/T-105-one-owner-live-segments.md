@@ -6,7 +6,7 @@ triage: ready-for-agent
 origin: agent
 filed: 2026-11-14
 from: "DUP-1 in [[2026-11-14-full-review]]"
-blocked_by: ["[[T-95-new-recording-takes-no-fixes]]"]
+blocked_by: []
 ---
 # T-105: the live track is grouped into segments by four owners
 
@@ -20,10 +20,9 @@ The recording store keeps the live track as flat points with a `segment` value
 site it opens first. The cost is not the concern: at the 10 m minimum distance and 15 s batches, a
 20 km hike is about 2,000 points and the four passes are sub-millisecond.
 
-**Why it waits for T-95.** The process-death spec drafted from T-95
-([[2026-11-14-recording-survives-process-death-design]]) changes how `livePoints` is filled after a
-relaunch. The owner of the segments belongs to that design: in its `## Existing shape`, or built
-right after it lands. Built first, it would be reworked.
+The process-death design ([[2026-11-14-recording-survives-process-death-design]]) keeps `livePoints`
+flat and replaces it when the relaunch hydrates; only the segment a relaunch continues changes. The
+owner of the segments does not depend on it.
 
 ## Agent Brief
 
@@ -32,8 +31,8 @@ right after it lands. Built first, it would be reworked.
 
 **Desired behavior:**
 - Either a `useLiveSegments()` selector in `src/recording/`, memoised on `livePoints`, or the
-  segmented shape kept in the store beside the flat list. Choose by what the process-death design
-  does to `livePoints`, and write the reason in the commit.
+  segmented shape kept in the store beside the flat list. Write the reason for the choice in the
+  commit.
 - The four sites read it, and none imports `groupPointsBySegment` for the live track.
 
 **Acceptance criteria:**
