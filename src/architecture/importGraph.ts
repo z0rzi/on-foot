@@ -1,16 +1,12 @@
-import { importSpecifiers, resolveImport } from './importResolution'
+import { importSpecifiers, resolvedImportGraph } from './importResolution'
 import { SourceFile } from './sourceScan'
 
 export function findImportCycles(files: SourceFile[]): string[][] {
-  const known = new Set(files.map((f) => f.path))
   const graph = new Map<string, string[]>()
-  for (const file of files) {
+  for (const [from, imports] of resolvedImportGraph(files, importSpecifiers)) {
     const deps = new Set<string>()
-    for (const spec of importSpecifiers(file.content)) {
-      const target = resolveImport(file.path, spec, known)
-      if (target && target !== file.path) deps.add(target)
-    }
-    graph.set(file.path, [...deps])
+    for (const { target } of imports) if (target && target !== from) deps.add(target)
+    graph.set(from, [...deps])
   }
 
   const state = new Map<string, 'open' | 'done'>()

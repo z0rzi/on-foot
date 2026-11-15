@@ -11,3 +11,46 @@ index 82bc0db..aa689a0 100644
          .setRequiresDeviceIdle(false);
  
      if (Build.VERSION.SDK_INT < 28) {
+diff --git a/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskService.java b/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskService.java
+index de829ca..cad6f9a 100644
+--- a/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskService.java
++++ b/node_modules/expo-task-manager/android/src/main/java/expo/modules/taskManager/TaskService.java
+@@ -223,6 +223,11 @@ public class TaskService implements SingletonModule, TaskServiceInterface {
+         Handler handler = new Handler();
+         handler.postDelayed(() -> {
+           if (!sEvents.containsKey(appScopeKey)) {
++            int registeredTasks = getTasksForAppScopeKey(appScopeKey).size();
++            if (registeredTasks > 0) {
++              Log.i(TAG, "[onfoot-patch] TaskService keep-host: invalidate skipped, registered tasks=" + registeredTasks);
++              return;
++            }
+             invalidateAppRecord(appScopeKey);
+           }
+         }, 2000);
+@@ -239,9 +244,12 @@ public class TaskService implements SingletonModule, TaskServiceInterface {
+ 
+   @Override
+   public void setTaskManager(TaskManagerInterface taskManager, String appScopeKey, String appUrl) {
+-    // It may be called with null when the host activity is destroyed.
++    // Called with null from TaskManagerInternalModule.onDestroy, when the module's host is destroyed:
++    // the only place an entry leaves either table.
+     if (taskManager == null) {
+-      sTaskManagers.remove(appScopeKey);
++      boolean clearedForeground = sTaskManagers.remove(appScopeKey) != null;
++      boolean clearedHeadless = sHeadlessTaskManagers.remove(appScopeKey) != null;
++      Log.i(TAG, "[onfoot-patch] TaskService clear-both: task manager removed, foreground=" + clearedForeground + " headless=" + clearedHeadless);
+       return;
+     }
+ 
+@@ -611,9 +619,8 @@ public class TaskService implements SingletonModule, TaskServiceInterface {
+   private void invalidateAppRecord(String appScopeKey) {
+     HeadlessAppLoader appLoader = getAppLoader();
+     if (appLoader != null) {
+-      if (getAppLoader().invalidateApp(appScopeKey)) {
+-        sHeadlessTaskManagers.remove(appScopeKey);
+-      }
++      boolean invalidated = appLoader.invalidateApp(appScopeKey);
++      Log.i(TAG, "[onfoot-patch] TaskService invalidate-only: invalidated=" + invalidated + ", task managers kept until the host is destroyed");
+     }
+   }
+ 

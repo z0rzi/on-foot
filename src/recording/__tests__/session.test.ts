@@ -43,9 +43,9 @@ describe('applyResume', () => {
 })
 
 describe('applyRelaunch', () => {
-  it('opens the next segment from now and leaves the timing untouched', () => {
+  it('opens the next segment just after the reference and leaves the timing untouched', () => {
     const running = { ...base, pausedMs: 1500, currentSegment: 2 }
-    expect(applyRelaunch(running, 20000)).toEqual({ ...running, currentSegment: 3, segmentStartedAt: 20000 })
+    expect(applyRelaunch(running, 20000)).toEqual({ ...running, currentSegment: 3, segmentStartedAt: 20001 })
   })
 })
 

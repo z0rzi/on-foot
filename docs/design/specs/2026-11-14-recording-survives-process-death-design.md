@@ -1,8 +1,9 @@
 # A recording survives the death of its process — Design
 
-**Status:** Spec, not built. Plan: [[2026-11-15-recording-survives-process-death]]. Owner's calls taken 2026-11-15. Challenged on 2026-11-15 by a fact
-check and a design critique, and its runtime unknowns settled on the device the same day
-(`.scratch/device-checks/2026-11-15-t95-runtime/`, spike branch `spike/t95-runtime`).
+**Status:** Built, [[2026-11-15-recording-survives-process-death]]. Owner's calls taken
+2026-11-15. Challenged on 2026-11-15 by a fact check and a design critique, and its runtime unknowns
+settled on the device the same day (`.scratch/device-checks/2026-11-15-t95-runtime/`, spike branch
+`spike/t95-runtime`).
 **From:** [[T-95-new-recording-takes-no-fixes]].
 **Date:** 2026-11-14, rewritten 2026-11-15.
 
@@ -84,7 +85,8 @@ started while deliveries were pending also landed in `sHeadlessTaskManagers` and
 The package's `main` becomes a root `index.ts` that imports `src/bootstrap` and then
 `expo-router/entry`, and nothing else. This is Expo Router's documented custom-entry pattern.
 
-`src/bootstrap.ts` runs, in this order, in every JS runtime, headless or not:
+`src/bootstrap/` runs, in this order, in every JS runtime, headless or not (two files, since a
+file's imports run before its own code: `runtimeStarted.ts` for the first two, then the task):
 - installs the global error handler (it moves from `app/_layout.tsx`, so a throw in a headless
   runtime reaches the log too);
 - writes `launch` / `runtime started` (§4);
@@ -251,7 +253,8 @@ runtime is an app opened onto a warm host. No coordinates.
   - `index.ts` imports `src/bootstrap` first, then `expo-router/entry`;
   - bootstrap imports `locationTask`;
   - nothing under `app/` imports `locationTask`;
-  - the task's import graph reaches no map provider or UI module.
+  - the task's import graph reaches no map provider or UI module;
+  - no file in the task's import graph calls `setTimeout` or `setInterval`.
 
 ## Device check
 

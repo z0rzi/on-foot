@@ -1,4 +1,4 @@
-import { importSpecifiers, resolveImport } from './importResolution'
+import { importSpecifiers, resolvedImportGraph } from './importResolution'
 import { SourceFile } from './sourceScan'
 
 // Modules with a single public entry: code outside the directory imports its `index`, never a file
@@ -30,17 +30,16 @@ export function findModuleEntryViolations(
   files: SourceFile[],
   entries: ModuleEntry[] = MODULE_ENTRIES,
 ): ModuleEntryViolation[] {
-  const known = new Set(files.map((f) => f.path))
+  const graph = resolvedImportGraph(files, importSpecifiers)
   const violations: ModuleEntryViolation[] = []
   for (const entry of entries) {
     const inside = `${entry.module}/`
     const publicFiles = new Set(ENTRY_FILES.map((name) => inside + name))
-    for (const file of files) {
-      if (file.path.startsWith(inside)) continue
-      for (const spec of importSpecifiers(file.content)) {
-        const target = resolveImport(file.path, spec, known)
+    for (const [from, imports] of graph) {
+      if (from.startsWith(inside)) continue
+      for (const { target } of imports) {
         if (target && target.startsWith(inside) && !publicFiles.has(target)) {
-          violations.push({ file: file.path, module: entry.module, target, rationale: entry.rationale })
+          violations.push({ file: from, module: entry.module, target, rationale: entry.rationale })
         }
       }
     }

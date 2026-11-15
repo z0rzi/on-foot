@@ -6,7 +6,7 @@ triage:
 origin: owner
 filed: 2026-11-15
 from: "owner, test-phone discussion, 2026-11-15"
-blocked_by: ["[[T-95-new-recording-takes-no-fixes]]"]
+blocked_by: []
 ---
 # T-111: a recording is checked against one manufacturer's battery manager only
 
@@ -36,8 +36,8 @@ A device check cannot show any of this while the phone is on a cable. Charging l
 most manufacturer killers ignore a charging app. Measuring needs an unplugged phone, the screen
 off, for an hour or more.
 
-Feature-sized: it goes brainstorm → spec → plan once T-95 has landed, since a kill on any phone
-loses the track until then. What the spec has to settle:
+Feature-sized: it goes brainstorm → spec → plan, now that T-95 has landed (2026-11-15) and a killed
+process keeps its track on this phone. What the spec has to settle:
 
 - which manufacturers, in what order (by market share: Samsung, then Xiaomi);
 - how each is measured: a field walk, or an unplugged phone at home under a mock walk;

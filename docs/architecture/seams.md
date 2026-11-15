@@ -41,6 +41,15 @@ The cycle (`importGraph.ts`) and duplication gates also scan the agent tooling u
 seam, import-rule, export-rule, module-entry and unused-export gates model the app and leave it out;
 the unused-export gate would also misread `tools/device-check/cli.ts`, an entry point nothing imports.
 
+`headlessEntry.ts` holds the bundle entry, which Android also runs for a background location
+delivery with no route rendered (`docs/design/specs/2026-11-14-recording-survives-process-death-design.md`
+§1). It reads the root `index.ts`, outside the scan roots, and `package.json`'s `main` beside the
+app's source: `main` is `index.ts`, which imports `src/bootstrap` then `expo-router/entry` and
+nothing else; bootstrap imports `src/recording/locationTask` last; nothing under `app/` imports it;
+and the task's runtime import graph (whole-declaration `import type` left out) reaches nothing
+under `src/map/` or `src/components/`, no `.tsx` file, and no file that calls `setTimeout` or
+`setInterval`, since a headless host's JS timers stay paused. It has no exemption mechanism.
+
 Three more gates in `src/architecture/` read the repo's docs and config rather than its imports:
 `lintDebt.ts` (every source file under `src`, `app`, `modules` or `tools` holding an
 `eslint-disable` is named in `lint-debt.md`'s standing exceptions), `gateScopes.ts` (jest, `tsc`

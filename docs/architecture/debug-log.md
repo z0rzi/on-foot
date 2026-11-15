@@ -47,10 +47,10 @@ no coordinate (below), so the mirror shows nothing the Share export does not.
   location-off refusals, each fix
   batch (`fixBatchSummary`), a delivery that never reached the fix gate (`delivery fault`,
   `delivery waiting`, below), and interruption recovery decisions.
-- **`launch`** — cold start, the action `useResumeRecording` took, an interruption it detects
-  (with its range), the moment that interruption is announced, once the map has loaded, and the
-  preferences store's hydration failing (`preferences hydration failed, defaults used` (`warn`),
-  `{ errorClass }`; the app runs on the defaults).
+- **`launch`** — `runtime started` and cold start (below), the action `useResumeRecording` took,
+  an interruption it detects (with its range), the moment that interruption is announced, once the
+  map has loaded, and the preferences store's hydration failing (`preferences hydration failed,
+  defaults used` (`warn`), `{ errorClass }`; the app runs on the defaults).
 - **`map`** — the recording sheet mounting, every map-mode transition, the sheet settling on a snap
   point (`sheet settled`, with the mode and the index), the sheet/root/graph geometry sampled on
   `AppState` becoming `'active'` (`useSheetGeometryLog`), each hand-off of a destination to an
@@ -64,7 +64,8 @@ no coordinate (below), so the mirror shows nothing the Share export does not.
   mounts (below), the overview's lines and pins files and backfill (below), and a trail's offline
   download settling, once per trail whatever its number of packs (`offline download complete`, or
   `offline download failed` (`warn`), with the toast).
-- **`error`** — uncaught errors (the global `ErrorUtils` handler), render errors caught by
+- **`error`** — uncaught errors (the global `ErrorUtils` handler, installed by `src/bootstrap` in
+  every runtime, so a throw in a headless one lands here too), render errors caught by
   `ErrorBoundary`, and every failure or refusal the user is told about in an alert or a toast:
   start, pause, resume and stop recording, opening an activity while recording, saving or
   discarding an activity, saving a trail, opening the file picker, importing a GPX file or measuring
@@ -98,6 +99,28 @@ session read, anchor read or point write rejects logs `fix batch not stored` (`w
 `errorClass` and the fields above when the gate has run (a failed write, where `kept` is the size of
 the hole in the track), or `arrived` alone when a read failed first. None of its fixes is stored or
 shown, and the gate's recovery candidate stays the one the previous stored delivery left.
+
+## The runtime entries
+
+Android starts a JS runtime for a background location delivery without the app on screen (a
+headless start), and the app opened later may land on that runtime still warm:
+
+- `runtime started`, written by `src/bootstrap` before the background task is defined, in every
+  runtime, headless or not. No detail.
+- `cold start` `{ appVersion, runtimeAgeMs }`, once the navigation is ready (`useResumeRecording`):
+  `runtimeAgeMs` is the time since the runtime loaded the log, which bootstrap does first.
+
+A `runtime started` with no `cold start` after it is a headless start; a `cold start` with a large
+`runtimeAgeMs` is the app opened onto a warm runtime.
+
+After `cold start`, `launch action <action>` `{ sessionId }` says what the launch did with the
+durable session: `none` (no recording) or `held` (this runtime already shows the recording, as
+after a swipe-away: nothing is cut, hydrated or restarted). Otherwise the runtime has not shown
+it and the action is the relaunch's (`resumeActionFor`): `paused` (shown as paused), `continue`
+(the session's last stored point, or its segment's start when later, is 30 s old or less: the
+track goes on in the same segment, no toast) or `resume` (a real gap: a new segment starting just
+after that moment, with `detected an interruption` `{ from, to }` and the toast). `continue` and
+`resume` both restart capture.
 
 ## The launch camera and fit entries
 

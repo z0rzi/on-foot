@@ -99,8 +99,9 @@ A fix kept into a recording's track.
 _Avoid_: fix (once kept), sample, coordinate
 
 **Segment**:
-A continuous run of points, opened by start, resume or a relaunch after the app was killed. Nothing
-is measured across two segments.
+A continuous run of points, opened by start, resume, or a relaunch after the app was killed that
+finds a real gap (more than 30 s since the session was last known recording); a relaunch with
+nothing missing goes on in the current one. Nothing is measured across two segments.
 _Avoid_: leg, section, part
 
 **Anchor**:

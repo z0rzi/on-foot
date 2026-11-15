@@ -62,6 +62,11 @@ npx expo-modules-autolinking resolve -p android --json | grep -o '"publication"'
 
 ## `expo-task-manager+57.0.12.patch`
 
+Two changes: the delivery job is not persisted, and `TaskService` keeps one host while a task is
+registered.
+
+### `TaskManagerUtils`: the job is not persisted
+
 `TaskManagerUtils.createJobInfo`: `setPersisted(true)` → `setPersisted(false)`.
 
 Expo registers the background-location delivery as a persisted `JobScheduler` job. A persisted job
@@ -82,6 +87,42 @@ dependency had no Gradle project). `adb shell dumpsys jobscheduler` shows the `T
 with no persisted flag, consistent with the patch. **Still worth a functional pass**, since this is the
 first build in which the change takes effect: a recording should start, survive backgrounding and the
 screen locking, and keep delivering batches.
+
+### `TaskService`: one host while a task is registered
+
+`TaskService` keeps the JS-facing task manager in one of two tables, `sTaskManagers` or
+`sHeadlessTaskManagers`, chosen when the native module is created by whether the headless loader
+holds a record for the app at that moment, which is a race. Upstream, `invalidateAppRecord` runs two
+seconds after the last pending delivery finishes and removes the `sHeadlessTaskManagers` entry at
+once, while the loader's own decision (destroy the host unless an activity is bound to it) runs later
+on the main thread. With an activity bound, the host survives without its task manager: every
+delivery is queued, none finishes, and the recording and every later one in that process stall.
+Three hunks make an entry live exactly as long as its module. Designed in
+`docs/design/specs/2026-11-14-recording-survives-process-death-design.md` (Causes 2, Solution 2).
+
+| Hunk | Where | Does | Marker, logged each time it acts |
+| --- | --- | --- | --- |
+| keep-host | `notifyTaskFinished`, the delayed invalidate | skips the invalidate while the app has a registered task, so the headless host stays warm for the whole recording | `[onfoot-patch] TaskService keep-host: invalidate skipped, registered tasks=<n>` |
+| invalidate-only | `invalidateAppRecord` | asks the loader to invalidate and leaves both tables alone | `[onfoot-patch] TaskService invalidate-only: invalidated=<bool>, …` |
+| clear-both | `setTaskManager(null)`, from `TaskManagerInternalModule.onDestroy` | removes the entry from both tables; the only place an entry is removed | `[onfoot-patch] TaskService clear-both: task manager removed, foreground=<bool> headless=<bool>` |
+
+keep-host logs once per delivery while recording, about every 8 s, foreground or headless: it is
+the one marker on a hot path, kept because it is what shows the invalidate was skipped. On the device
+(2026-11-15 spike, build C) keep-host and clear-both ran; the path invalidate-only closes was never
+triggered there and is read from the source.
+
+**If dropped:**
+- **keep-host:** each delivery while the app is dead starts a host and the next invalidate destroys
+  it. Each host leaks an `expo.modules.AsyncFunctionQueue` thread (`ncFunctionQueue` in `ps -T`) and
+  about 3.3 MB, costs about 2.4 s of bundle load, and the long jobs exhaust the expedited-job quota
+  (jobs every 40 s instead of 8 s under Doze with no foreground service).
+- **invalidate-only:** a delivery finishing just after Pause or Stop (no task registered) drops the
+  task manager while the activity keeps the host alive; the next recording in that process stalls.
+- **clear-both:** a destroyed headless host leaves a stale weak reference in `sHeadlessTaskManagers`
+  that nothing else removes once invalidate-only is in, so a later delivery can be handed to the task
+  manager of a runtime that is gone, and never finish.
+
+Not reported upstream yet: the owner files it (spec, Owner's calls).
 
 ## `expo-location+57.0.11.patch`
 
@@ -136,7 +177,15 @@ APK=android/app/build/outputs/apk/release/app-release.apk
 for d in $(unzip -Z1 $APK 'classes*.dex'); do unzip -p $APK $d | strings -a | grep -c '\[onfoot-patch\]'; done
 ```
 
-A zero total means the build did not take the patch, whatever `node_modules` looks like. The marker of
+A zero total means the build did not take the patch, whatever `node_modules` looks like. To tell the
+markers apart (the `expo-location` one and the three `TaskService` hunks, one line each):
+
+```bash
+for d in $(unzip -Z1 $APK 'classes*.dex'); do unzip -p $APK $d | strings -a; done \
+  | grep -oE '\[onfoot-patch\] (TaskService [a-z-]+|last location task failed)' | sort | uniq -c
+```
+
+A missing line names the patch or hunk the build did not take. The marker of
 a native patch is also what appears in logcat when the guarded path runs, so the same string proves it
 on a device:
 
@@ -153,6 +202,8 @@ unzip -p $APK assets/index.android.bundle | strings -a | grep -c '\[onfoot-patch
 ```
 
 Add a marker to any new patch, and keep it out of the hot path — it is a diagnostic, not a feature.
+The one exception is a marker that is itself the evidence the path ran on every pass (`TaskService
+keep-host`), and its entry says so.
 
 ## Upgrading a patched module
 
@@ -162,4 +213,6 @@ Add a marker to any new patch, and keep it out of the hot path — it is a diagn
    entry.
 3. If it is still broken, regenerate: edit the file in `node_modules`, then
    `npx patch-package <module>`, and delete the old patch file (its name carries the old version).
+   Once a native build has run, the module holds an `android/build` folder: add
+   `--exclude '(^|/)build/|package\.json$'`, or the patch carries the build outputs.
 4. Native changes are device-verified — none of the patches is reachable from Jest.

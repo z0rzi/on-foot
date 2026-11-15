@@ -1,19 +1,16 @@
 import { defineBackgroundFixHandler, LocationFix } from '../location'
 import { activitiesRepository } from '../data/activities'
-import { createSerialQueue } from '../async/serialQueue'
 import { errorClass, logEvent } from '../log'
 import { useRecordingStore } from './recordingStore'
 import { fixesInSegment } from './session'
 import { gateFixes } from './fixGate'
 import { fixBatchSummary } from './fixBatchSummary'
 import { deliveryWaiting } from './deliveryWaiting'
+import { deliveryQueue } from './deliveryQueue'
 
-// The task manager awaits each delivery but does not queue them; the gate reads the segment's last
-// point and appends after it, so two deliveries must never interleave.
-const serial = createSerialQueue()
-
-// Lives only in memory: after a process death the relaunch opens a new segment, which no candidate
-// may vote on.
+// Lives only in memory and belongs to one segment: a runtime born after a process death starts with
+// none, and a relaunch that cuts opens a segment no earlier candidate may vote on. A relaunch that
+// continues onto a warm runtime keeps it.
 let heldCandidate: { sessionId: number; segment: number; fix: LocationFix } | null = null
 
 // Arrival times of the deliveries that have not settled, oldest first: the queue settles them in
@@ -49,6 +46,8 @@ async function recordDelivery(fixes: LocationFix[]): Promise<void> {
     summary = fixBatchSummary(fixes, segmentFixes, gate, anchor)
     if (gate.kept.length > 0) {
       await activitiesRepository.appendPoints(session.id, segment, gate.kept)
+      // Invariant: the handler never sets the store's `session`. An empty one is how
+      // `resumeIfActive` knows this runtime has not shown the recording yet, even a warm headless one.
       useRecordingStore.getState().appendLivePoints(segment, gate.kept)
     }
     heldCandidate = gate.candidate && { sessionId: session.id, segment, fix: gate.candidate }
@@ -67,7 +66,7 @@ defineBackgroundFixHandler(
       logEvent('warn', 'capture', 'delivery waiting', waiting)
     }
     pendingSince.push(arrivedAt)
-    return serial(() => recordDelivery(fixes)).finally(() => pendingSince.shift())
+    return deliveryQueue(() => recordDelivery(fixes)).finally(() => pendingSince.shift())
   },
   (fault, error) => logEvent('warn', 'capture', 'delivery fault', { fault, error }),
 )

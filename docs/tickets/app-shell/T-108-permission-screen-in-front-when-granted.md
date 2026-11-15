@@ -38,3 +38,10 @@ Seen again on 2026-11-15 in the T-95 runtime spike (`.scratch/device-checks/2026
 release builds of master and of `spike/t95-runtime`): the permission screen flashed briefly on
 **every** resume of the app, not now and then. That is consistent with `useLocationPermission`
 asking again on each map mount. The owner asked for it to be tracked (2026-11-15).
+
+> *Comment written by an AI agent.*
+
+Seen again on 2026-11-15 in the process-death device check (release build of `ffcba43`,
+`.scratch/device-checks/2026-11-15/item04/logcat-full.txt`): `REQUEST_PERMISSIONS` started on
+reopens after a process death (18:34:41, twice within 0.1 s, and 18:35:49), with the permission
+already granted.

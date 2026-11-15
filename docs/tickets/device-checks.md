@@ -147,9 +147,6 @@ prefix; see `README.md`.
     so the fault is in the drawing), and any `puck mounted` after the cold start's.
   - **T-84**: when a launch opens on the wrong view or a route is not framed, read
     `launch camera` (which branch ran) and whether each `fit requested` has its `fit fired`.
-  - **T-95**: when a recording stays at "0 m" while the puck moves, share the log before
-    relaunching: `delivery fault` or `delivery waiting` names the JS path, their absence points
-    at the native side.
 - **The family list in the card** (overview-on-map 09, [[2026-11-11-overview-on-map-design]] D115)
   was checked on the device on 2026-11-12, release build. Two fragments stay: whether the rows read
   as rows on the white light-theme panel is the owner's look; a long family scrolling inside the card
@@ -231,3 +228,55 @@ prefix; see `README.md`.
   about 62 logcat lines a second, leaves the capture holding the launch 35 minutes back; `cleanup`
   leaves no recorder and no `adb logcat`, and keeps `NN-app-log.txt`. Unobserved: a span of over an
   hour, and a capture that cannot be written failing the next command with its cause.
+- **A recording survives the death of its process**
+  ([[2026-11-14-recording-survives-process-death-design]], T-95) was checked on the device on
+  2026-11-15, release build of `ffcba43`, under a mock walk along a straight 4 km route, read in
+  logcat and in Settings → Debug log. Confirmed: the three `TaskService` hunk markers in the APK's
+  dex; after two `am crash`, a reinstall and an `am stop-app`, each with 60 s dead, a `runtime
+  started` with no `cold start` until the reopen, a `Finished task` in logcat and a `fix batch` with
+  `kept` 1 every 8 s while dead and for two minutes after, the reopen's `cold start` carrying the
+  runtime's age (54 to 60 s), `launch action continue` and no toast, and after the first crash the
+  pill at 295 m for 314 m walked (a plain recording falls 13 m short per segment); no notification
+  while dead after the reinstall and the stop-app, back after reopening; four opens 0.3 to 0.4 s
+  after the first finished delivery of a headless-born process with jobs finishing for a minute
+  after, a fifth followed only 8 s before the phone dropped off adb, and three opens a minute after
+  that delivery; a pause 0.7 s after a delivery (`TaskService invalidate-only` logged 2 s after that
+  delivery), a resume, a save and a second recording in the same process that records; ten minutes
+  dead with the screen off and dozing, one runtime and one `ncFunctionQueue` thread throughout,
+  memory up 6 MB; two cuts (`launch action resume`, the toast "No position between 19:30 and 19:34",
+  the new segment starting just after the last point) whose first batch held a fix taken before the
+  relaunch and delivered after it, kept with `droppedBeforeSegment` 0; a plain recording with a
+  pause, no toast and two segments. Seen in passing: a fix taken at the moment of a crash, delivered
+  32 s late and after newer ones, is dropped by the fix gate as a jump (`seconds` -24); an open
+  behind the lock screen evaluated the bundle at once but ran the relaunch (`cold start`, the cut)
+  only at the unlock 11 minutes later, where it logged `stream start failed`, then `recovery
+  re-issued the stream`. Not run: two quick crashes, and a migration under a live recording. Never
+  logged: `TaskService clear-both`, as no host was destroyed while the app was open. Re-checked the
+  same day on a release build of `28805da`: two more opens 0.31 and 0.39 s after the first finished
+  delivery of a headless-born process, each with 9 jobs and 9 `Finished task` over the next minute;
+  and twice, a swipe from recents and a reopen more than 30 s after the last fix, same pid, `launch
+  action held` with no `detected an interruption` and no new segment. Owed, on the device:
+  - `TaskService clear-both` on the integrated build: it was logged only in the spike (build C).
+    One attempt did not reach it, and the source suggests the UI cannot: a destroy needs no task
+    registered and no activity bound within 2 s of a finished delivery, but back and home leave the
+    activity bound, and a swipe after a pause kills the process;
+  - the clean-up the checks left on the phone, the `device-check` skill's clean-up step: the mock
+    standing on the `DEVCHECK owed fifth` route, recording session 186 live and unsaved, and three
+    `DEVCHECK` activities to delete: `DEVCHECK rsp04 plain`, `DEVCHECK rsp04 survives death` and
+    `DEVCHECK rsp04 second recording`.
+
+  The T-84 re-check the spec asks for, a relaunch now able to open on a warm runtime, is in
+  [[T-84-relaunch-old-camera]]. Owed, the owner's: a real hike where the app dies, with real GPS;
+  the mock walk does not show the field cadence.
+  After it, in Settings → Debug log (areas capture and launch):
+  - **while the app was dead:** `runtime started` with no `cold start` after it, then
+    `fix batch` with `kept` above zero at regular spacing;
+  - **a collapse would look like** minutes between batches while walking;
+  - **batching:** `arrived` above 1 in the `fix batch` entries while the app is open; under the
+    mock walk every batch held one fix, so whether the fused provider defers into batches is only
+    shown by real GPS;
+  - **at the reopen:** `cold start` with the runtime's age (`runtimeAgeMs`), `launch action
+    continue`, then a `fix batch` about every 8 s;
+  - **when a recording stays at "0 m" while the puck moves:** share the log before relaunching;
+    `delivery fault` or `delivery waiting` names the JS path, their absence points at the native
+    side.

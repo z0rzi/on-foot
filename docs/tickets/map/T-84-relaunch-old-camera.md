@@ -51,3 +51,9 @@ kill. A `fit requested` after the cold start names what asked for the reframing:
 means something selected the trail again on the way back, `by: recenter` that the frame control's
 action ran. No `fit requested` and a `restore` on a wrong view points at what was saved as the
 last camera, not at the launch.
+
+Re-check owed since 2026-11-15 ([[2026-11-14-recording-survives-process-death-design]], Out of
+scope). A recording now keeps a JS runtime warm while the app is dead, so a relaunch mid-recording
+can open on that runtime (a `cold start` with a large `runtimeAgeMs`) instead of a fresh one; the
+observations above predate it. Repeat the kill and relaunch with the camera free and framed, on a
+warm runtime, and read `launch camera` and any `fit requested` after the `cold start`.

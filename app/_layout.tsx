@@ -17,15 +17,13 @@ import { useDownloadSettledToast } from '../src/map/offline/useDownloadSettledTo
 import { useDatabaseMigrations } from '../src/data/db/useDatabaseMigrations'
 import { useStoresAtLaunch } from '../src/store/loadStoresAtLaunch'
 import { useOverviewBackfill } from '../src/store/overviewBackfill'
-import '../src/recording/locationTask'
 import { useResumeRecording } from '../src/recording/useResumeRecording'
 import { useRecordingStream } from '../src/recording/useRecordingStream'
 import { useAlongTrailLog } from '../src/recording/useAlongTrailLog'
 import { useIncomingShare } from '../src/trails/useIncomingShare'
 import { getNavigationTheme } from '../src/theme/navigationTheme'
-import { errorClass, installGlobalErrorHandler, logEvent, useLogRetention } from '../src/log'
+import { errorClass, logEvent, useLogRetention } from '../src/log'
 
-installGlobalErrorHandler()
 // Held until the map can mount on its launch camera, so a restored camera never shows the globe first.
 // Not awaited: if holding fails, the splash hides on its own and the cost is that globe frame.
 void SplashScreen.preventAutoHideAsync()

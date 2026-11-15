@@ -51,6 +51,13 @@ it('stores and shows only the fixes taken after the segment began', async () => 
   expect(store.getState().livePoints).toEqual([{ ...fix(6000), segment: 2 }])
 })
 
+it('stores a delivery in a runtime that has not shown the recording, and leaves it unshown', async () => {
+  store.setState({ session: null, livePoints: [] })
+  await handleFixes([fix(6000)])
+  expect(repo.appendPoints).toHaveBeenCalledWith(7, 2, [fix(6000)])
+  expect(store.getState().session).toBeNull()
+})
+
 it('appends nothing when every fix was taken before the segment began', async () => {
   await handleFixes([fix(4000)])
   expect(repo.appendPoints).not.toHaveBeenCalled()

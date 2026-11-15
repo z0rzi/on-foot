@@ -73,7 +73,14 @@ Schema lives in `src/data/db/schema.ts`. Migrations are generated, never hand-wr
 npm run db:generate   # drizzle-kit; commit the generated .sql and meta/ alongside the schema change
 ```
 
-They apply on launch, so a migration must be safe against an existing install.
+They apply when a screen first opens (the root layout, `app/_layout.tsx`), so a migration must be
+safe against an existing install. A recording's background deliveries run the new code before that,
+in a runtime with no screen: after an update under a live recording, the recording handler writes
+points and sessions against the old schema until the app is opened. A query the old schema cannot
+answer throws and those fixes are lost, as [the
+spec](docs/design/specs/2026-11-14-recording-survives-process-death-design.md) accepts. A migration
+that transforms existing rows (rather than adding or dropping a table or a column) must therefore be
+correct on rows the new code wrote before it ran, or leave the recording tables alone.
 
 ## Platform
 

@@ -12,10 +12,12 @@ import { useActivitiesStore } from '../store/activitiesStore'
 import { isAppActive, whenAppActive } from './appActivity'
 import { ensureTrackingNotificationAccess } from './notificationAccess'
 import { RECORDING_OPTIONS } from './options'
+import type { InterruptionGap } from './interruption'
 import { useRecordingStore } from './recordingStore'
-import { resumeActionFor, ResumeAction } from './resume'
+import { lastKnownRecordingAt, resumeActionFor, ResumeAction } from './resume'
 import { applyPause, applyRelaunch, applyResume } from './session'
 import { createSerialQueue } from '../async/serialQueue'
+import { deliveryQueue } from './deliveryQueue'
 import { errorClass, logEvent } from '../log'
 import { formatClockTime } from '../activities/format'
 
@@ -232,37 +234,53 @@ export function ensureStreaming(): Promise<void> {
   })
 }
 
-// A recording row with an empty store means the JavaScript runtime died while recording: swiping the
-// app away only remounts the React root, and the store — module state — survives that. The gap gets
-// its own segment and the user is told; capture restarts, which also restores the foreground service
-// a restored task never gets.
-async function resumeAfterProcessDeath(session: RecordingSession): Promise<void> {
-  const points = await activitiesRepository.getSessionPoints(session.id)
-  const relaunched = applyRelaunch(session, Date.now())
-  await activitiesRepository.markResumed(relaunched.id, relaunched.pausedMs, relaunched.currentSegment, relaunched.segmentStartedAt)
-  useRecordingStore.getState().hydrate(relaunched, points)
-  logEvent('info', 'recording', 'segment began', { segment: relaunched.currentSegment, segmentStartedAt: relaunched.segmentStartedAt })
-  const since = points.length > 0 ? points[points.length - 1].t : session.startedAt
-  const until = Date.now()
-  logEvent('warn', 'launch', 'detected an interruption', { from: formatClockTime(since), to: formatClockTime(until) })
-  useRecordingStore.getState().announceInterruption({ since, until })
-  await issueStreamIfAvailable()
+// When nothing is missing the track goes on in its segment; after a real gap the gap gets its own
+// segment and the user is told. Reading the track, cutting and hydrating are one turn of the delivery
+// queue, so no delivery is stored unseen in between. Unless paused, capture restarts, which also
+// restores the foreground service a restored task never gets.
+async function resumeAfterProcessDeath(session: RecordingSession): Promise<ResumeAction> {
+  const { action, relaunched, gap } = await deliveryQueue(async () => {
+    const points = await activitiesRepository.getSessionPoints(session.id)
+    const lastPoint = points.at(-1) ?? null
+    const now = Date.now()
+    const action = resumeActionFor(session, lastPoint, now)
+    const gap: InterruptionGap = { since: lastKnownRecordingAt(session, lastPoint), until: now }
+    const relaunched = action === 'resume' ? applyRelaunch(session, gap.since) : session
+    if (action === 'resume') {
+      await activitiesRepository.markResumed(relaunched.id, relaunched.pausedMs, relaunched.currentSegment, relaunched.segmentStartedAt)
+    }
+    useRecordingStore.getState().hydrate(relaunched, points)
+    return { action, relaunched, gap }
+  })
+  if (action === 'resume') {
+    logEvent('info', 'recording', 'segment began', { segment: relaunched.currentSegment, segmentStartedAt: relaunched.segmentStartedAt })
+    logEvent('warn', 'launch', 'detected an interruption', { from: formatClockTime(gap.since), to: formatClockTime(gap.until) })
+    useRecordingStore.getState().announceInterruption(gap)
+  }
+  if (action !== 'paused') await issueStreamIfAvailable()
+  return action
 }
 
-export function resumeIfActive(): Promise<{ action: ResumeAction; sessionId: number | null }> {
+// What a launch did with the durable session: `none` with no recording, `held` when this runtime
+// already shows it and nothing changed, otherwise the relaunch's decision.
+type LaunchAction = ResumeAction | 'held'
+
+// A recording row with an empty store means this runtime has not shown the recording: its process
+// died while recording, or the app opened onto a runtime that only stored deliveries, since the
+// background task never sets the store's session. Swiping the app away only remounts the React root,
+// and the store, module state, survives that: a held session is left as it is.
+export function resumeIfActive(): Promise<{ action: LaunchAction; sessionId: number | null }> {
   return exclusive(async () => {
     try {
       const session = await activitiesRepository.getActiveSession()
-      const action = resumeActionFor(session)
       const store = useRecordingStore.getState()
       if (!session) {
         if (store.session) store.reset()
         await stopStreamTolerant()
-      } else if (!store.session) {
-        if (action === 'resume') await resumeAfterProcessDeath(session)
-        else store.hydrate(session, await activitiesRepository.getSessionPoints(session.id))
+        return { action: 'none', sessionId: null }
       }
-      return { action, sessionId: session?.id ?? null }
+      if (store.session) return { action: 'held', sessionId: session.id }
+      return { action: await resumeAfterProcessDeath(session), sessionId: session.id }
     } finally {
       useRecordingStore.getState().markResumeSettled()
     }

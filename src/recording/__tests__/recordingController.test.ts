@@ -523,10 +523,20 @@ describe('resumeIfActive', () => {
     expect(useRecordingStore.getState().resumeSettled).toBe(true)
   })
 
-  it('leaves a session the running process already holds untouched', async () => {
+  it('leaves a session the running process already holds untouched, and says it was held, not cut', async () => {
     row = recording
-    useRecordingStore.setState({ session: recording, stream: { kind: 'live' } })
-    await resumeIfActive()
+    const lastPointAt = new Date(2026, 8, 14, 13, 56).getTime()
+    useRecordingStore.setState({
+      session: recording,
+      stream: { kind: 'live' },
+      livePoints: [{ lat: 0, lng: 0, ele: null, t: lastPointAt, segment: 1 }],
+    })
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(lastPointAt + 10 * 60_000)
+    try {
+      await expect(resumeIfActive()).resolves.toEqual({ action: 'held', sessionId: 7 })
+    } finally {
+      clock.mockRestore()
+    }
     expect(repo.getSessionPoints).not.toHaveBeenCalled()
     expect(repo.markResumed).not.toHaveBeenCalled()
     expect(useRecordingStore.getState().interruption).toBeNull()
@@ -534,19 +544,38 @@ describe('resumeIfActive', () => {
     expect(useRecordingStore.getState().resumeSettled).toBe(true)
   })
 
-  it('opens a new segment, announces the gap and restarts capture after the process died', async () => {
+  it('continues the segment with no announcement when the last point is 30 s old, and restarts capture', async () => {
+    row = recording
+    const reopenedAt = new Date(2026, 8, 14, 14, 40).getTime()
+    const points = [{ lat: 0, lng: 0, ele: null, t: reopenedAt - 30_000, segment: 1 }]
+    repo.getSessionPoints.mockResolvedValue(points)
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(reopenedAt)
+    try {
+      await expect(resumeIfActive()).resolves.toEqual({ action: 'continue', sessionId: 7 })
+    } finally {
+      clock.mockRestore()
+    }
+    expect(repo.markResumed).not.toHaveBeenCalled()
+    expect(useRecordingStore.getState().session).toEqual(recording)
+    expect(useRecordingStore.getState().livePoints).toEqual(points)
+    expect(useRecordingStore.getState().interruption).toBeNull()
+    expect(jest.mocked(logEvent).mock.calls.map((call) => call[2])).not.toContain('detected an interruption')
+    expect(port.startBackgroundTracking).toHaveBeenCalledTimes(1)
+  })
+
+  it('cuts after a real gap: a new segment just after the last point, the gap announced from it, capture restarted', async () => {
     row = recording
     const lastPointAt = new Date(2026, 8, 14, 13, 56).getTime()
     const reopenedAt = new Date(2026, 8, 14, 14, 40).getTime()
     repo.getSessionPoints.mockResolvedValue([{ lat: 0, lng: 0, ele: null, t: lastPointAt, segment: 1 }])
     const clock = jest.spyOn(Date, 'now').mockReturnValue(reopenedAt)
     try {
-      await resumeIfActive()
+      await expect(resumeIfActive()).resolves.toEqual({ action: 'resume', sessionId: 7 })
     } finally {
       clock.mockRestore()
     }
-    expect(repo.markResumed).toHaveBeenCalledWith(7, 500, 2, reopenedAt)
-    expect(useRecordingStore.getState().session?.segmentStartedAt).toBe(reopenedAt)
+    expect(repo.markResumed).toHaveBeenCalledWith(7, 500, 2, lastPointAt + 1)
+    expect(useRecordingStore.getState().session?.segmentStartedAt).toBe(lastPointAt + 1)
     expect(useRecordingStore.getState().session?.currentSegment).toBe(2)
     expect(useRecordingStore.getState().interruption).toEqual({ since: lastPointAt, until: reopenedAt })
     expect(jest.mocked(logEvent)).toHaveBeenCalledWith('warn', 'launch', 'detected an interruption', { from: '13:56', to: '14:40' })
@@ -554,17 +583,19 @@ describe('resumeIfActive', () => {
     expect(repo.appendPoints).not.toHaveBeenCalled()
   })
 
-  it('announces the gap from the session start when nothing was captured', async () => {
-    const startedAt = new Date(2026, 8, 14, 10, 0).getTime()
+  it('announces the gap from the segment start when the segment holds no point', async () => {
+    const segmentStartedAt = new Date(2026, 8, 14, 10, 0).getTime()
     const reopenedAt = new Date(2026, 8, 14, 10, 30).getTime()
-    row = { ...recording, startedAt }
+    row = { ...recording, segmentStartedAt }
+    repo.getSessionPoints.mockResolvedValue([{ lat: 0, lng: 0, ele: null, t: segmentStartedAt - 60_000, segment: 0 }])
     const clock = jest.spyOn(Date, 'now').mockReturnValue(reopenedAt)
     try {
       await resumeIfActive()
     } finally {
       clock.mockRestore()
     }
-    expect(useRecordingStore.getState().interruption).toEqual({ since: startedAt, until: reopenedAt })
+    expect(useRecordingStore.getState().interruption).toEqual({ since: segmentStartedAt, until: reopenedAt })
+    expect(useRecordingStore.getState().session?.segmentStartedAt).toBe(segmentStartedAt + 1)
   })
 
   it('hydrates a paused session without announcing or starting anything', async () => {

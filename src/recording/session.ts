@@ -19,10 +19,12 @@ export function applyResume(session: RecordingSession, now: number): RecordingSe
   }
 }
 
-// After the process died while recording, capture resumes in its own segment so the saved track is
-// not joined across the gap. The gap still counts as elapsed time.
-export function applyRelaunch(session: RecordingSession, now: number): RecordingSession {
-  return { ...session, currentSegment: session.currentSegment + 1, segmentStartedAt: now }
+// After a real gap in a recording whose process died, capture resumes in its own segment so the saved
+// track is not joined across the gap. The segment starts just after the session was last known
+// recording, not at the relaunch: fixes the dead time delivers late belong to it, a cached position
+// from before the last stored point does not. The gap still counts as elapsed time.
+export function applyRelaunch(session: RecordingSession, lastKnownRecordingAt: number): RecordingSession {
+  return { ...session, currentSegment: session.currentSegment + 1, segmentStartedAt: lastKnownRecordingAt + 1 }
 }
 
 // A fix taken before its segment began is not part of it: the location service can hand back a cached
