@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { deleteDialog, listRows, listShown, mergePage } from '../listScan'
+import { backLanded, deleteDialog, dialogStill, listRows, listShown, mergePage } from '../listScan'
 import { parseUiDump } from '../uiDump'
 
 const dump = (name: string) => parseUiDump(readFileSync(join(__dirname, '..', 'fixtures', name), 'utf8'))
@@ -78,5 +78,47 @@ describe('deleteDialog', () => {
   it('sees no dialog on the list or on the actions menu', () => {
     expect(deleteDialog(dump('ui-trails-list.xml'), 'trail', 'DEVCHECK climb')).toEqual({ kind: 'absent' })
     expect(deleteDialog(dump('ui-trail-menu.xml'), 'trail', 'DEVCHECK climb')).toEqual({ kind: 'absent' })
+  })
+})
+
+describe('dialogStill', () => {
+  const dialog = dump('ui-delete-trail-dialog.xml')
+  const opening = dialog.map((n) => (n.text === 'DELETE' ? { ...n, bounds: { ...n.bounds, top: n.bounds.top + 12, bottom: n.bounds.bottom + 12 } } : n))
+
+  it('reads the dialog once two reads in a row agree on where its button is', () => {
+    expect(dialogStill(dialog, dump('ui-delete-trail-dialog.xml'), 'trail', 'DEVCHECK climb')).toEqual({ kind: 'confirm', at: { left: 780, top: 1280, right: 980, bottom: 1380 } })
+    expect(dialogStill(dialog, dump('ui-delete-trail-dialog.xml'), 'trail', 'DEVCHECK other')).toMatchObject({ kind: 'refuse', cancel: { left: 560, top: 1280, right: 760, bottom: 1380 } })
+  })
+
+  it('waits while the dialog still moves, on the first read, and while there is none', () => {
+    expect(dialogStill(dialog, opening, 'trail', 'DEVCHECK climb')).toBeNull()
+    expect(dialogStill(dialog, null, 'trail', 'DEVCHECK climb')).toBeNull()
+    const list = dump('ui-trails-list.xml')
+    expect(dialogStill(list, list, 'trail', 'DEVCHECK climb')).toBeNull()
+  })
+})
+
+describe('backLanded', () => {
+  const map = dump('server-map-idle.xml')
+  const list = dump('server-trails-owner.xml')
+
+  it('is on the map once a back key settles on it', () => {
+    expect(backLanded({ found: { kind: 'settled', nodes: map } })).toEqual({ kind: 'map' })
+  })
+
+  it('needs another press when the key settled on a screen that is not the map', () => {
+    expect(backLanded({ found: { kind: 'settled', nodes: list } })).toEqual({ kind: 'not-yet' })
+  })
+
+  it('is stuck when the key changed nothing', () => {
+    const landed = backLanded({ found: { kind: 'nothing-changed', nodes: list } })
+    expect(landed.kind).toBe('stuck')
+    expect(landed.kind === 'stuck' && landed.reason).toMatch(/^back changed nothing; labels seen: /)
+  })
+
+  it('takes a screen that never settled for the map when the map is on it, else as stuck', () => {
+    expect(backLanded({ found: null, read: map, last: 'labels seen: x' })).toEqual({ kind: 'map' })
+    expect(backLanded({ found: null, read: list, last: 'labels seen: x' })).toEqual({ kind: 'stuck', reason: 'the screen did not settle after back; labels seen: x' })
+    expect(backLanded({ found: null, read: null, last: 'cannot tell' })).toEqual({ kind: 'stuck', reason: 'the screen did not settle after back; cannot tell' })
   })
 })

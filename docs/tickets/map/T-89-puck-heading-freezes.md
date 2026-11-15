@@ -41,3 +41,16 @@ the OS stopped delivering, and the map is not the cause. A `puck unmounted` then
 or an `app active`, just before the freeze names what it follows. Two limits: the log never sees
 the drawn arrow itself, and Android sends a reading only on a turn of about 2°, so a phone held
 perfectly steady on a straight line also reads as a stall.
+
+## Comments
+
+> *Comment written by an AI agent.*
+
+Two device checks of the signal give different readings of a phone lying still on the desk, under
+a mock walk. On 2026-11-11: `heading sample {"updates":14,"spreadDeg":2.6,…}` and one
+`heading stalled {"silentS":64,"movedM":78}`. On 2026-11-14 (build `c7f942b`):
+`heading sample {"updates":627,"spreadDeg":11.3,…}` over five minutes and no stall, with nothing
+showing the phone was handled. So a still phone does not always go silent: its compass can send
+about two readings a second over an 11° arc. Read a field sample with `updates` and `spreadDeg`
+well above zero as "the compass kept reporting", which may be noise. It is not proof that the
+phone turned.

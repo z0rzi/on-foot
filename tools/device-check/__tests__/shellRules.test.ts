@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { isPhoneLost } from '../adbErrors'
 import { nextShotNumber, shotBase, slug } from '../evidence'
-import { RECORD_BUTTON_LABELS, tapTarget } from '../tapTarget'
+import { tapTarget, targetAtCap } from '../tapTarget'
 import { parseUiDump } from '../uiDump'
 import { nextFixAt } from '../walkPlan'
 
@@ -54,36 +54,50 @@ describe('nextFixAt', () => {
 })
 
 describe('tapTarget', () => {
-  const idle = parseUiDump(readFileSync(join(__dirname, '..', 'fixtures', 'ui-map.xml'), 'utf8'))
-  const startButton = { left: 41, top: 2021, right: 163, bottom: 2143 }
+  const read = (name: string) => parseUiDump(readFileSync(join(__dirname, '..', 'fixtures', name), 'utf8'))
+  const idle = read('ui-map.xml')
+  const PAUSE = 'Pause recording (press and hold)'
+  const still = (label: string, nodes: ReturnType<typeof read>) => tapTarget(label, nodes, nodes)
 
-  it('takes the bounds from a fresh dump', () => {
-    const target = tapTarget('Start recording', { kind: 'dump', nodes: idle, xml: '' }, null)
-    expect(target).toMatchObject({ kind: 'found', remembered: false })
+  it('takes the bounds once two reads agree on them', () => {
+    expect(tapTarget('Start recording', idle, null)).toBeNull()
+    expect(still('Start recording', idle)).toEqual({ kind: 'still', bounds: { left: 41, top: 1966, right: 163, bottom: 2089 } })
   })
 
-  it('lists the labels seen when the dump has no match', () => {
-    const target = tapTarget('Resume recording', { kind: 'dump', nodes: idle, xml: '' }, null)
-    expect(target.kind).toBe('missing')
-    expect(target.kind === 'missing' && target.reason).toContain('Start recording')
+  it('waits while the target moves', () => {
+    expect(tapTarget(PAUSE, read('server-recording-card-open.xml'), read('server-recording-card-closed.xml'))).toBeNull()
   })
 
-  it('uses the remembered record button while recording, the one control a recording screen cannot dump', () => {
-    for (const label of RECORD_BUTTON_LABELS) {
-      expect(tapTarget(label, { kind: 'recording' }, startButton)).toEqual({ kind: 'found', bounds: startButton, remembered: true })
+  it('lists the labels seen when the screen settled without the target', () => {
+    const target = still('Resume recording', idle)
+    expect(target?.kind).toBe('missing')
+    expect(target?.kind === 'missing' && target.reason).toContain('Start recording')
+  })
+
+  it('waits for a target missing from a screen still changing', () => {
+    expect(tapTarget('Resume recording', idle, read('server-recording-card-closed.xml'))).toBeNull()
+  })
+
+  it('refuses a target still moving at the cap, and names a missing one', () => {
+    expect(targetAtCap(PAUSE, 2, { read: read('server-recording-card-open.xml'), last: '' })).toBe(`"${PAUSE}" still moving after 2 s: not tapped`)
+    expect(targetAtCap('Resume recording', 2, { read: idle, last: 'labels seen: Start recording' })).toBe('no "Resume recording" on screen after 2 s; labels seen: Start recording')
+  })
+
+  it.each([
+    ['open', 'server-recording-card-open.xml'],
+    ['closed', 'server-recording-card-closed.xml'],
+  ])('finds every control of the recording screen by its label, the map card %s', (_, fixture) => {
+    const recording = read(fixture)
+    expect(still(PAUSE, recording)?.kind).toBe('still')
+    expect(still('Open map layers', recording)?.kind).toBe('still')
+    expect(still('Resume recording', recording)?.kind).toBe('missing')
+  })
+
+  it('finds the pause button where the map card puts it', () => {
+    const at = (fixture: string) => {
+      const target = still(PAUSE, read(fixture))
+      return target?.kind === 'still' ? target.bounds.top : null
     }
-  })
-
-  it('refuses any other label while recording, and the record button when never seen', () => {
-    expect(tapTarget('Center on your location', { kind: 'recording' }, startButton).kind).toBe('missing')
-    const unseen = tapTarget('Pause recording (press and hold)', { kind: 'recording' }, null)
-    expect(unseen.kind === 'missing' && unseen.reason).toContain('Start recording')
-  })
-
-  it('passes a failed dump on', () => {
-    expect(tapTarget('Start recording', { kind: 'failed', reason: 'could not get idle state' }, null)).toEqual({
-      kind: 'missing',
-      reason: 'no dump: could not get idle state',
-    })
+    expect(at('server-recording-card-open.xml')).toBeLessThan(at('server-recording-card-closed.xml')!)
   })
 })

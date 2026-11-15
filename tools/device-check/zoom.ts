@@ -5,7 +5,7 @@ import { findTouchscreen } from './touchscreen'
 
 const PINCH_TIMEOUT_MS = 30_000
 
-export async function zoom(direction: 'in' | 'out', at: Point | undefined, steps: number): Promise<void> {
+export async function zoom(direction: 'in' | 'out', at: Point | undefined, steps: number): Promise<string> {
   refuseWhileMoving(await serial(), 'zoom')
   await requireForeground()
   const display = await displaySize()
@@ -16,5 +16,5 @@ export async function zoom(direction: 'in' | 'out', at: Point | undefined, steps
   await requireForeground()
   await shell(pinchScript(panel, display, plan), PINCH_TIMEOUT_MS)
   const [first, last] = [plan[0], plan[plan.length - 1]]
-  console.log(`pinched ${direction} at ${point.x},${point.y}: fingers ${first[1].y - first[0].y} px to ${last[1].y - last[0].y} px apart in ${steps} steps, on ${panel.device}`)
+  return `pinched ${direction} at ${point.x},${point.y}: fingers ${first[1].y - first[0].y} px to ${last[1].y - last[0].y} px apart in ${steps} steps, on ${panel.device}`
 }

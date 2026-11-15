@@ -31,7 +31,7 @@ export class AdbFailed extends Error {
   }
 }
 
-export const TIMEOUT = { shell: 8_000, dump: 15_000, screencap: 20_000, pull: 120_000 }
+export const TIMEOUT = { shell: 8_000, logcat: 15_000, screencap: 20_000, pull: 120_000 }
 const RECOVERY_MS = 4 * 60_000
 const RECOVERY_POLL_MS = 5_000
 

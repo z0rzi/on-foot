@@ -1,4 +1,6 @@
-// A `uiautomator dump`, read as the flat list of its nodes in document (screen) order.
+// A screen's accessibility tree, as the reader's page source gives it, read as the flat list of its
+// nodes in document (screen) order. The platform's `uiautomator dump` form is read too, for the
+// fixtures taken in that form, among them the pairs holding both forms of one screen.
 export interface Bounds { left: number; top: number; right: number; bottom: number }
 
 export interface UiNode {
@@ -6,6 +8,7 @@ export interface UiNode {
   desc: string
   className: string
   bounds: Bounds
+  scrollable: boolean
 }
 
 export type LabelMatch = { node: UiNode; seen?: undefined } | { node: null; seen: string[] }
@@ -25,9 +28,13 @@ function parseBounds(raw: string | undefined): Bounds {
   return { left: Number(m[1]), top: Number(m[2]), right: Number(m[3]), bottom: Number(m[4]) }
 }
 
+// Every element below the root: `node` in a platform dump, the widget class (`android.widget.TextView`)
+// in the reader's page source. Both carry the same attributes.
+const ELEMENT = /<(?!hierarchy[\s>])[A-Za-z_][\w.$-]*\s([^>]*?)\/?>/g
+
 export function parseUiDump(xml: string): UiNode[] {
   const nodes: UiNode[] = []
-  for (const tag of xml.matchAll(/<node\s([^>]*?)\/?>/g)) {
+  for (const tag of xml.matchAll(ELEMENT)) {
     const attrs: Record<string, string> = {}
     for (const [, name, double, single] of tag[1].matchAll(/([\w-]+)=(?:"([^"]*)"|'([^']*)')/g)) attrs[name] = decode(double ?? single)
     nodes.push({
@@ -35,6 +42,7 @@ export function parseUiDump(xml: string): UiNode[] {
       desc: attrs['content-desc'] ?? '',
       className: attrs.class ?? '',
       bounds: parseBounds(attrs.bounds),
+      scrollable: attrs.scrollable === 'true',
     })
   }
   return nodes
@@ -52,20 +60,41 @@ function readable(raw: string): string {
     .join(', ')
 }
 
-const hasArea = (b: Bounds) => b.right > b.left && b.bottom > b.top
+export const hasArea = (b: Bounds) => b.right > b.left && b.bottom > b.top
 
-function labelsOf(node: UiNode): string[] {
+export function labelsOf(node: UiNode): string[] {
   if (!hasArea(node.bounds)) return []
   return [readable(node.desc), readable(node.text)].filter((l) => l.length > 0)
 }
 
+const within = (inner: Bounds, outer: Bounds) =>
+  inner.left >= outer.left && inner.top >= outer.top && inner.right <= outer.right && inner.bottom <= outer.bottom
+
+// Each label in screen order. A label is said once for a control and the texts nested in it, which
+// repeat it, and again for a node elsewhere on screen that carries it too.
 function labelsOnScreen(nodes: UiNode[]): string[] {
-  return [...new Set(nodes.flatMap(labelsOf))]
+  const said = new Map<string, Bounds[]>()
+  const labels: string[] = []
+  for (const node of nodes) {
+    for (const label of labelsOf(node)) {
+      const at = said.get(label) ?? []
+      if (at.some((b) => within(node.bounds, b) || within(b, node.bounds))) continue
+      said.set(label, [...at, node.bounds])
+      labels.push(label)
+    }
+  }
+  return labels
 }
 
 export function summaryLine(nodes: UiNode[]): string {
   return labelsOnScreen(nodes).join(' | ')
 }
+
+const LABELS = 'labels: '
+
+export const labelsLine = (nodes: UiNode[]) => `${LABELS}${summaryLine(nodes)}`
+
+export const isLabelsLine = (line: string) => line.startsWith(LABELS)
 
 // An accessibility label names a control; a text may also be a title that reads the same, so a
 // label match wins over a text match.

@@ -1,6 +1,6 @@
 # Device-check speed: a reader that does not wait for idle, and fewer round trips — Design
 
-**Status:** Spec, not built. Plan: [[2026-11-14-device-check-speed]].
+**Status:** Built, [[2026-11-14-device-check-speed]]. The model trial of its item 07 ran and the model was not adopted: the trial broke rules of the skill ([[2026-11-15-device-check-speed-rerun]]).
 **From:** the owner's question of 2026-11-14 ("the AI operated device checks are painfully slow"),
 timings taken on the phone that day, and the device-check transcripts of 2026-11-11 to 2026-11-13.
 Follows [[2026-11-10-device-check-toolkit-design]].
@@ -112,12 +112,15 @@ Walk time at `walk` pace is real time by design and is not part of this problem.
   at once on any screen.
 - **The server's XML is read by the existing dump parser.** Its page source has the attributes the
   parser reads (`text`, `content-desc`, `class`, `bounds`) under other element names; the parser is
-  widened to that form, and fixtures captured from the server hold it there. `crop` and the summary
-  line stay as they are.
+  widened to that form, and fixtures captured from the server hold it there. `crop` stays as it
+  is. The summary line folds a text only into a node that contains it or is contained by it, so a
+  text carried by separate nodes is said for each: a detail repeated on another row, a debug-log
+  entry's among them, was dropped from the line before (found on the device in the re-run).
 - **Started on demand, stopped in clean-up.** Each read first asks the server for its status; no
   answer starts the instrumentation and waits for it, under a start lock kept with the walker's
   per-phone state, so two agents never start it twice. `devcheck cleanup` stops it once no walk
-  moves. A server left running by a dead session is found and reused by the next check.
+  moves, after pressing back down to the map through the lists it opened, the last read it needs.
+  A server left running by a dead session is found and reused by the next check.
 - **One server per phone, one fixed port**, shared across worktrees like the walker.
 - **Accessibility services are not suppressed**: the server is started with its argument that
   leaves running services running. Without it the owner's own accessibility service is unbound for
@@ -163,17 +166,23 @@ Walk time at `walk` pace is real time by design and is not part of this problem.
   prints "nothing changed". A named outcome that does not come fails with the labels last seen.
 - **`labels`**: foreground guard, one read, the labels line, the time taken. No file is written.
 - **`shot`** is unchanged from the caller's side, and now writes its dump on every screen.
-- **`back`** sends the back key; **`type <text>`** types plain text, escaping what the phone's
-  `input text` needs. Both take the foreground guard.
+- **`back`** sends the back key, then waits for the screen to settle as a tap with no outcome
+  named does and prints the same outcome; **`type <text>`** types plain text, escaping what the
+  phone's `input text` needs. Both take the foreground guard.
+- **`scroll up|down`** drags the largest scrollable element on screen by a third of its height,
+  inside its bounds, the delete flow's own drag, behind the foreground guard, then waits for the
+  screen to settle as a tap does and prints the same outcome. A screen where nothing scrolls fails
+  the command and ends the delete flow's scan. The owner's decision of
+  2026-11-14, once the check chosen for the re-run was found scrolling the debug log by raw swipes.
 - **`wait-for`** keeps its interface and polls the new reader; its refusals while recording and
   during a walk go.
 - **`do <step>...`**: each argument is one step, written as the same command line the toolkit
   takes, split by one pure parser. Allowed steps: `tap`, `wait-for`, `labels`, `shot`, `frames`,
-  `crop`, `zoom`, `back`, `type`. `walk`, `import-gpx`, `save-activity`, `delete`, `cleanup`,
-  `build-has` and `do` itself are refused as steps, with the reason. Every step is parsed before
-  the first runs. Steps run in order in one process; each prints a header naming it, then its own
-  output; the first failure ends the list with that step's exit code and the count of steps not
-  run.
+  `crop`, `zoom`, `scroll`, `back`, `type`. `walk`, `import-gpx`, `save-activity`, `delete`,
+  `cleanup`, `build-has` and `do` itself are refused as steps, with the reason. Every step is
+  parsed before the first runs. Steps run in order in one process; each prints a header naming it,
+  then its own output; the first failure ends the list with that step's exit code and the count of
+  steps not run.
 - **The command functions return their result and the CLI prints it**, where today they print as
   they go, so that `do` composes them and `import-gpx`, `save-activity` and the delete flow keep
   calling the same functions.
@@ -193,7 +202,7 @@ Walk time at `walk` pace is real time by design and is not part of this problem.
 
 - **Looking and driving** is rewritten around `labels` → `tap --until` → `do`; "read the labels
   line first" becomes "read with `labels`; take a `shot` when the claim is about pixels".
-- The command table gains `labels`, `back`, `type`, `do` and the new `tap` options.
+- The command table gains `labels`, `back`, `type`, `scroll`, `do` and the new `tap` options.
 - The rules keep their meaning: raw `input` stays allowed only for what the toolkit still lacks
   (the app switcher, waking the screen).
 - **Phone setup** gains the two server APKs, their release and install date, and the install
@@ -279,6 +288,7 @@ Walk time at `walk` pace is real time by design and is not part of this problem.
 | Server app missing, or another version than the pinned one | The command fails pointing at Phone setup | Install the pinned release; until then `blocked` |
 | Server does not come up within its start timeout | The command fails with the instrumentation's output | Run again; if it persists, `blocked` |
 | Server dies mid-check (the system kills it, OxygenOS battery rules) | The next read restarts it; the restart is printed | None needed; a check that sees it repeatedly reports it |
+| OxygenOS's battery manager freezes the server (its background activity not allowed) | A read stalls past the status timeout; the toolkit finds the freeze in logcat, stops the server and fails pointing at Phone setup | Allow the server's background activity (Phone setup); until then `blocked` |
 | The port forward is gone (adb reconnect, replug) | Set again before the read | None needed |
 | The port is taken on the host | The command fails naming the port and its holder | Free the port |
 | Two agents start the server at once | The second waits on the start lock, then reuses it | None needed |

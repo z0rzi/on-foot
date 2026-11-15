@@ -1,8 +1,9 @@
 # Device-check toolkit: a steered walker and shared drivers — Design
 
-**Status:** Built 2026-11-10, straight from this spec, with two changes found on the device:
-ffmpeg makes the half-width copy and the crop, and the recording screen is never dumped (see
-Looking and driving).
+**Status:** Built 2026-11-10, straight from this spec, with one change found on the device:
+ffmpeg makes the half-width copy and the crop. Its reader was replaced: the screen is read through
+the Appium UiAutomator2 server, the recording screen and a moving walk included, and the commands
+that look and drive were reshaped around it, [[2026-11-14-device-check-speed-design]].
 **From:** the review of the device-check transcripts of 2026-11-06 to 2026-11-10; the
 `device-check` skill.
 **Date:** 2026-11-10

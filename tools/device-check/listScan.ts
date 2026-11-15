@@ -1,8 +1,11 @@
-import type { Bounds, UiNode } from './uiDump'
+import { sameBounds } from './settled'
+import { reached, type TapOutcome } from './tapOutcome'
+import { hasArea, summaryLine, type Bounds, type UiNode } from './uiDump'
 
-// The Trails and Activities lists as a dump shows them, and their delete dialog. Labels and copy
-// come from the app: EntityListItem's `Show <name> on map`, the actions buttons, the menu item,
-// ListScreen's empty message, and the Alert of useDeleteTrail / useDeleteActivity.
+// The Trails and Activities lists as a dump shows them, their delete dialog, and the way back from
+// them to the map. Labels and copy come from the app: EntityListItem's `Show <name> on map`, the
+// actions buttons, the menu item, ListScreen's empty message, the Alert of useDeleteTrail /
+// useDeleteActivity, and the map's record button.
 export type EntityKind = 'trail' | 'activity'
 
 export const ENTITY: Record<EntityKind, { route: string; actions: string; deleteLabel: string; empty: string }> = {
@@ -12,7 +15,6 @@ export const ENTITY: Record<EntityKind, { route: string; actions: string; delete
 
 export interface ListRow { name: string; actions: Bounds | null }
 
-const hasArea = (b: Bounds) => b.right > b.left && b.bottom > b.top
 const ROW_LABEL = /^Show (.+) on map$/
 
 // Rows in screen order. The actions button sits beside the row's body, level with it; one scrolled
@@ -69,4 +71,33 @@ export function deleteDialog(nodes: UiNode[], kind: EntityKind, name: string): D
   const named = nodes.map((n) => /"(.*)"/s.exec(n.text)?.[1]).find((q) => q !== undefined)
   if (named !== name) return { kind: 'refuse', reason: `the dialog names ${named === undefined ? 'no item' : `"${named}"`}, not "${name}"`, cancel }
   return { kind: 'confirm', at: confirm }
+}
+
+type DialogShown = Exclude<DeleteDialogRead, { kind: 'absent' }>
+
+const dialogButton = (read: DialogShown) => (read.kind === 'confirm' ? read.at : read.cancel)
+
+// The dialog once two reads in a row agree on the button it would be answered with, so the tap
+// does not land beside a button still moving in.
+export function dialogStill(current: UiNode[], previous: UiNode[] | null, kind: EntityKind, name: string): DialogShown | null {
+  if (previous === null) return null
+  const now = deleteDialog(current, kind, name)
+  const before = deleteDialog(previous, kind, name)
+  if (now.kind === 'absent' || before.kind !== now.kind) return null
+  const [a, b] = [dialogButton(before), dialogButton(now)]
+  return a === b || (a !== null && b !== null && sameBounds(a, b)) ? now : null
+}
+
+export const MAP = { label: 'Start recording', gone: false }
+
+export type BackLanded = { kind: 'map' } | { kind: 'not-yet' } | { kind: 'stuck'; reason: string }
+
+// Where a back key, waited out until the screen settled, left the way down to the map.
+export function backLanded(after: { found: TapOutcome } | { found: null; read: UiNode[] | null; last: string }): BackLanded {
+  if (after.found === null) {
+    return after.read && reached(MAP, after.read) ? { kind: 'map' } : { kind: 'stuck', reason: `the screen did not settle after back; ${after.last}` }
+  }
+  if (reached(MAP, after.found.nodes)) return { kind: 'map' }
+  if (after.found.kind === 'nothing-changed') return { kind: 'stuck', reason: `back changed nothing; labels seen: ${summaryLine(after.found.nodes)}` }
+  return { kind: 'not-yet' }
 }

@@ -1,0 +1,20 @@
+ACCESSIBILITY MANAGER (dumpsys accessibility)
+
+currentUserId=0
+hasWindowMagnificationConnection=false
+Magnifier on display#0
+    MagnificationConfig[mode: 1, scale: 1.0, centerX: 540.0, centerY: 1179.0] 
+    Magnification region=SkRegion((6,6,1074,2352))
+    IdOfLastServiceToMagnify=-1
+    SupportWindowMagnification=true
+    WindowMagnificationConnectionState=DISCONNECTED
+User state[
+     attributes:{id=0, touchExplorationEnabled=false, serviceHandlesDoubleTap=false, requestMultiFingerGestures=false, requestTwoFingerPassthrough=false, sendMotionEventsEnabledfalse, displayMagnificationEnabled=false, autoclickEnabled=false, nonInteractiveUiTimeout=0, interactiveUiTimeout=0, installedServiceCount=9, magnificationModes={0=1}, magnificationCapabilities=3, audioDescriptionByDefaultEnabled=false, magnificationFollowTypingEnabled=true}
+     shortcut key:{com.google.android.marvin.talkback/com.google.android.marvin.talkback.TalkBackService}
+     button:{}
+     button target:{null}
+     Bound services:{Service[label=Wispr Flow, feedbackType[FEEDBACK_GENERIC], capabilities=41, eventTypes=TYPE_WINDOWS_CHANGED, notificationTimeout=10, requestA11yBtn=false]}
+     Enabled services:{{com.wispr.flowapp/com.wispr.flowapp.service.FlowAccessibilityService}}
+     Binding services:{}
+     Crashed services:{}
+Ui Automation[eventTypes=TYPES_ALL_MASK, notificationTimeout=0]

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { centre, cropFilter, findByLabel, parseUiDump, summaryLine } from '../uiDump'
+import { centre, cropFilter, findByLabel, parseUiDump, summaryLine, type UiNode } from '../uiDump'
 
 const fixture = (name: string) => readFileSync(join(__dirname, '..', 'fixtures', name), 'utf8')
 
@@ -13,6 +13,24 @@ describe('summaryLine', () => {
       'Bottom Sheet | Show more | DEVCHECK dot cross | · 928 m · 60 m gain | Stop showing trail | Start recording | ' +
         'Reset north | Switch to 3D view | 3D | Open map layers | Frame the whole route | Center on your location',
     )
+  })
+
+  it('lists a text again when another node, apart from the first, carries it: two log rows with the same detail', () => {
+    const row = (top: number, time: string) =>
+      `<android.view.ViewGroup text="" class="android.view.ViewGroup" bounds="[0,${top}][1080,${top + 150}]">` +
+      `<android.widget.TextView text="${time}  map  heading watch" class="android.widget.TextView" bounds="[36,${top + 24}][1044,${top + 73}]" />` +
+      `<android.widget.TextView text='{"on":false}' class="android.widget.TextView" bounds="[36,${top + 79}][1044,${top + 123}]" />` +
+      `</android.view.ViewGroup>`
+    const nodes = parseUiDump(`<hierarchy>${row(1500, '23:37:39')}${row(1898, '23:37:21')}</hierarchy>`)
+    expect(summaryLine(nodes)).toBe('23:37:39 map heading watch | {"on":false} | 23:37:21 map heading watch | {"on":false}')
+  })
+
+  it('names a control once when its label is repeated by a text inside it', () => {
+    const nodes = parseUiDump(
+      '<hierarchy><node text="" content-desc="Settings" class="android.view.ViewGroup" bounds="[700,2200][1000,2290]">' +
+        '<node text="Settings" content-desc="" class="android.widget.TextView" bounds="[760,2220][940,2270]" /></node></hierarchy>',
+    )
+    expect(summaryLine(nodes)).toBe('Settings')
   })
 
   it('leaves out nodes that take no room on screen', () => {
@@ -53,6 +71,39 @@ describe('findByLabel', () => {
 describe('cropFilter', () => {
   it('cuts the screenshot to the node bounds', () => {
     expect(cropFilter({ left: 61, top: 2196, right: 380, bottom: 2252 })).toBe('crop=319:56:61:2196')
+  })
+})
+
+describe('the server page source', () => {
+  // The platform dump cuts every node at the bottom of the app's area (the server's root says
+  // height="2245"), so a row drawn behind the gesture bar has no area there. The server gives the
+  // bounds on screen, whole.
+  const APP_AREA_BOTTOM = 2245
+  const cutToAppArea = (nodes: UiNode[]) => nodes.map((n) => ({ ...n, bounds: { ...n.bounds, bottom: Math.min(n.bounds.bottom, APP_AREA_BOTTOM) } }))
+  const labelledBounds = (nodes: UiNode[]) => summaryLine(nodes).split(' | ').map((label) => [label, findByLabel(nodes, label).node?.bounds])
+
+  it.each([
+    ['the idle map', 'server-map-idle.xml', 'ui-map-idle.xml'],
+    ['a list', 'server-trails-owner.xml', 'ui-trails-owner.xml'],
+    ['the picker', 'server-picker-gpx.xml', 'ui-picker-gpx.xml'],
+  ])('reads %s with the labels and bounds of a platform dump of the same screen', (_, server, platform) => {
+    const fromServer = cutToAppArea(parseUiDump(fixture(server)))
+    const fromPlatform = parseUiDump(fixture(platform))
+    expect(fromServer.length).toBeGreaterThan(0)
+    expect(summaryLine(fromServer)).toBe(summaryLine(fromPlatform))
+    expect(labelledBounds(fromServer)).toEqual(labelledBounds(fromPlatform))
+  })
+
+  it('gives the bounds of a row behind the gesture bar, which a platform dump leaves without area', () => {
+    const row = (xml: string) => findByLabel(parseUiDump(fixture(xml)), 'devcheck-climb.gpx').node?.bounds
+    expect(row('server-picker-gpx.xml')).toEqual({ left: 216, top: 2321, right: 596, bottom: 2379 })
+    expect(row('ui-picker-gpx.xml')).toBeUndefined()
+  })
+
+  it('names elements by widget class and keeps the class', () => {
+    const nodes = parseUiDump(fixture('server-map-idle.xml'))
+    expect(findByLabel(nodes, 'Start recording').node?.className).toBe('android.view.ViewGroup')
+    expect(nodes.some((n) => n.className === 'hierarchy')).toBe(false)
   })
 })
 

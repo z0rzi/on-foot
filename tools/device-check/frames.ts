@@ -8,7 +8,7 @@ import { requireForeground } from './screen'
 
 // A screenshot burst for what moves (a sheet opening, the camera easing). The app in front is
 // checked before and after; a burst that ends on another app is deleted, as it may hold that app.
-export async function frames(name: string, count: number, everyMs: number): Promise<void> {
+export async function frames(name: string, count: number, everyMs: number): Promise<string> {
   checkBurst(count, everyMs)
   await requireForeground()
   const dir = evidenceDir()
@@ -33,6 +33,8 @@ export async function frames(name: string, count: number, everyMs: number): Prom
   }
   const strip = join(dir, `${base}.strip.png`)
   const failure = ffmpeg(stripArgs(files, strip))
-  console.log(failure ? `no strip (${failure}); frames: ${files.join(' ')}` : `read: ${strip}`)
-  console.log(`frames at ${times.map((t) => `${(t / 1000).toFixed(2)} s`).join(', ')} (${count} in ${join(dir, `${base}.frame-NN.png`)})`)
+  return [
+    failure ? `no strip (${failure}); frames: ${files.join(' ')}` : `read: ${strip}`,
+    `frames at ${times.map((t) => `${(t / 1000).toFixed(2)} s`).join(', ')} (${count} in ${join(dir, `${base}.frame-NN.png`)})`,
+  ].join('\n')
 }

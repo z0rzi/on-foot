@@ -5,7 +5,7 @@ import { buildRoute, type Route } from './geometry'
 import { parseGpxPoints } from './gpx'
 import { fixIntake } from './screen'
 import { fixIntentExtras, nextFixAt, parsePace, planJump, planMove, type Fix, type Place } from './walkPlan'
-import { acquireMove, clearWalk, readMemory, releaseMove, runningMove, updateMemory } from './walkStore'
+import { acquireMove, clearWalk, readMemory, releaseMove, runningMove, updateMemory } from './phoneStore'
 
 const MOCK_PACKAGE = 'io.appium.settings'
 const MOCK_SERVICE = `${MOCK_PACKAGE}/.LocationService`
@@ -70,12 +70,12 @@ function target(id: string, markArg: string, options: MoveOptions): Target {
   }
 }
 
-async function holdingThePhone(body: (id: string) => Promise<void>): Promise<void> {
+async function holdingThePhone(body: (id: string) => Promise<string>): Promise<string> {
   const id = await serial()
   acquireMove(id)
   try {
     await preflight()
-    await body(id)
+    return await body(id)
   } finally {
     releaseMove(id)
   }
@@ -83,19 +83,19 @@ async function holdingThePhone(body: (id: string) => Promise<void>): Promise<voi
 
 const describePlace = (p: Place) => `${Math.round(p.mark)} m${p.offset !== 0 ? `, ${p.offset} m off the route` : ''}`
 
-export function walkJump(markArg: string, options: MoveOptions): Promise<void> {
+export function walkJump(markArg: string, options: MoveOptions): Promise<string> {
   return holdingThePhone(async (id) => {
     const t = target(id, markArg, options)
     await refuseJumpWhileTakingFixes('a jump')
     await sendFix(planJump(t.route, t.to, t.accuracy))
     updateMemory(id, { walk: { route: t.routePath, ...t.to } })
-    console.log(`jumped to ${describePlace(t.to)}, standing`)
+    return `jumped to ${describePlace(t.to)}, standing`
   })
 }
 
 // Sends the move's fixes a second apart. The mark advances only once a fix is sent, so a lost
 // phone stops the walk where the phone last stood instead of skipping ahead.
-export function walkTo(markArg: string, pace: string | undefined, options: MoveOptions): Promise<void> {
+export function walkTo(markArg: string, pace: string | undefined, options: MoveOptions): Promise<string> {
   const speed = parsePace(pace)
   return holdingThePhone(async (id) => {
     const t = target(id, markArg, options)
@@ -135,11 +135,10 @@ export function walkTo(markArg: string, pace: string | undefined, options: MoveO
     process.off('SIGINT', stop)
     if (stopping) {
       if (last && last.speed !== null) await sendFix({ ...last, speed: null, bearing: null })
-      console.log(`stopped at ${last ? describePlace(last) : describePlace(from)}, standing`)
       process.exitCode = 130
-      return
+      return `stopped at ${last ? describePlace(last) : describePlace(from)}, standing`
     }
-    console.log(`reached ${describePlace(t.to)} in ${Math.round((Date.now() - started) / 1000)} s (${fixes.length} fixes at ${speed} m/s), standing`)
+    return `reached ${describePlace(t.to)} in ${Math.round((Date.now() - started) / 1000)} s (${fixes.length} fixes at ${speed} m/s), standing`
   })
 }
 
@@ -147,17 +146,19 @@ async function mockRunning(): Promise<boolean> {
   return (await shell(`dumpsys activity services ${MOCK_PACKAGE}`)).includes('LocationService')
 }
 
-export async function walkStatus(): Promise<void> {
+export async function walkStatus(): Promise<string> {
   const id = await serial()
   const { walk } = readMemory(id)
   const pid = runningMove(id)
-  console.log(walk ? `route: ${walk.route}\nat: ${describePlace(walk)}` : 'route: none')
-  console.log(`moving: ${pid !== null ? `yes (pid ${pid})` : 'no'}`)
-  console.log(`mock: ${(await mockRunning()) ? 'on, the phone stands on the last fix sent' : 'off, the phone is on real GPS'}`)
+  return [
+    walk ? `route: ${walk.route}\nat: ${describePlace(walk)}` : 'route: none',
+    `moving: ${pid !== null ? `yes (pid ${pid})` : 'no'}`,
+    `mock: ${(await mockRunning()) ? 'on, the phone stands on the last fix sent' : 'off, the phone is on real GPS'}`,
+  ].join('\n')
 }
 
 // A move still running may be another agent's: stopping it takes --force.
-export async function walkStop(force: boolean): Promise<void> {
+export async function walkStop(force: boolean): Promise<string> {
   const id = await serial()
   const pid = runningMove(id)
   if (pid !== null && !force) throw new Error(`a walk is moving (pid ${pid}), maybe another agent's: \`walk stop --force\` stops it`)
@@ -170,5 +171,5 @@ export async function walkStop(force: boolean): Promise<void> {
   const out = await shell(`am stopservice ${MOCK_SERVICE} 2>&1; true`)
   if (!/Service stopped|was not running/.test(out)) throw new Error(`could not stop the mock: ${out.trim()}`)
   clearWalk(id)
-  console.log('mock stopped: the phone is back on real GPS')
+  return 'mock stopped: the phone is back on real GPS'
 }

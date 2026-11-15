@@ -1,0 +1,10 @@
+11-14 20:26:11.331 I/OplusHansManager ( 1860): unfreeze uid: 10277 io.appium.uiautomator2.server pids: [30503] reason: AsyncBinder scene: LcdOn
+11-14 20:26:11.337 I/OplusHansManager ( 1860): uid=10277, pkg=io.appium.uiautomator2.server, transition from Frozen to Middle, reason=AsyncBinder
+11-14 20:26:11.338 I/OplusHansManager ( 1860): uid=10277, pkg=io.appium.uiautomator2.server F exit(), F stay=1, reason=AsyncBinder
+11-14 20:26:21.358 I/OplusHansManager ( 1860): uid=10277, pkg=io.appium.uiautomator2.server can transition from M to F
+11-14 20:26:21.358 I/OplusHansManager ( 1860): uid=10277, pkg=io.appium.uiautomator2.server F enter(), M stay=10
+11-14 20:26:21.363 I/OplusHansManager ( 1860): freeze uid: 10277 io.appium.uiautomator2.server pids: [30503] scene: LcdOn
+11-14 20:26:26.527 I/OplusHansManager ( 1860): unfreeze uid: 10277 io.appium.uiautomator2.server pids: [30503] reason: AsyncBinder scene: LcdOn
+11-14 20:26:26.528 I/OplusHansManager ( 1860): uid=10277, pkg=io.appium.uiautomator2.server, transition from Frozen to Middle, reason=AsyncBinder
+11-14 20:38:50.987 I/OplusHansManager ( 1860): uid=10277, pkg=io.appium.uiautomator2.server M exit SM
+11-14 20:38:50.987 I/OplusHansManager ( 1860): uid=10277, pkg=io.appium.uiautomator2.server M exit(), M stay=0
