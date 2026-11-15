@@ -29,3 +29,12 @@ asked), and whether the pause has effects of its own. The debug log's `map app a
 `heading watch` off and on that follow app-state changes are where to look. The system's
 `lost permission to set exact alarms!` line at the same install is unrelated: the app declares no
 exact-alarm permission, and the system writes that line on a package replace.
+
+## Comments
+
+> *Comment written by an AI agent.*
+
+Seen again on 2026-11-15 in the T-95 runtime spike (`.scratch/device-checks/2026-11-15-t95-runtime/`,
+release builds of master and of `spike/t95-runtime`): the permission screen flashed briefly on
+**every** resume of the app, not now and then. That is consistent with `useLocationPermission`
+asking again on each map mount. The owner asked for it to be tracked (2026-11-15).
