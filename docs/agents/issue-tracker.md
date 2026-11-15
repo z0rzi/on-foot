@@ -90,7 +90,7 @@ the ticket check (`src/architecture/markdownItems.ts`).
 
 An **idea** is a ticket with `category: idea`: a parked wish of the owner's or an agent's, not
 committed work. It has no severity, no size and no triage, and nobody is waiting on it. It lives in
-its area folder like any ticket so that the read-all rule catches a new finding that is really an
+its area folder like any ticket so that the ticket scan catches a new finding that is really an
 existing idea. It leaves that state one of three ways: **promoted** — its category becomes
 `enhancement` (or whatever it is) and it gets triaged; a feature-sized one goes to a spec and the
 ticket points at it; **dropped** — its file is deleted; or it sits. An idea never carries a triage
@@ -98,9 +98,10 @@ role: the test refuses the combination.
 
 ## When a skill says "publish to the issue tracker"
 
-For internal work, first read every file under `docs/tickets/`: it is a short tree, and reading all
-of it is how you notice that a new finding is an existing ticket's defect class, duplicates one, or
-is an idea already parked. Then create `docs/tickets/<area>/T-<n>-<slug>.md` with the next number (highest ever issued plus
+For internal work, first run the `scan-tickets` skill on the new finding: it reads the whole
+worklist and reports whether the finding is an existing ticket's defect class, duplicates one, is
+an idea already parked, collides with one or folds into one, and you put that to the owner. Then
+create `docs/tickets/<area>/T-<n>-<slug>.md` with the next number (highest ever issued plus
 one, see above). A ticket batch is one file per ticket, never a combined file. For an outside report, see
 **Outside reports** below.
 
@@ -151,8 +152,9 @@ on `ticket/T-n` as before. Either branch lands on `master` squashed into one com
 
 ## When a skill says "fetch the relevant ticket"
 
-Read `docs/tickets/*/T-<n>-*.md`. If it came from a review, also read that finding's row in the
-authoritative report for the full evidence. An outside report is read with
+Read `docs/tickets/*/T-<n>-*.md`, and run the `scan-tickets` skill on it before its work starts.
+If it came from a review, also read that finding's row in the authoritative report for the full
+evidence. An outside report is read with
 `gh issue view <n> --comments`.
 
 ## Triage state
@@ -214,12 +216,12 @@ would also make internal hygiene work the repo's front door: a public activity f
 notification stream dominated by `DEAD-2` opening and closing, which is the first thing a future
 user would see.
 
-**One folder, read end to end, resists duplication.** An agent adding to the worklist reads every
-open ticket first, which is how it knows `ERR-6` is `ERR-3`'s defect class and that `DOC-5` pairs
-with `ARCH-4`. An issue board offers a paginated list of titles; knowing whether something is
+**One folder, read end to end, resists duplication.** An agent adding to the worklist or taking a
+ticket from it has every open ticket read first (the `scan-tickets` skill), which is how it knows
+`ERR-6` is `ERR-3`'s defect class and that `DOC-5` pairs with `ARCH-4`. An issue board offers a paginated list of titles; knowing whether something is
 already filed means querying and reading. The worklist was one file until 2026-10-26; it was split
-into a file per ticket so the owner can see and filter it as an Obsidian base, and the read-all
-rule above keeps the property the single file gave. On 2026-11-06 the tickets moved from
+into a file per ticket so the owner can see and filter it as an Obsidian base, and the ticket
+scan keeps the property the single file gave. On 2026-11-06 the tickets moved from
 `docs/reviews/open-work/` into a folder per area under `docs/tickets/`, and the ID prefixes went:
 the prefix had encoded who raised a ticket and which review kind it was, which is now `origin` and
 `category`, and it was the only grouping the flat folder offered, which the area folder does
