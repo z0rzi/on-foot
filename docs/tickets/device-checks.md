@@ -160,8 +160,11 @@ prefix; see `README.md`.
   appearing only after a recording that was running at launch ends, since every row on the phone is
   backfilled now and a pass finds nothing to log either way.
 - **The overview's lines** (overview-on-map 03, [[2026-11-11-overview-on-map-design]] D103–D107,
-  D127, D138) were checked on the device on 2026-11-12, release build. Owed to the owner: the hues of
-  `trailLine` and `activityLine` and the zoom range, both still to tune. Unobserved: the exact fade
+  D127, D138) were checked on the device on 2026-11-12, release build. The owner kept `trailLine`
+  purple and set `activityLine` to one pink in both themes (2026-11-15; teal was lost among the
+  map's greens and blues). Owed to the owner: pink and purple told apart side by side outdoors, on
+  Satellite above all (fallback if they blur: a white casing on overview activity lines), and the
+  zoom range, still to tune. Unobserved: the exact fade
   zooms (`overviewLineZoomFrom` 10 to 11; a release build shows no zoom), a saved trail showing
   within half a second (the debug log has a one-second grain, and the new trail opens selected, its
   plain line under its full dress), and at most two `overview-lines-*.json` in `files/overview/`
