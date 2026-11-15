@@ -37,19 +37,22 @@ Report those as `owner to verify` and never claim them.
 3. **Run them.** Make the data and movement each check needs: create test activities and fake
    walks freely, since a check run on whatever data happens to be on the phone proves little.
    Wait on events (a label named with `tap --until` or `wait-for`, a walk's own return), and run
-   anything longer than a minute in the background so the harness tells you when it ends. Done
-   when every check has a verdict.
+   anything longer than a minute in the background so the harness tells you when it ends. While a
+   long wait runs (a walk, a time the claim sets, an app timer), run the checks it does not
+   disturb. Done when every check has a verdict.
 4. **Clean up.** With no recording running, `devcheck cleanup` deletes every `DEVCHECK` activity
    and trail on the phone, so run it once every check is done, and names any it could not (delete
-   those by hand, see Test activities). It then goes back to the map and stops the reader (The
-   toolkit) unless a walk moves, and says both. Then `devcheck walk stop` (`--force` if your own
-   walk still moves). Done when `cleanup` reports nothing left and `back on the map`, and
+   those by hand, see Test activities). It then goes back to the map and, unless a walk moves,
+   stops the reader and the recorder (The toolkit) and copies the capture into the evidence folder
+   as `NN-app-log.txt`, and says each. Then `devcheck walk stop` (`--force` if your own walk still
+   moves). Done when `cleanup` reports nothing left, `back on the map` and the capture's path, and
    `walk status` says the mock is off.
 5. **Report.** Per check: verdict `verified` | `failed` (what contradicted it) | `owner to verify`
    (feel) | `unobservable` (why) | `blocked` (what stopped you), then the evidence: what you did,
    what you saw (on-screen text and log entries quoted verbatim), file paths. Then **Other
    observations**: anything odd seen in passing, with evidence. Then the state you left the phone
-   in, including whether it may still stand on a fake position and whether the reader still runs.
+   in, including whether it may still stand on a fake position and whether the reader and the
+   recorder still run.
 
 ## Rules
 
@@ -97,7 +100,7 @@ Report those as `owner to verify` and never claim them.
 | `import-gpx <file> [--difficulty Easy\|Medium\|Hard]` | pushes a `DEVCHECK` GPX and imports it through the app's picker |
 | `save-activity <name> [--effort Easy\|Moderate\|Hard\|Max]` | pauses, stops, names and saves the recording |
 | `delete trail\|activity '<name>'` | deletes one `DEVCHECK ` item through its list, confirming only a dialog that names it |
-| `cleanup` | deletes every `DEVCHECK ` activity, then trail; prints what it deleted and what it could not; goes back to the map and stops the reader |
+| `cleanup` | deletes every `DEVCHECK ` activity, then trail; prints what it deleted and what it could not; goes back to the map, stops the reader and the recorder, and copies the capture into the evidence folder |
 | `labels` | the labels on screen in one line and the time the read took; no file, no screenshot |
 | `shot <name>` | screenshot, half-width copy, dump and the same labels line |
 | `frames <name> --count N --every MS` | N screenshots (2 to 10) MS apart, as one half-width strip, with each frame's time |
@@ -109,8 +112,9 @@ Report those as `owner to verify` and never claim them.
 | `zoom in\|out [--at X,Y] [--steps N]` | two-finger pinch about a point (default the screen centre) |
 | `wait-for <label> [--gone] [--timeout S]` | waits for a label to appear or go, prints the time waited |
 | `build-has <string>` | whether the installed JS bundle holds the string |
+| `log [--area AREA]...` | the debug log's entries recorded since the check's first command, every process, oldest first, a header line opening each process and the gaps in place, then the capture's path; `--area` keeps one area (repeat it) |
 | `native-errors` | Mapbox source/layer, `ReactNativeJS` and FATAL lines since the app's process started, positions redacted; exits 1 on any |
-| `do '<step>'...` | runs steps in order in one command, each a quoted command line (`tap`, `wait-for`, `labels`, `shot`, `frames`, `crop`, `zoom`, `scroll`, `back`, `type`), each under a `[n/N]` header; every step is checked before the first runs, and the first failure ends the list with that step's exit code and the count not run |
+| `do '<step>'...` | runs steps in order in one command, each a quoted command line (`tap`, `wait-for`, `labels`, `shot`, `frames`, `crop`, `zoom`, `scroll`, `back`, `type`, `log`), each under a `[n/N]` header; every step is checked before the first runs, and the first failure ends the list with that step's exit code and the count not run |
 
 Evidence lands in `.scratch/device-checks/<YYYY-MM-DD>/`, numbered in order.
 
@@ -121,13 +125,21 @@ answer (`reader … started in N s` on stderr; a restart mid-check is worth a li
 when it repeats), and `cleanup` stops it. One reader serves every worktree. A reader that is
 missing or at another version fails pointing at Phone setup: `blocked`.
 
+Every command but `route`, `cleanup`, `walk status` and `walk stop` first makes sure the
+**recorder** runs (`recorder started in N s` on stderr): a process on the host that copies the
+app's debug-log entries from logcat into the **capture**, a plain file, from up to ten minutes
+before its start (what logcat's buffer still holds of them) to `cleanup`, every process of the
+app, and on again after the phone drops off. One recorder serves every worktree, and `cleanup` stops it. A recorder
+that died fails the next command with its cause (`the recorder stopped: …`) and the one after
+starts it again: the capture holds nothing between the two, so say so in the report.
+
 ### Looking and driving
 
 Look with `labels`, act with `tap --until`, batch with `do`. A tap returns once its outcome is on
 screen, so the next command follows it straight away; what you wait for is a label, named.
 
 - **Look with `labels`.** It prints the `text` and `content-desc` of everything on screen, and the
-  time the read took. Text is read there: a card's figures, a dialog, a list, the debug log. A
+  time the read took. Text is read there: a card's figures, a dialog, a list. A
   `shot` is for a claim about pixels (what is drawn, where, in which colour): it writes the same
   labels line beside a screenshot; read the `.half.png` it names (about a third of a full
   screenshot's tokens), and `crop` the shot to one control for a closer look.
@@ -160,13 +172,19 @@ screen, so the next command follows it straight away; what you wait for is a lab
   finds in `getevent -pl`, scaled to that panel's own ranges; `--steps` sets how many moves.
 - **Scroll with `scroll down` and `scroll up`.** Each drags the largest list on screen by a third
   of its height and waits for it to settle, so the rows it prints overlap the ones before and none
-  is skipped; at the end of a list the rows stay those of the scroll before. A long read, such as
-  the debug log, is one `do` list of `scroll down` steps. The labels line gives every row's text,
-  a detail repeated by many rows too.
+  is skipped; at the end of a list the rows stay those of the scroll before. A long read is one
+  `do` list of `scroll down` steps. The labels line gives every row's text, a detail repeated by
+  many rows too.
 - **Raw input, for what the toolkit lacks**: the app switcher (Rules), and `input keyevent 224`
   then `wm dismiss-keyguard` when the screen is off. If a PIN is asked, stop and report it.
-- **The debug log is the first evidence for app behaviour.** The build is not debuggable (no
-  `run-as`), so read it in the app with `labels`: map card → **Settings** → **Debug log**.
+- **The debug log is the first evidence for app behaviour: read it with `devcheck log`, or Read
+  and grep the capture whose path `log` prints.** One entry per line, `<time> <pid> <level> <area>
+  <message> <detail>`, positions redacted, so a grep line is evidence on its own; a line starting
+  `--- ` is a gap (the phone or the recorder was away, and entries of that time may be missing)
+  or, in `log`, a process header. `--area` narrows `log`, and its header says when the recording
+  began; for an older entry, or a build that predates the mirror (`log` says so), read the log in
+  the app with `labels`: map card → **Settings** → **Debug log** (the build is not debuggable, so
+  there is no `run-as` to pull its database).
 - **Native side.** `devcheck native-errors` first. For more, `adb logcat -d -v time`
   (`ReactNativeJS` carries `console.log` from the release build, plus `Mapbox` and
   `AndroidRuntime`). Process deaths and their reasons:

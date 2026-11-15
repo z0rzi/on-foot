@@ -27,6 +27,15 @@ go through their own serial queue, not the recording chain's, so a log write nev
 recording turn or holds one up — and entries still land in the order they were logged. A failed
 write is swallowed; the next entry still gets its turn.
 
+Each entry is also mirrored to logcat as it is logged, before its write settles: one line under
+`ReactNativeJS`, the mark `OnFootLog` then the entry as JSON (`logcatLine`, written by
+`toLogcat` in `src/log/logcatSink.ts`, which Jest mocks globally in `jest.setup.js`). The mirror
+is how a device check reads the log: the toolkit's recorder copies it from logcat into a file on
+the host, the capture, for the whole of a check, and `devcheck log` reads that file
+(`tools/device-check/appLog.ts` parses the mirror, held to the writer by a cross-check test;
+`capture.ts` holds the capture's format). Only adb and the system read logcat, and an entry holds
+no coordinate (below), so the mirror shows nothing the Share export does not.
+
 ## Areas
 
 - **`recording`** — the recording lifecycle: start, pause, resume, segment boundaries, discard,
@@ -266,6 +275,14 @@ fit. Because a log holds up to 7 days, every exported line is dated — `MM-DD H
 of on every row. One chip per area filters the viewer (all on when the screen opens, not
 persisted); Share ignores the filter and exports every entry. Clear empties the table after
 confirmation.
+
+Over adb, `logcat -s ReactNativeJS` holds the mirror: every process of the app since logcat's
+buffer began (about 45 s at the default 256 KiB on the owner's phone, which its location and
+sensor services fill), nothing from before a reboot, and an entry past about 4 KB (a long stack)
+cut short. A device check keeps it longer through the recorder's capture, from up to ten minutes
+before its first command to its `cleanup`, which copies the capture into the check's evidence
+folder. Clear empties the table,
+not logcat.
 
 ## Known limits
 

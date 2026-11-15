@@ -12,7 +12,7 @@ import {
   readerState,
   createdSession,
 } from './readerState'
-import { releaseReaderStart, tryReaderStart } from './phoneStore'
+import { underStartLock } from './phoneStore'
 
 // The reader answers HTTP on the phone's port, reached through an adb forward of the same port on
 // the host. One server per phone, shared by every worktree.
@@ -130,22 +130,13 @@ async function ensureRunning(serial: string): Promise<void> {
   const first = await state(serial)
   if (first.kind === 'running') return
   if (first.kind === 'other-version') throw otherVersionRunning(first.version)
-  const waitedFrom = Date.now()
-  let holder = tryReaderStart(serial)
-  while (holder !== null) {
-    if (Date.now() - waitedFrom > START_TIMEOUT_MS * 2) throw new Error(`another toolkit run (pid ${holder}) has been starting the reader for too long`)
-    await sleep(START_POLL_MS)
-    holder = tryReaderStart(serial)
-  }
-  try {
+  await underStartLock(serial, 'reader', START_TIMEOUT_MS * 2, async () => {
     const now = await state(serial)
     if (now.kind === 'running') return
     if (now.kind === 'other-version') throw otherVersionRunning(now.version)
     await start(now.kind === 'suppressing' ? 'was suppressing accessibility services' : 'was not answering')
     servicesChecked = true
-  } finally {
-    releaseReaderStart(serial)
-  }
+  })
 }
 
 let session: string | null = null

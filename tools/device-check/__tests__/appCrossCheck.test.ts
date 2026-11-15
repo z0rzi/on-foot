@@ -2,8 +2,11 @@ import { haversineMeters } from '../../../src/data/geo/metrics'
 import { buildElevationProfile } from '../../../src/elevation/profile'
 import { NO_PROGRESS, indexTrail, stepAlongTrail } from '../../../src/elevation/trailProgress'
 import type { LocationFix } from '../../../src/location'
+import { logcatLine } from '../../../src/log/logcatLine'
 import { gateFixes } from '../../../src/recording/fixGate'
 import { RECORDING_OPTIONS } from '../../../src/recording/options'
+import { appLogEntries } from '../appLog'
+import { captureLine, parseCapture } from '../capture'
 import { buildRoute, destination, type RoutePoint } from '../geometry'
 import { PACES, planJump, planMove, type Fix } from '../walkPlan'
 
@@ -74,4 +77,14 @@ it('records fast walks about 16 m apart', () => {
   const { points } = recordWalk(PACES.fast)
   const gaps = points.slice(1, 15).map((p, i) => haversineMeters(points[i].lat, points[i].lng, p.lat, p.lng))
   for (const gap of gaps) expect(gap).toBeCloseTo(16, 0)
+})
+
+describe("the toolkit's reading of the app's debug-log mirror", () => {
+  it("reads back what the app's writer puts in logcat, through the capture too", () => {
+    const line = logcatLine({ t: 1_763_194_321_640, level: 'info', area: 'map', message: 'heading watch', detail: '{"on":false}' })
+    const entry = { time: '11-15 09:12:01.640', pid: 21603, area: 'map', text: 'info map heading watch {"on":false}' }
+    const read = appLogEntries(`11-15 09:12:01.640 21603 21650 I ReactNativeJS: ${line}`)
+    expect(read).toEqual([entry])
+    expect(parseCapture(read.map(captureLine).join('\n'))).toEqual([{ kind: 'entry', entry }])
+  })
 })

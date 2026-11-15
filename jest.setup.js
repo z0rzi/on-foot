@@ -8,3 +8,5 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   getAllKeys: jest.fn(),
   clear: jest.fn(),
 }))
+
+jest.mock('./src/log/logcatSink')

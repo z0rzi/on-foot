@@ -10,7 +10,7 @@ import type { MoveOptions } from './walk'
 export class UsageError extends Error {}
 
 // The commands a `do` list may hold.
-export const STEPS = ['tap', 'wait-for', 'labels', 'shot', 'frames', 'crop', 'zoom', 'scroll', 'back', 'type']
+export const STEPS = ['tap', 'wait-for', 'labels', 'shot', 'frames', 'crop', 'zoom', 'scroll', 'back', 'type', 'log']
 
 export const USAGE = `devcheck <command>
 
@@ -28,7 +28,8 @@ export const USAGE = `devcheck <command>
                                   pause, stop, name (DEVCHECK prefixed) and save the recording
   delete trail|activity <name>    delete one DEVCHECK item through its list, confirming only a dialog naming it
   cleanup                         delete every DEVCHECK activity, then trail; prints what it deleted and what not;
-                                  then goes back to the map and stops the reader unless a walk moves
+                                  then goes back to the map and, unless a walk moves, stops the reader and the
+                                  recorder and copies the capture into the evidence folder
   labels                          the labels on screen in one line, and the time the read took; no file
   shot <name>                     screenshot NN-name.png, a half-width copy to read, dump and labels
   frames <name> --count N --every MS
@@ -48,6 +49,8 @@ export const USAGE = `devcheck <command>
   wait-for <label> [--gone] [--timeout S]
                                   wait for a label or text to appear (or go); prints the time waited
   build-has <string>              whether the installed JS bundle contains the string
+  log [--area AREA]...            the app's debug-log entries recorded since the check's first command, every
+                                  process, oldest first, then the capture's path; --area keeps one area (repeat it)
   native-errors                   Mapbox layer/source, ReactNativeJS and FATAL lines from logcat since
                                   On Foot's process started, positions redacted; exits 1 on any
   do <step>...                    run the steps in order, one quoted command line each, all read before the first
@@ -75,7 +78,14 @@ export type Command =
   | { command: 'zoom'; direction: 'in' | 'out'; at: { x: number; y: number } | undefined; steps: number }
   | { command: 'wait-for'; label: string; gone: boolean; timeoutS: number }
   | { command: 'build-has'; text: string }
+  | { command: 'log'; areas: string[] }
   | { command: 'native-errors' }
+
+// A command that reaches the phone starts the recorder first, so a check is recorded from its first
+// command. `route` touches no phone; `cleanup` stops the recorder, and a dead one's failure is
+// reported there, not in the way; `walk status` and `walk stop` close a check after it.
+const LEAVE_THE_RECORDER = new Set<Command['command']>(['route', 'cleanup', 'walk-status', 'walk-stop'])
+export const startsTheRecorder = ({ command }: Command) => !LEAVE_THE_RECORDER.has(command)
 
 const num = (value: string | undefined, name: string): number | undefined => {
   if (value === undefined) return undefined
@@ -232,6 +242,11 @@ export function parseCommand(argv: string[]): Command {
       return { command: 'wait-for', label: exactly(positionals, 1, 'wait-for <label>')[0], gone: values.gone, timeoutS: num(values.timeout, 'timeout') ?? 20 }
     }
     case 'build-has': return { command: 'build-has', text: exactly(args, 1, 'build-has <string>')[0] }
+    case 'log': {
+      const { values, positionals } = options(args, { area: { type: 'string', multiple: true, default: [] } })
+      exactly(positionals, 0, 'log [--area AREA]...')
+      return { command: 'log', areas: values.area }
+    }
     case 'native-errors':
       exactly(args, 0, 'native-errors with no arguments')
       return { command: 'native-errors' }

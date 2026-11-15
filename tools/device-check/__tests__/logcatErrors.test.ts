@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { nativeErrors, redactPositions } from '../logcatErrors'
+import { redactPositions } from '../logcat'
+import { nativeErrors } from '../logcatErrors'
 
 const logcat = readFileSync(join(__dirname, '..', 'fixtures', 'logcat-threadtime.txt'), 'utf8')
 

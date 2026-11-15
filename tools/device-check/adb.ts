@@ -15,7 +15,7 @@ function resolveAdb(): string {
 }
 
 let adbPath: string | null = null
-const adbBinary = () => (adbPath ??= resolveAdb())
+export const adbBinary = () => (adbPath ??= resolveAdb())
 
 export class PhoneGone extends Error {
   constructor() {

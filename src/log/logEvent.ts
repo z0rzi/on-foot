@@ -1,6 +1,8 @@
 import { createSerialQueue } from '../async/serialQueue'
 import { LogArea, LogLevel, logRepository } from '../data/log'
 import { encodeDetail } from '../data/log/mapping'
+import { logcatLine } from './logcatLine'
+import { toLogcat } from './logcatSink'
 
 // The log's own queue, not the recording chain's: a log write must never wait behind a recording
 // turn, nor hold one up.
@@ -14,6 +16,7 @@ export function logEvent(
   detail?: Record<string, unknown>,
 ): void {
   const entry = { t: Date.now(), level, area, message, detail: encodeDetail(detail) }
+  toLogcat(logcatLine(entry))
   pending = queue(() => logRepository.append(entry)).catch(() => {})
 }
 

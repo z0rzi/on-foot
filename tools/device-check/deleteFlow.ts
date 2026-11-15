@@ -6,6 +6,7 @@ import { backLanded, deleteDialog, dialogStill, ENTITY, listRows, listShown, MAP
 import { pollScreen, swipe, tap, tapAt, waitFor } from './look'
 import type { ScrollDirection } from './scrollPlan'
 import { stopReader } from './reader'
+import { stopRecorder } from './recorder'
 import { openInApp, refuseWhileMoving, refuseWhileRecording, requireOnFoot } from './screen'
 import { screenAgrees } from './settled'
 import { reached } from './tapOutcome'
@@ -117,8 +118,8 @@ async function backToMap(): Promise<void> {
   throw new Error(`the map did not come back after ${MAX_BACKS} presses of back`)
 }
 
-// Every DEVCHECK activity, then trail, through `delete`, then back to the map, and the reader is
-// stopped unless a walk moves. True when nothing was left behind and the map is in front.
+// Every DEVCHECK activity, then trail, through `delete`, then back to the map, and the reader and
+// then the recorder are stopped unless a walk moves. True when nothing was left behind and the map is in front.
 export async function cleanup(): Promise<boolean> {
   const id = await serial()
   refuseWhileMoving(id, 'cleanup')
@@ -160,8 +161,11 @@ export async function cleanup(): Promise<boolean> {
   if (walker === null) {
     await stopReader()
     console.log('reader stopped')
+    const { kept, failure } = await stopRecorder(id)
+    console.log(failure === null ? 'recorder stopped' : `recorder stopped; it had died before: ${failure}`)
+    console.log(kept === null ? 'no capture to keep' : `capture: ${kept}`)
   } else {
-    console.log(`reader left running: a walk is moving (pid ${walker})`)
+    console.log(`reader and recorder left running: a walk is moving (pid ${walker})`)
   }
   return left.length === 0 && onMap
 }

@@ -2,12 +2,16 @@ jest.mock('../../data/log', () => ({ logRepository: { append: jest.fn() } }))
 
 import { logRepository } from '../../data/log'
 import { flushLog, logEvent } from '../logEvent'
+import { logcatLine } from '../logcatLine'
+import { toLogcat } from '../logcatSink'
 
 const append = jest.mocked(logRepository.append)
+const logcat = jest.mocked(toLogcat)
 
 describe('logEvent', () => {
   beforeEach(() => {
     append.mockReset()
+    logcat.mockReset()
     append.mockResolvedValue(undefined)
   })
 
@@ -74,6 +78,17 @@ describe('logEvent', () => {
 
     expect(append).toHaveBeenCalledTimes(2)
     expect(append).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'survivor' }))
+  })
+
+  it('mirrors the entry to logcat as it is logged, before the repository write settles', () => {
+    jest.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000)
+    append.mockReturnValue(new Promise(() => {}))
+    logEvent('warn', 'capture', 'stream refused', { reason: 'location-off' })
+
+    expect(logcat).toHaveBeenCalledTimes(1)
+    expect(logcat).toHaveBeenCalledWith(
+      logcatLine({ t: 1_700_000_000_000, level: 'warn', area: 'capture', message: 'stream refused', detail: '{"reason":"location-off"}' }),
+    )
   })
 
   it('returns nothing, so no caller can await it', () => {

@@ -224,3 +224,10 @@ prefix; see `README.md`.
   swapped for the progress bar while a download runs; the activity card's name and ⋮, the effort
   badge with the date beside it, and its five tiles; the save-activity form's three tiles; the
   Activities list's ⋮ menu opening and deleting.
+- **The app-log capture** ([[2026-11-15-app-log-capture-design]]) was checked on the device on
+  2026-11-15: a recorder started 1.5 min after a launch holds it; a kill and relaunch 2 min later
+  shows both processes; an unplug and replug leaves one gap marker, no line twice, entries after
+  it, and `logcat -T` takes its spaced time as one argument; a 15-minute walk with a recording,
+  about 62 logcat lines a second, leaves the capture holding the launch 35 minutes back; `cleanup`
+  leaves no recorder and no `adb logcat`, and keeps `NN-app-log.txt`. Unobserved: a span of over an
+  hour, and a capture that cannot be written failing the next command with its cause.

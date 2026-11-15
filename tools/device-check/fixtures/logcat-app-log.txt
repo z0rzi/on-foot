@@ -1,0 +1,9 @@
+--------- beginning of main
+11-15 09:12:01.101 21603 21603 I ReactNativeJS: Running "main"
+11-15 09:12:01.640 21603 21650 I ReactNativeJS: OnFootLog {"t":1763194321640,"level":"info","area":"launch","message":"cold start","detail":{"appVersion":"1.0.0"}}
+11-15 09:12:02.010 21603 21650 I ReactNativeJS: OnFootLog {"t":1763194322010,"level":"info","area":"map","message":"launch camera","detail":null}
+11-15 09:12:02.300 21603 21650 I ReactNativeJS: a console.log of the app that is not an entry
+11-15 09:12:02.410 1860 1860 I OplusHansManager: OnFootLog {"t":1,"level":"info","area":"map","message":"another tag","detail":null}
+11-15 09:14:30.200 21603 21650 I ReactNativeJS: OnFootLog {"t":1763194470200,"level":"error","area":"error","message":"uncaught error","detail":{"message":"boom","stack":"Error: boom\n    at f (index.bundle:1:2)
+11-15 09:15:05.700 23111 23111 I ReactNativeJS: Running "main"
+11-15 09:15:06.120 23111 23160 I ReactNativeJS: OnFootLog {"t":1763194506120,"level":"warn","area":"recording","message":"fix batch write failed","detail":{"class":"SQLiteError","near":"43.60445, 1.44345"}}

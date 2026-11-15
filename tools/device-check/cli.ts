@@ -1,6 +1,6 @@
-import { lastSerial, PhoneGone } from './adb'
+import { lastSerial, PhoneGone, serial } from './adb'
 import { buildHas } from './buildHas'
-import { parseCommand, USAGE, UsageError, type Command } from './commandLine'
+import { parseCommand, startsTheRecorder, USAGE, UsageError, type Command } from './commandLine'
 import { cleanup, deleteItem } from './deleteFlow'
 import { errorMessage } from './errorMessage'
 import { importGpx, saveActivity } from './flows'
@@ -9,6 +9,8 @@ import { back, typeText } from './keys'
 import { crop, labels, scroll, shot, tap, waitFor } from './look'
 import { writeRoute } from './routeFile'
 import { walkJump, walkStatus, walkStop, walkTo } from './walk'
+import { readLog } from './logCommand'
+import { ensureRecorder } from './recorder'
 import { reportNativeErrors } from './nativeErrors'
 import { allowedForeground } from './screen'
 import { parseSteps, runSteps } from './steps'
@@ -19,6 +21,7 @@ const EXIT = { usage: 2, phoneGone: 3 }
 
 // The command's result, printed by the caller; a command that streams its progress prints that itself.
 async function execute(command: Command): Promise<string | undefined> {
+  if (startsTheRecorder(command)) await ensureRecorder(await serial())
   switch (command.command) {
     case 'walk-to': return walkTo(command.mark, command.pace, command.options)
     case 'walk-jump': return walkJump(command.mark, command.options)
@@ -46,6 +49,7 @@ async function execute(command: Command): Promise<string | undefined> {
       if (!found) process.exitCode = 1
       return report
     }
+    case 'log': return readLog(command.areas)
     case 'native-errors': {
       const { found, report } = await reportNativeErrors()
       if (found) process.exitCode = 1
