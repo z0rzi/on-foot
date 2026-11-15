@@ -256,14 +256,10 @@ prefix; see `README.md`.
   delivery of a headless-born process, each with 9 jobs and 9 `Finished task` over the next minute;
   and twice, a swipe from recents and a reopen more than 30 s after the last fix, same pid, `launch
   action held` with no `detected an interruption` and no new segment. Owed, on the device:
-  - `TaskService clear-both` on the integrated build: it was logged only in the spike (build C).
-    One attempt did not reach it, and the source suggests the UI cannot: a destroy needs no task
-    registered and no activity bound within 2 s of a finished delivery, but back and home leave the
-    activity bound, and a swipe after a pause kills the process;
-  - the clean-up the checks left on the phone, the `device-check` skill's clean-up step: the mock
-    standing on the `DEVCHECK owed fifth` route, recording session 186 live and unsaved, and three
-    `DEVCHECK` activities to delete: `DEVCHECK rsp04 plain`, `DEVCHECK rsp04 survives death` and
-    `DEVCHECK rsp04 second recording`.
+  `TaskService clear-both` on the integrated build. It was logged only in the spike (build C). One
+  attempt did not reach it, and the source suggests the UI cannot: a destroy needs no task
+  registered and no activity bound within 2 s of a finished delivery, but back and home leave the
+  activity bound, and a swipe after a pause kills the process.
 
   The T-84 re-check the spec asks for, a relaunch now able to open on a warm runtime, is in
   [[T-84-relaunch-old-camera]]. Owed, the owner's: a real hike where the app dies, with real GPS;
