@@ -449,8 +449,8 @@ const COMMANDS = {
   build: entry({
     usage: 'build',
     help: [
-      "compute the build's identity, then build the release with check hooks,",
-      'install it and open it; prints the identity first',
+      "compute the build's identity, then build the release with check hooks for the",
+      "phone's architecture, install it and open it; prints the identity first",
     ],
     parse: noArguments('build'),
     run: async () => {

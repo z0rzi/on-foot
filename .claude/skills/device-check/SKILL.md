@@ -68,9 +68,10 @@ Report those as `owner to verify` and never claim them.
      made with uncommitted changes holds them only while the working tree stands on the same
      commit with the same changes.
    - **Build** in the background with `nix-shell ../shell.nix --run '.claude/skills/device-check/devcheck build'`
-     from the repo root: it prints the identity, builds the release with check hooks, installs
-     and opens the app. Only this command makes a build that carries an identity and answers
-     hooks. Then `build-has --commit` again, and say in the report that a build was needed.
+     from the repo root: it prints the identity, builds the release with check hooks for the
+     phone's architecture, installs and opens the app (about 3 minutes in a fresh worktree, a
+     minute or two in one that has built before). Only this command makes a build that carries an
+     identity and answers hooks. Then `build-has --commit` again, and say in the report that a build was needed.
    - `devcheck native-errors`: any line it prints is evidence before the first check (quote it
      under **Other observations**, or as the cause of a check it explains).
 
@@ -175,7 +176,7 @@ Report those as `owner to verify` and never claim them.
 | `type '<text>'` | types into the focused field (tap it first), spaces as they are; printable ASCII only, another character is refused by name |
 | `zoom in\|out [--at X,Y] [--steps N]` | two-finger pinch about a point (default the screen centre) |
 | `wait-for <label> [--gone] [--timeout S]` | waits for a label to appear or go, prints the time waited |
-| `build` | computes the build's identity (commit, uncommitted changes, native fingerprint), then builds the release with check hooks, installs and opens it; run it in `nix-shell ../shell.nix`, in the background |
+| `build` | computes the build's identity (commit, uncommitted changes, native fingerprint), then builds the release with check hooks for the phone's architecture only, installs and opens it; run it in `nix-shell ../shell.nix`, in the background |
 | `build-has <string>` / `build-has --commit <rev>` | whether the installed JS bundle holds the string, for a build older than identities / whether the installed build holds the commit, from the identity `state` gives, or on a build without hooks the capture's last launch |
 | `log [--area AREA]...` | the debug log's entries recorded since the check's first command, every process, oldest first, a header line opening each process and the gaps in place, then the capture's path; `--area` keeps one area (repeat it) |
 | `native-errors` | Mapbox source/layer, `ReactNativeJS` and FATAL lines since the app's process started, positions redacted; exits 1 on any |
