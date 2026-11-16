@@ -74,6 +74,12 @@ no coordinate (below), so the mirror shows nothing the Share export does not.
   download fails once started logs `download failed` (`warn`) `{ stage }`: `start` when the kickoff
   rejects, with its `errorClass`; `progress` when the SDK reports it mid-download, with no class,
   since the port hands over only the SDK's message. The trail's outcome is the `map` entry above.
+- **`hooks`** — one entry per check hook a device check sent (only a build made with
+  `EXPO_PUBLIC_DEBUG_CHECK_HOOKS` has them; see `src/checkHooks/dispatcher.ts`): `hook <name>
+  <outcome>`, the outcome `ok`, `refused`, `not-ready` or `busy`, or `failed` (`warn`)
+  `{ errorClass }` when its core threw. No arguments and no reply data; an unknown hook is logged
+  as `(unknown)`. A reply the receiver could not take logs `hook reply failed` (`warn`)
+  `{ errorClass }` after the hook's own entry.
 
 ## The `fix batch` entry
 
@@ -107,8 +113,11 @@ headless start), and the app opened later may land on that runtime still warm:
 
 - `runtime started`, written by `src/bootstrap` before the background task is defined, in every
   runtime, headless or not. No detail.
-- `cold start` `{ appVersion, runtimeAgeMs }`, once the navigation is ready (`useResumeRecording`):
-  `runtimeAgeMs` is the time since the runtime loaded the log, which bootstrap does first.
+- `cold start` `{ appVersion, build, runtimeAgeMs }`, once the navigation is ready
+  (`useResumeRecording`): `build` is the identity the toolkit's `devcheck build` gave the build,
+  commit, `uncommitted` (a hash, empty when clean) and native `fingerprint`, or null for a build
+  made otherwise; `runtimeAgeMs` is the time since the runtime loaded the log, which bootstrap does
+  first.
 
 A `runtime started` with no `cold start` after it is a headless start; a `cold start` with a large
 `runtimeAgeMs` is the app opened onto a warm runtime.

@@ -1,7 +1,7 @@
 export { logEvent } from './logEvent'
 export { deviceInfo } from './deviceInfo'
+export { coldStartDetail, installedBuild } from './launchDetail'
 export { installGlobalErrorHandler } from './installGlobalErrorHandler'
-export { runtimeAgeMs } from './runtimeAge'
 export { useLogRetention } from './useLogRetention'
 export { logExportText } from './logExportText'
 export { LOG_MAX_ENTRIES } from './retention'

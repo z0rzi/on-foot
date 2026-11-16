@@ -1,14 +1,19 @@
+import { deleteConfirmRefusal } from './deleteDialog'
 import { screenAgrees, targetAgrees } from './settled'
 import { findByLabel, type Bounds, type UiNode } from './uiDump'
 
-export type TapTarget = { kind: 'still'; bounds: Bounds } | { kind: 'missing'; reason: string }
+export type TapTarget = { kind: 'still'; bounds: Bounds } | { kind: 'missing' | 'refused'; reason: string }
 
 // The judge of the reads before a tap: the target once two reads agree on its bounds, so a tap
-// during an animation does not land beside it; missing once the screen settled without it.
+// during an animation does not land beside it; missing once the screen settled without it; refused
+// when it would confirm deleting an item not named DEVCHECK.
 export function tapTarget(label: string, current: UiNode[], previous: UiNode[] | null): TapTarget | null {
   if (previous === null) return null
   const bounds = targetAgrees(label, previous, current)
-  if (bounds) return { kind: 'still', bounds }
+  if (bounds) {
+    const refusal = deleteConfirmRefusal(current, bounds)
+    return refusal === null ? { kind: 'still', bounds } : { kind: 'refused', reason: refusal }
+  }
   const match = findByLabel(current, label)
   if (match.node === null && screenAgrees(previous, current)) return { kind: 'missing', reason: `no "${label}" on screen; labels seen: ${match.seen.join(' | ')}` }
   return null

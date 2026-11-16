@@ -1,5 +1,5 @@
 export type LogLevel = 'info' | 'warn' | 'error'
-export const LOG_AREAS = ['recording', 'capture', 'launch', 'map', 'error'] as const
+export const LOG_AREAS = ['recording', 'capture', 'launch', 'map', 'error', 'hooks'] as const
 export type LogArea = (typeof LOG_AREAS)[number]
 
 export interface LogEntry {

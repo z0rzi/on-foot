@@ -4,6 +4,8 @@ import { createLatestWins } from '../async/latestWins'
 
 interface ActivitiesStore {
   activities: ActivityOverviewRow[]
+  // A load has read the list this session; a failed load leaves it as it was.
+  loaded: boolean
   version: number
   loadActivities: () => Promise<void>
   publishTrailDeleted: () => Promise<void>
@@ -23,9 +25,10 @@ export const useActivitiesStore = create<ActivitiesStore>((set, get) => {
 
   return {
     activities: [],
+    loaded: false,
     version: 0,
     loadActivities: () =>
-      latestLoad(() => activitiesRepository.listOverviewRows(), (activities) => set({ activities })),
+      latestLoad(() => activitiesRepository.listOverviewRows(), (activities) => set({ activities, loaded: true })),
     // A trail delete clears the links to it in the same transaction, so the trails store
     // publishes that activity change here.
     publishTrailDeleted: commit,

@@ -44,9 +44,9 @@ export const SEAMS: Seam[] = [
   {
     name: 'native-modules',
     tokens: ['expo-modules-core'],
-    allow: ['modules/share-intent/'],
+    allow: ['modules/share-intent/', 'modules/check-hooks/'],
     rationale:
-      'Only the local share-intent module binds a native module; app code calls its typed functions, never requireNativeModule.',
+      'Only the local modules (share-intent, check-hooks) bind a native module; app code calls their typed functions, never requireNativeModule.',
   },
 ]
 

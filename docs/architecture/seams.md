@@ -77,7 +77,7 @@ That is the whole process. One array entry; the test, the gate, and the docs fol
 | `net` | `@react-native-community/netinfo` | `src/net/` |
 | `location` | `expo-location`, `expo-task-manager` | `src/location/` |
 | `external-apps` | `expo-linking` | `src/external/` |
-| `native-modules` | `expo-modules-core` | `modules/share-intent/` |
+| `native-modules` | `expo-modules-core` | `modules/share-intent/`, `modules/check-hooks/` |
 
 ## The persistence seam's row types are checked, not cast
 

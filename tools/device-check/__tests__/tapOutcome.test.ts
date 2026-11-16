@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { outcomeAtCap, outcomeReport, tapOutcome, withoutLabels } from '../tapOutcome'
+import { outcomeAtCap, outcomeReport, tapOutcome } from '../tapOutcome'
 import { parseUiDump } from '../uiDump'
 
 const read = (name: string) => parseUiDump(readFileSync(join(__dirname, '..', 'fixtures', name), 'utf8'))
@@ -53,13 +53,5 @@ describe('the tap outcome', () => {
   it('says what it last saw when no read came at all', () => {
     const atCap = outcomeAtCap(null, 3, { read: null, last: 'cannot tell which app is in front (screen off or locked?)' })
     expect(atCap).toEqual({ kind: 'report', report: 'not settled after 3 s; cannot tell which app is in front (screen off or locked?)' })
-  })
-})
-
-describe('a tap report without its labels', () => {
-  it('keeps what the tap did and caused, and drops the labels of the screen it ended on', () => {
-    const picker = read('server-picker-gpx.xml')
-    const report = `tapped "Add a GPX file" at 540,300, still after 0.5 s\n${outcomeReport({ kind: 'appeared', label: 'DEVCHECK-a.gpx', nodes: picker }, 1.2)}`
-    expect(withoutLabels(report)).toBe('tapped "Add a GPX file" at 540,300, still after 0.5 s\n"DEVCHECK-a.gpx" appeared after 1.2 s')
   })
 })

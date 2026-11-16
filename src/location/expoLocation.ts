@@ -118,6 +118,11 @@ export async function hasForegroundAccess(): Promise<boolean> {
   return (await Location.getForegroundPermissionsAsync()).granted
 }
 
+// "All the time" access; asked of a start that may not prompt.
+export async function hasBackgroundAccess(): Promise<boolean> {
+  return (await Location.getBackgroundPermissionsAsync()).granted
+}
+
 export async function requestForegroundAccess(): Promise<boolean> {
   return (await Location.requestForegroundPermissionsAsync()).granted
 }

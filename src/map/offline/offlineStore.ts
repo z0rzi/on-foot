@@ -7,6 +7,8 @@ import { createDownloadBatches, type DownloadSettled } from './downloadBatches'
 
 interface OfflineStore {
   packs: OfflinePackInfo[]
+  // A reload has read the registry this session; a failed one leaves it as it was.
+  loaded: boolean
   progress: Record<string, LiveProgress>
   // Trails whose download has settled, oldest first, until a listener dismisses them.
   settled: DownloadSettled[]
@@ -42,7 +44,7 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
     if (event) set((s) => ({ settled: [...s.settled, event] }))
   }
   const reload = async (controller: OfflineController) => {
-    set({ packs: await controller.listPacks() })
+    set({ packs: await controller.listPacks(), loaded: true })
   }
   // Own a pack's live sync: optimistic 0%, run the kickoff, then subscribe — ticks update
   // progress, completion clears it and reloads the registry, an error marks it failed.
@@ -99,6 +101,7 @@ export const useOfflineStore = create<OfflineStore>((set, get) => {
 
   return {
     packs: [],
+    loaded: false,
     progress: {},
     settled: [],
     dismissSettled: (events) => set((s) => ({ settled: s.settled.filter((e) => !events.includes(e)) })),

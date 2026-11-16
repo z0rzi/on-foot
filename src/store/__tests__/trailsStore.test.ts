@@ -39,7 +39,7 @@ const input: NewTrailInput = {
 
 beforeEach(() => {
   jest.clearAllMocks()
-  useTrailsStore.setState({ trails: [], version: 0 })
+  useTrailsStore.setState({ trails: [], version: 0, loaded: false })
   useActivitiesStore.setState({ activities: [], version: 0 })
   fakeActivitiesRepo.listOverviewRows.mockResolvedValue([])
 })
@@ -48,6 +48,15 @@ test('loadTrails caches summaries from the repository', async () => {
   fakeRepo.listOverviewRows.mockResolvedValue([summary(2), summary(1)])
   await useTrailsStore.getState().loadTrails()
   expect(useTrailsStore.getState().trails.map((t) => t.id)).toEqual([2, 1])
+})
+
+test('is loaded once a load has read the list, and not after a failed one', async () => {
+  fakeRepo.listOverviewRows.mockRejectedValueOnce(new Error('disk'))
+  await expect(useTrailsStore.getState().loadTrails()).rejects.toThrow('disk')
+  expect(useTrailsStore.getState().loaded).toBe(false)
+  fakeRepo.listOverviewRows.mockResolvedValue([])
+  await useTrailsStore.getState().loadTrails()
+  expect(useTrailsStore.getState().loaded).toBe(true)
 })
 
 test('addTrail creates via the repository, reloads, and returns the new id', async () => {

@@ -1,5 +1,6 @@
 import { activitiesRepository, NewActivityInput, RecordingSession } from '../data/activities'
 import {
+  hasBackgroundAccess,
   hasForegroundAccess,
   isLocationAvailable,
   promptToEnableLocation,
@@ -23,8 +24,11 @@ import { formatClockTime } from '../activities/format'
 
 export type CaptureReadiness = 'ready' | 'permission-denied' | 'location-off'
 export type CaptureRefusal = Exclude<CaptureReadiness, 'ready'>
-export type StartResult = 'started' | 'already-active' | CaptureRefusal
-export type ResumeResult = 'resumed' | CaptureRefusal
+// What a start or a resume that may not prompt finds missing.
+export type CaptureCheck = 'ready' | 'permission-missing' | 'location-off' | 'app-behind'
+// Decides whether a start or a resume may go ahead, and how it gets there: by prompting, or only by
+// checking.
+export type CaptureGate<Refusal extends string> = () => Promise<'ready' | Refusal>
 
 // The durable session is the recording; the location stream is how it captures. They can disagree
 // in ways the app observes — location off, a refused start, a missing permission — and the store
@@ -105,19 +109,46 @@ async function ensureCaptureReady(): Promise<CaptureReadiness> {
   return 'ready'
 }
 
-export async function startRecording(): Promise<StartResult> {
+// The record button's gate: it asks for what capturing lacks, then for notification access, then
+// waits for the app to be in front again after the dialogs.
+export async function promptForStart(): Promise<CaptureReadiness> {
+  const readiness = await ensureCaptureReady()
+  if (readiness !== 'ready') return readiness
+  await ensureTrackingNotificationAccess()
+  await whenAppActive()
+  return 'ready'
+}
+
+// The Resume button's gate: it asks for what capturing lacks, then waits for the app to be in front
+// again after the dialogs. The notification hint is start's alone, asked once per process.
+export async function promptForResume(): Promise<CaptureReadiness> {
+  const readiness = await ensureCaptureReady()
+  if (readiness !== 'ready') return readiness
+  await whenAppActive()
+  return 'ready'
+}
+
+// A start or a resume that may not prompt: what capturing lacks is a refusal, and so is the app not
+// being in front, where a location start is refused.
+export async function checkForCapture(): Promise<CaptureCheck> {
+  if (!(await hasForegroundAccess()) || !(await hasBackgroundAccess())) return 'permission-missing'
+  if (!(await isLocationAvailable())) return 'location-off'
+  return isAppActive() ? 'ready' : 'app-behind'
+}
+
+export async function startRecording<Refusal extends string>(
+  gate: CaptureGate<Refusal>,
+): Promise<'started' | 'already-active' | Refusal> {
   if (await activitiesRepository.getActiveSession()) {
     logEvent('warn', 'recording', 'start already-active')
     return 'already-active'
   }
-  const readiness = await ensureCaptureReady()
+  const readiness = await gate()
   if (readiness !== 'ready') {
     logEvent('warn', 'recording', `start ${readiness}`)
     return readiness
   }
-  await ensureTrackingNotificationAccess()
-  await whenAppActive()
-  return exclusive<StartResult>(async () => {
+  return exclusive<'started'>(async () => {
     // A session found here belongs to a concurrent tap that reached the turn first: the tap that
     // lost reports the start it asked for, not a pre-existing recording.
     if (await activitiesRepository.getActiveSession()) {
@@ -152,23 +183,21 @@ export function pauseRecording(): Promise<void> {
   })
 }
 
-// Resuming passes the same gate as starting, so a refusal leaves the session paused; the notification
-// hint is start's alone, asked once per process. Once resumed, the session
-// is visibly recording whether or not its stream starts, so a refused start is a capture fault the sheet
-// shows, not a failed resume.
-export async function resumeRecording(): Promise<ResumeResult> {
+// Resuming passes a gate as starting does, so a refusal leaves the session paused. Once resumed, the
+// session is visibly recording whether or not its stream starts, so a refused start is a capture fault
+// the sheet shows, not a failed resume.
+export async function resumeRecording<Refusal extends string>(gate: CaptureGate<Refusal>): Promise<'resumed' | Refusal> {
   const current = await activitiesRepository.getActiveSession()
   if (!current || current.pausedAt == null) {
     logEvent('info', 'recording', current ? 'resume: session not paused' : 'resume: no session')
     return 'resumed'
   }
-  const readiness = await ensureCaptureReady()
+  const readiness = await gate()
   if (readiness !== 'ready') {
     logEvent('warn', 'recording', `resume ${readiness}`)
     return readiness
   }
-  await whenAppActive()
-  return exclusive<ResumeResult>(async () => {
+  return exclusive<'resumed'>(async () => {
     const session = await activitiesRepository.getActiveSession()
     // Not paused here means a concurrent resume reached the turn first.
     if (!session || session.pausedAt == null) {

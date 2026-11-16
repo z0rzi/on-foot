@@ -7,9 +7,3 @@ export const isDevcheckName = (name: string) => name.startsWith(DEVCHECK_PREFIX)
 export function devcheckName(name: string): string {
   return name.startsWith(DEVCHECK_PREFIX) ? name : `${DEVCHECK_PREFIX}${name}`
 }
-
-export function requireDevcheckName(name: string): void {
-  if (!isDevcheckName(name)) throw new Error(`refused: "${name}" does not start with "${DEVCHECK_PREFIX}"; only DEVCHECK items are deleted`)
-}
-
-export const devcheckNames = (names: string[]) => names.filter(isDevcheckName)

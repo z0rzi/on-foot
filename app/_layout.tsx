@@ -24,6 +24,13 @@ import { useIncomingShare } from '../src/trails/useIncomingShare'
 import { getNavigationTheme } from '../src/theme/navigationTheme'
 import { errorClass, logEvent, useLogRetention } from '../src/log'
 
+// Only a build made with the flag answers check hooks: the bundler inlines the variable, and with it
+// unset the branch, its require and the dispatcher's code are dropped from the bundle.
+const CheckHookDispatcher =
+  process.env.EXPO_PUBLIC_DEBUG_CHECK_HOOKS === '1'
+    ? // eslint-disable-next-line @typescript-eslint/no-require-imports -- an import would put the dispatcher in every build
+      (require('../src/checkHooks/CheckHookDispatcher') as typeof import('../src/checkHooks/CheckHookDispatcher')).CheckHookDispatcher
+    : null
 // Held until the map can mount on its launch camera, so a restored camera never shows the globe first.
 // Not awaited: if holding fails, the splash hides on its own and the cost is that globe frame.
 void SplashScreen.preventAutoHideAsync()
@@ -101,6 +108,7 @@ export default function RootLayout() {
             <KeyboardProvider>
               <StoresAtLaunchHandler />
               <MapProviderProvider provider={mapboxProvider}>
+                {CheckHookDispatcher && <CheckHookDispatcher />}
                 <MapLaunchGate>
                   <BottomSheetModalProvider>
                     <Stack screenOptions={{ header: (props) => <AppHeader {...props} /> }}>

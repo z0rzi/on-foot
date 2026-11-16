@@ -158,3 +158,14 @@ _Avoid_: feature request, backlog item, todo, wish
 One slice of a plan, built by one worker and gone when it lands. It belongs to its plan, not to
 the worklist, and has no number of its own beyond its place in the plan.
 _Avoid_: ticket (for a plan's slice), task, sub-issue, step
+
+**Device check**:
+A run of the app on the owner's phone, driven by an agent, that confirms a claim with what the
+phone shows.
+_Avoid_: device test, manual test, QA
+
+**Check hook**:
+A command a device check sends the app to set up, tear down or read its state without the screen.
+Only a build made for device checks has hooks, and only the phone's debug connection can call
+them.
+_Avoid_: debug bridge (that is adb), backdoor, test API, intent (the transport, not the concept)

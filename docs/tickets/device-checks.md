@@ -58,10 +58,6 @@ prefix; see `README.md`.
   save-activity screen open while free → the map comes back on the last camera; the North button
   still appears after a rotation and resets. Unobserved by construction: the bounded wait's `warn`
   line (`map store hydration timed out` / `failed`), which needs a broken AsyncStorage.
-- **T-76, the trail's specs on the recording card** ([[2026-11-06-hiking-ux-design]], D81) was
-  checked on the device on 2026-11-09, both schemes, with the recording card and the trail card. One
-  fragment stays unobserved: the trail card swapping its badge for the download progress, since no
-  download ran.
 - **T-74, the route tiers** (D83, [[2026-11-06-hiking-ux-design]]) was checked on the device on
   2026-11-09, release build. Confirmed: after a cold-start relaunch mid-recording (`launch action
   resume`), and after switching Outdoors → Default → Outdoors, the recorded track's line covers the
@@ -98,20 +94,22 @@ prefix; see `README.md`.
   step at 300 m and a 40 m climb at 1000 m, "Next climb in 988 m · … · 39 m up" from the start and
   "Next climb in 649 m" on the step itself, "Climbing · 30 m up" at 1100 m, "No climb left" past
   1400 m.
-- **T-91, T-92, T-93 and T-94** ([[2026-11-06-hiking-ux-design]], D94–D101, §4.4): T-91 to T-93 were
-  seen by the owner on 2026-11-09 along `DEVCHECK climb` (T-94 came of it); T-94's summary row,
-  divider and tighter title were seen on the device the same day; the D99 climbing line and the D100
-  end line are unit-tested, never seen on a device. Owed, both schemes: recording along a trail with
-  the card open, the Along row with the summary row tight under it on one line ("Easy · 2.0 km · 56
-  m gain"), the ahead lines in the primary text with "Trail end in 16 min (1.3 km)", "Next climb in
-  12 min (1.2 km) · 340 m to climb" and "Climbing · 10 min to the top (43 m up)", then the
-  description behind a divider in the secondary text, and no metrics grid, while the trail card
-  keeps its grid and the Trails and Activities rows lead their summary with the badge on one line
-  (Verification 21); the graph puck's centre on the line at the profile's lowest and highest points
-  and its first and last metre, whole, reaching into the card's margin, the scrub cursor passing
-  under it (Verification 24); along `.scratch/device-checks/2026-11-07-hiking-ux-feedback/climb.gpx`
-  (146–202 m, the profile the overlap was seen on, not the 155–211 m first reported) the y-axis
-  reads "180 m" and "160 m", apart, with no label over the top 20 m.
+- **T-91, T-92, T-93 and T-94** ([[2026-11-06-hiking-ux-design]], D94–D101, §4.4): T-91 to T-93
+  were seen by the owner on 2026-11-09 along `DEVCHECK climb` (T-94 came of it); T-94's summary
+  row, divider and tighter title were seen on the device the same day. On 2026-11-16, in the
+  phone's current scheme, in the check-hooks check ([[2026-11-15-check-hooks]]), recording along
+  `DEVCHECK climb` with the card open: the Along row with "Easy · 2.0 km · 56 m gain" tight under
+  it on one line, the ahead lines in the primary text with the D100 end line "Trail end in 27 min
+  (2.0 km)" and the D99 climbing line "Climbing · 10 min to the top (51 m up)", and no metrics
+  grid; with the trail shown alone, its graph's y-axis reads "180 m" and "160 m", apart, with no
+  label over the top 20 m. Recording along `DEVCHECK owed desc` with a description set through the
+  trail form, a hairline divider under the ahead lines and the description under it in the
+  secondary text (Verification 21's divider). Owed: the other scheme for all of it; the D99
+  next-climb line ("Next climb in 12 min (1.2 km) · 340 m to climb") and "At the trail end"; the
+  trail card keeping its grid and the Trails and Activities rows leading their summary with the
+  badge on one line (the rest of Verification 21); the graph puck's centre on the line at the
+  profile's lowest and highest points and its first and last metre, whole, reaching into the
+  card's margin, the scrub cursor passing under it (Verification 24).
 - **draped-route-overlay/01, the in-tier layer order** (T-78, D83, D102)
   was checked on the device on 2026-11-10, terrain on, along a trail on two segments whose dashed
   connector crosses its own line, on builds whose arrows and dots were draped lines (items 02 and 03,
@@ -124,9 +122,11 @@ prefix; see `README.md`.
   a live track resumed away from its pause point draws its late connector. The order has since
   become casing, line, connectors, arrows, endpoints (D102). **Unobservable** with terrain on: the
   markers' place among the lines, Mapbox drawing the arrows and dots above every line whatever
-  their place in the style. Owed on the restored build: a trail shown alone draws both endpoint
-  dots over its arrows, and the line and casing stay under the connectors after a slope ↔ plain
-  switch within one trail (the remount T-78 described).
+  their place in the style. Owed on the restored build: the line and casing stay under the
+  connectors after a slope ↔ plain switch within one trail (the remount T-78 described). A trail
+  shown alone draws both endpoint dots over its arrows: seen on 2026-11-16 along `DEVCHECK owed
+  zigzag`, a line running back and forth so its arrows cross both ends, arrow strokes passing
+  under each dot and out at its rim.
 - **Field diagnostics** ([[2026-11-11-field-diagnostics-design]]) was checked on the device on
   2026-11-11, on a release build of the branch, under a mock walk along a straight 1.5 km route,
   all read in Settings → Debug log. Confirmed: selecting a trail (an import) and an activity (a
@@ -170,9 +170,10 @@ prefix; see `README.md`.
   D114, D132) was checked on the device on 2026-11-12, release build. Owed to the owner: the dimming
   level (`overviewDimmedOpacity`, 0.55; the owner found 0.35 too dim on 2026-11-12), and that the
   selected item's plain line never blinks out before its full dress shows (D132), finer than the
-  ~3 frames a second a screenshot loop reaches.
-  Not checked: a linked activity's siblings plain at full strength, as no test family has two
-  activities. Blocked: a selection with about 300 items not stalling the map, since the only way to
+  ~3 frames a second a screenshot loop reaches. A linked activity's family was checked on
+  2026-11-16, in the check-hooks check: with an activity selected, its sibling activity and
+  its trail drawn at full strength, the trail it no longer links dimmed, read from the pixels.
+  Blocked: a selection with about 300 items not stalling the map, since the only way to
   seed them is one picker import per trail (~24 s each, ~2 h for 300).
 - **The Layers menu** (overview-on-map 05, [[2026-11-11-overview-on-map-design]] D119, D124, D130,
   D135) was checked on the device on 2026-11-12, release build; the roles are right in the dump
@@ -208,19 +209,26 @@ prefix; see `README.md`.
   query fails doing nothing (no failure was hit). Owed to the owner: the dimming level at 0.55 and
   whether the reach around the selected route feels right.
 - **ERR-2 of the 2026-11-14 review** ([[2026-11-14-full-review]], `ac2c1e3`, the tolerant stream
-  stop) is built and unit-tested, never run on a device. Owed: pause, discard, finish and a cold
-  launch each take the foreground-service notification away, and the debug log holds one
-  `stream stopped` after `paused`, `discarded` and `finished`, and none on a cold launch with no
-  recording. Unobservable without a forced failure: `stream stop failed`, and discard completing
-  with the notification left up until the next launch. ERR-1's `fix batch not stored` needs a
-  failing write and stays unobserved the same way.
+  stop) was checked on the device on 2026-11-16, in the check-hooks check. Confirmed: no
+  On Foot notification and no foreground service after each pause, discard and save, of agent
+  sessions and of a recording through the screens; one `capture stream stopped` after each
+  `recording paused`, and the discard's one stop logged 8 ms before `recording discarded`; none
+  after `recording finished`, as a save always follows a pause and the pause had stopped the stream
+  (`stopStreamTolerant` logs only a running stream); none in the capture across two cold launches
+  with no recording. Unobservable without a forced failure: `stream stop failed`, and discard
+  completing with the notification left up until the next launch. ERR-1's `fix batch not stored`
+  needs a failing write and stays unobserved the same way.
 - **T-104, the cards' title and summary rows** (DUP-3 of [[2026-11-14-full-review]], the shared
-  `CardTitleRow` and `CardSummaryRow`) is built and unit-tested, never run on a device; no
-  rendered change is intended. Owed, both schemes: the trail card's name wrapping beside its ⋮, the
-  offline mark (`✓ Offline`, `⬇ n%`, `⚠ Failed`) between them, and the difficulty badge under it,
-  swapped for the progress bar while a download runs; the activity card's name and ⋮, the effort
+  `CardTitleRow` and `CardSummaryRow`), with T-76's last fragment (the trail card swapping its
+  badge for the download progress, [[2026-11-06-hiking-ux-design]], D81), was checked on the
+  device on 2026-11-16 in the phone's current scheme, in the check-hooks check. Confirmed: the
+  trail card's name with `✓ Offline` and ⋮ beside it and the `Medium` badge under it; while a
+  download ran, `⬇ 0%` between the name and ⋮ and `Downloading Outdoors · 0%` in the badge's
+  place, and in a frame strip `⬇ 79%` to `86%` with its progress bar and `Downloading Satellite ·
+  79%` there, then `✓ Offline` and the badge back; the activity card's name and ⋮, the `Moderate`
   badge with the date beside it, and its five tiles; the save-activity form's three tiles; the
-  Activities list's ⋮ menu opening and deleting.
+  Activities list's ⋮ menu opening and deleting. Owed: the other scheme; a name long enough to
+  wrap beside its ⋮; `⚠ Failed`, which needs a failed download.
 - **The app-log capture** ([[2026-11-15-app-log-capture-design]]) was checked on the device on
   2026-11-15: a recorder started 1.5 min after a launch holds it; a kill and relaunch 2 min later
   shows both processes; an unplug and replug leaves one gap marker, no line twice, entries after

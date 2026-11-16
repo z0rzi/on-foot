@@ -1,5 +1,5 @@
 import { screenAgrees } from './settled'
-import { findByLabel, isLabelsLine, labelsLine, type UiNode } from './uiDump'
+import { findByLabel, labelsLine, type UiNode } from './uiDump'
 
 // What a tap waits for: a named label to appear or go, or, with none named, the screen to settle.
 export interface Expected { label: string; gone: boolean }
@@ -41,11 +41,3 @@ export function outcomeAtCap(expected: Expected | null, capS: number, polled: { 
   const head = `not settled after ${capS} s`
   return { kind: 'report', report: polled.read ? `${head}\n${labelsLine(polled.read)}` : `${head}; ${polled.last}` }
 }
-
-// A tap's report without the labels of the screen it ended on, for a screen showing the owner's own
-// names, such as the files of the picker.
-export const withoutLabels = (report: string) =>
-  report
-    .split('\n')
-    .filter((line) => !isLabelsLine(line))
-    .join('\n')

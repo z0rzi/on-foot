@@ -39,12 +39,21 @@ function makeController(opts: {
   }
 }
 
-beforeEach(() => useOfflineStore.setState({ packs: [], progress: {} }))
+beforeEach(() => useOfflineStore.setState({ packs: [], progress: {}, loaded: false }))
 
 describe('offlineStore ownership', () => {
   test('reload loads the registry', async () => {
     await useOfflineStore.getState().reload(makeController({ packs: [info(packId(1, 'a'))] }))
     expect(useOfflineStore.getState().packs).toHaveLength(1)
+  })
+
+  test('is loaded once a reload has read the registry, and not after a failed one', async () => {
+    const failing = makeController()
+    failing.listPacks = () => Promise.reject(new Error('sdk'))
+    await expect(useOfflineStore.getState().reload(failing)).rejects.toThrow('sdk')
+    expect(useOfflineStore.getState().loaded).toBe(false)
+    await useOfflineStore.getState().reload(makeController())
+    expect(useOfflineStore.getState().loaded).toBe(true)
   })
 
   test('download: optimistic progress, then completion clears progress and reloads packs', async () => {

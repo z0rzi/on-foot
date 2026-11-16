@@ -1,39 +1,30 @@
 import { useEffect, useState } from 'react'
 import { Alert } from 'react-native'
-import { RecordingSession, TrackPoint, activitiesRepository } from '../../src/data/activities'
-import { activityMetricsFromSegments, buildNewActivityInput, groupPointsBySegment, lastTrackPoint } from '../../src/data/activities/mapping'
-import { discardRecording, finishRecording } from '../../src/recording/recordingController'
+import { activityMetricsFromSegments, lastTrackPoint } from '../../src/data/activities/mapping'
+import { discardRecording } from '../../src/recording/recordingController'
+import { loadRecording, saveRecording, type LoadedRecording } from '../../src/recording/mapRecording'
 import { ActivityForm } from '../../src/activities/ActivityForm'
 import { useReturnToMap } from '../../src/components/useReturnToMap'
 import { LoadingScreen } from '../../src/components/LoadingScreen'
 import { showToast } from '../../src/components/toast'
-import { useMapStore } from '../../src/store/mapStore'
 import { errorClass, logEvent } from '../../src/log'
 
 export default function SaveActivityScreen() {
   const goToMap = useReturnToMap()
-  const select = useMapStore((s) => s.select)
 
-  const [loading, setLoading] = useState(true)
-  const [session, setSession] = useState<RecordingSession | null>(null)
-  const [segments, setSegments] = useState<TrackPoint[][]>([])
+  const [recording, setRecording] = useState<LoadedRecording | null>(null)
 
   useEffect(() => {
     let active = true
-    void activitiesRepository
-      .getActiveSession()
-      .then(async (loaded) => {
+    void loadRecording()
+      .then((loaded) => {
         if (!active) return
         // No active session is the normal path back from a save or a discard elsewhere, not a failure.
         if (!loaded) {
           goToMap()
           return
         }
-        const loadedPoints = await activitiesRepository.getSessionPoints(loaded.id)
-        if (!active) return
-        setSession(loaded)
-        setSegments(groupPointsBySegment(loadedPoints))
-        setLoading(false)
+        setRecording(loaded)
       })
       .catch((err: unknown) => {
         // Logged before the liveness check: a rejection that lands after unmount still happened.
@@ -47,8 +38,9 @@ export default function SaveActivityScreen() {
     }
   }, [goToMap])
 
-  if (loading || !session) return <LoadingScreen />
+  if (!recording) return <LoadingScreen />
 
+  const { session, segments } = recording
   const endedAt = session.pausedAt ?? lastTrackPoint(segments)?.t ?? session.startedAt
   const metrics = activityMetricsFromSegments(segments, session.startedAt, endedAt, session.pausedMs)
 
@@ -59,8 +51,7 @@ export default function SaveActivityScreen() {
       initialEffort={null}
       initialComments=""
       onSave={async ({ name, effort, comments }) => {
-        const activityId = await finishRecording(session.id, buildNewActivityInput(session, segments, { name, effort, comments }))
-        select('activity', activityId)
+        await saveRecording(recording, { name, effort, comments })
         goToMap()
         showToast('Activity saved')
       }}

@@ -52,8 +52,8 @@ example
 # local expo module build outputs
 modules/**/build/
 
-# agent scratchpad: brainstorm output, notes, throwaway drafts
-.scratch/
+# agent scratchpad: brainstorm output, notes, throwaway drafts (a directory, or a worktree's symlink to one)
+/.scratch
 
 # Obsidian vault config (docs/ or .scratch/ opened as a vault)
 .obsidian/

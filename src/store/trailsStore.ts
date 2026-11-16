@@ -5,6 +5,8 @@ import { useActivitiesStore } from './activitiesStore'
 
 interface TrailsStore {
   trails: TrailOverviewRow[]
+  // A load has read the list this session; a failed load leaves it as it was.
+  loaded: boolean
   version: number
   loadTrails: () => Promise<void>
   getTrail: (id: number) => Promise<Trail | null>
@@ -25,8 +27,9 @@ export const useTrailsStore = create<TrailsStore>((set, get) => {
 
   return {
     trails: [],
+    loaded: false,
     version: 0,
-    loadTrails: () => latestLoad(() => trailsRepository.listOverviewRows(), (trails) => set({ trails })),
+    loadTrails: () => latestLoad(() => trailsRepository.listOverviewRows(), (trails) => set({ trails, loaded: true })),
     getTrail: (id) => trailsRepository.getTrail(id),
     addTrail: async (input) => {
       const id = await trailsRepository.createTrail(input)

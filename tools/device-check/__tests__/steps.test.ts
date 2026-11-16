@@ -1,5 +1,5 @@
-import { STEPS, USAGE, UsageError } from '../commandLine'
-import { parseSteps, REFUSED, runSteps } from '../steps'
+import { REFUSED, STEPS, USAGE, UsageError } from '../commandLine'
+import { parseSteps, runSteps } from '../steps'
 
 const commands = (texts: string[]) => parseSteps(texts).map((s) => s.command)
 
@@ -55,10 +55,12 @@ describe('parseSteps', () => {
   it.each([
     ['walk to 300 --pace fast', /step 1 .*walk.*background/],
     ['import-gpx DEVCHECK-x.gpx', /step 1 .*import-gpx.*on its own/],
-    ["save-activity 'x'", /step 1 .*save-activity.*on its own/],
-    ["delete trail 'DEVCHECK x'", /step 1 .*delete.*on its own/],
+    ["record save 'x'", /step 1 .*record.*on its own/],
+    ['record pause', /step 1 .*record.*on its own/],
+    ['delete trail 5', /step 1 .*delete.*on its own/],
     ['cleanup', /step 1 .*cleanup.*on its own/],
     ["build-has 'x'", /step 1 .*build-has.*background/],
+    ['build', /step 1 .*build.*background/],
     ['do labels', /step 1 .*do.*another list/],
   ])('refuses %s as a step, with the reason', (refused, message) => {
     expect(() => parseSteps([refused, 'labels'])).toThrow(message)

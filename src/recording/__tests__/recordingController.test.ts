@@ -1,6 +1,7 @@
 const mockSaveActivity = jest.fn()
 
 jest.mock('../../location', () => ({
+  hasBackgroundAccess: jest.fn(),
   hasForegroundAccess: jest.fn(),
   isLocationAvailable: jest.fn(),
   promptToEnableLocation: jest.fn(),
@@ -42,6 +43,9 @@ import {
   ensureStreaming,
   finishRecording,
   pauseRecording,
+  checkForCapture,
+  promptForResume,
+  promptForStart,
   resumeIfActive,
   resumeRecording,
   startRecording,
@@ -117,6 +121,7 @@ beforeEach(() => {
   port.requestForegroundAccess.mockResolvedValue(true)
   port.requestBackgroundAccess.mockResolvedValue(true)
   port.hasForegroundAccess.mockResolvedValue(true)
+  port.hasBackgroundAccess.mockResolvedValue(true)
   port.isLocationAvailable.mockResolvedValue(true)
   port.promptToEnableLocation.mockResolvedValue(true)
   port.startBackgroundTracking.mockImplementation(async () => {
@@ -140,34 +145,34 @@ beforeEach(() => {
 describe('startRecording', () => {
   it('only reports an existing session', async () => {
     row = recording
-    await expect(startRecording()).resolves.toBe('already-active')
+    await expect(startRecording(promptForStart)).resolves.toBe('already-active')
     expect(port.requestForegroundAccess).not.toHaveBeenCalled()
   })
 
   it('refuses to start while location is off and the prompt is declined', async () => {
     port.isLocationAvailable.mockResolvedValue(false)
     port.promptToEnableLocation.mockResolvedValue(false)
-    await expect(startRecording()).resolves.toBe('location-off')
+    await expect(startRecording(promptForStart)).resolves.toBe('location-off')
     expect(repo.startSession).not.toHaveBeenCalled()
     expect(port.startBackgroundTracking).not.toHaveBeenCalled()
   })
 
   it('starts once the user accepts the location prompt, even before a provider reports available', async () => {
     port.isLocationAvailable.mockResolvedValue(false)
-    await expect(startRecording()).resolves.toBe('started')
+    await expect(startRecording(promptForStart)).resolves.toBe('started')
     expect(port.startBackgroundTracking).toHaveBeenCalledWith(RECORDING_OPTIONS)
     expect(useRecordingStore.getState().stream).toEqual({ kind: 'stopped' })
   })
 
   it('asks for notification access after the location gate and before writing the session', async () => {
-    await startRecording()
+    await startRecording(promptForStart)
     expect(calls).toEqual(['notification', 'startSession', 'start'])
   })
 
   it('writes the session only once the app is active again', async () => {
     const active = deferred()
     app.whenAppActive.mockReturnValue(active.promise)
-    const started = startRecording()
+    const started = startRecording(promptForStart)
     await settle()
     expect(repo.startSession).not.toHaveBeenCalled()
     active.resolve()
@@ -176,7 +181,7 @@ describe('startRecording', () => {
 
   it('keeps the session and records the fault when the start is rejected while the app is active', async () => {
     port.startBackgroundTracking.mockRejectedValue(new Error('refused'))
-    await expect(startRecording()).resolves.toBe('started')
+    await expect(startRecording(promptForStart)).resolves.toBe('started')
     expect(useRecordingStore.getState().session?.id).toBe(42)
     expect(useRecordingStore.getState().stream).toEqual({ kind: 'faulted', fault: 'start-failed' })
     expect(repo.discardSession).not.toHaveBeenCalled()
@@ -185,7 +190,7 @@ describe('startRecording', () => {
   it('records no fault for a start rejected while the app is not active', async () => {
     port.startBackgroundTracking.mockRejectedValue(new Error('backgrounded'))
     app.isAppActive.mockReturnValue(false)
-    await startRecording()
+    await startRecording(promptForStart)
     expect(useRecordingStore.getState().stream).toEqual({ kind: 'stopped' })
   })
 
@@ -193,7 +198,7 @@ describe('startRecording', () => {
     const prompt = deferred<boolean>()
     port.isLocationAvailable.mockResolvedValue(false)
     port.promptToEnableLocation.mockReturnValue(prompt.promise)
-    const started = startRecording()
+    const started = startRecording(promptForStart)
     await expect(ensureStreaming()).resolves.toBeUndefined()
     prompt.resolve(false)
     await expect(started).resolves.toBe('location-off')
@@ -202,7 +207,7 @@ describe('startRecording', () => {
   it('does not hold other operations behind the notification request', async () => {
     const asking = deferred()
     notifications.ensureTrackingNotificationAccess.mockReturnValue(asking.promise)
-    const started = startRecording()
+    const started = startRecording(promptForStart)
     await settle()
     await expect(ensureStreaming()).resolves.toBeUndefined()
     asking.resolve()
@@ -212,7 +217,7 @@ describe('startRecording', () => {
   it('does not hold other operations while waiting for the app to become active', async () => {
     const active = deferred()
     app.whenAppActive.mockReturnValue(active.promise)
-    const started = startRecording()
+    const started = startRecording(promptForStart)
     await settle()
     await expect(ensureStreaming()).resolves.toBeUndefined()
     active.resolve()
@@ -220,13 +225,13 @@ describe('startRecording', () => {
   })
 
   it('starts one session when Record is pressed twice before either start queues', async () => {
-    const results = await Promise.all([startRecording(), startRecording()])
+    const results = await Promise.all([startRecording(promptForStart), startRecording(promptForStart)])
     expect(results).toEqual(['started', 'started'])
     expect(repo.startSession).toHaveBeenCalledTimes(1)
   })
 
   it('begins the first segment when the session starts', async () => {
-    await startRecording()
+    await startRecording(promptForStart)
     const session = useRecordingStore.getState().session
     expect(session?.segmentStartedAt).toBe(session?.startedAt)
   })
@@ -304,6 +309,7 @@ describe('ensureStreaming', () => {
     port.hasForegroundAccess.mockResolvedValue(false)
     await ensureStreaming()
     port.hasForegroundAccess.mockResolvedValue(true)
+  port.hasBackgroundAccess.mockResolvedValue(true)
     await ensureStreaming()
     expect(port.startBackgroundTracking).toHaveBeenCalledTimes(1)
   })
@@ -348,7 +354,7 @@ describe('resumeRecording', () => {
   })
 
   it('commits the resume, then starts the stream', async () => {
-    await expect(resumeRecording()).resolves.toBe('resumed')
+    await expect(resumeRecording(promptForResume)).resolves.toBe('resumed')
     expect(calls).toEqual(['markResumed', 'start'])
     expect(useRecordingStore.getState().session?.pausedAt).toBeNull()
     expect(useRecordingStore.getState().stream).toEqual({ kind: 'live' })
@@ -357,7 +363,7 @@ describe('resumeRecording', () => {
   it('begins the next segment at the moment of the resume', async () => {
     const clock = jest.spyOn(Date, 'now').mockReturnValue(9000)
     try {
-      await resumeRecording()
+      await resumeRecording(promptForResume)
     } finally {
       clock.mockRestore()
     }
@@ -367,7 +373,7 @@ describe('resumeRecording', () => {
 
   it('stays paused when location access is refused', async () => {
     port.requestForegroundAccess.mockResolvedValue(false)
-    await expect(resumeRecording()).resolves.toBe('permission-denied')
+    await expect(resumeRecording(promptForResume)).resolves.toBe('permission-denied')
     expect(repo.markResumed).not.toHaveBeenCalled()
     expect(port.startBackgroundTracking).not.toHaveBeenCalled()
     expect(useRecordingStore.getState().session).toEqual(paused)
@@ -375,7 +381,7 @@ describe('resumeRecording', () => {
 
   it('stays paused when "All the time" location access is refused', async () => {
     port.requestBackgroundAccess.mockResolvedValue(false)
-    await expect(resumeRecording()).resolves.toBe('permission-denied')
+    await expect(resumeRecording(promptForResume)).resolves.toBe('permission-denied')
     expect(repo.markResumed).not.toHaveBeenCalled()
     expect(port.startBackgroundTracking).not.toHaveBeenCalled()
   })
@@ -383,7 +389,7 @@ describe('resumeRecording', () => {
   it('stays paused while location is off and the prompt is declined', async () => {
     port.isLocationAvailable.mockResolvedValue(false)
     port.promptToEnableLocation.mockResolvedValue(false)
-    await expect(resumeRecording()).resolves.toBe('location-off')
+    await expect(resumeRecording(promptForResume)).resolves.toBe('location-off')
     expect(repo.markResumed).not.toHaveBeenCalled()
     expect(port.startBackgroundTracking).not.toHaveBeenCalled()
     expect(useRecordingStore.getState().session).toEqual(paused)
@@ -391,14 +397,14 @@ describe('resumeRecording', () => {
 
   it('resumes once the user accepts the location prompt', async () => {
     port.isLocationAvailable.mockResolvedValueOnce(false)
-    await expect(resumeRecording()).resolves.toBe('resumed')
+    await expect(resumeRecording(promptForResume)).resolves.toBe('resumed')
     expect(repo.markResumed).toHaveBeenCalledTimes(1)
     expect(port.startBackgroundTracking).toHaveBeenCalledWith(RECORDING_OPTIONS)
   })
 
   it('commits the resume and starts nothing when location still reads off after the prompt was accepted', async () => {
     port.isLocationAvailable.mockResolvedValue(false)
-    await expect(resumeRecording()).resolves.toBe('resumed')
+    await expect(resumeRecording(promptForResume)).resolves.toBe('resumed')
     expect(repo.markResumed).toHaveBeenCalledTimes(1)
     expect(port.startBackgroundTracking).not.toHaveBeenCalled()
     expect(useRecordingStore.getState().locationAvailable).toBe(false)
@@ -408,7 +414,7 @@ describe('resumeRecording', () => {
     const prompt = deferred<boolean>()
     port.isLocationAvailable.mockResolvedValue(false)
     port.promptToEnableLocation.mockReturnValue(prompt.promise)
-    const resumed = resumeRecording()
+    const resumed = resumeRecording(promptForResume)
     await settle()
     await expect(discardRecording(7)).resolves.toBeUndefined()
     prompt.resolve(false)
@@ -418,7 +424,7 @@ describe('resumeRecording', () => {
   it('writes the resume only once the app is active again', async () => {
     const active = deferred()
     app.whenAppActive.mockReturnValue(active.promise)
-    const resumed = resumeRecording()
+    const resumed = resumeRecording(promptForResume)
     await settle()
     expect(repo.markResumed).not.toHaveBeenCalled()
     active.resolve()
@@ -427,22 +433,53 @@ describe('resumeRecording', () => {
 
   it('asks nothing when no session is paused', async () => {
     row = recording
-    await expect(resumeRecording()).resolves.toBe('resumed')
+    await expect(resumeRecording(promptForResume)).resolves.toBe('resumed')
     expect(port.requestForegroundAccess).not.toHaveBeenCalled()
     expect(repo.markResumed).not.toHaveBeenCalled()
   })
 
   it('resumes once when Resume is pressed twice before either resume queues', async () => {
-    const results = await Promise.all([resumeRecording(), resumeRecording()])
+    const results = await Promise.all([resumeRecording(promptForResume), resumeRecording(promptForResume)])
     expect(results).toEqual(['resumed', 'resumed'])
     expect(repo.markResumed).toHaveBeenCalledTimes(1)
   })
 
   it('keeps the resume when the start is rejected, recording the fault', async () => {
     port.startBackgroundTracking.mockRejectedValue(new Error('refused'))
-    await expect(resumeRecording()).resolves.toBe('resumed')
+    await expect(resumeRecording(promptForResume)).resolves.toBe('resumed')
     expect(useRecordingStore.getState().session?.pausedAt).toBeNull()
     expect(useRecordingStore.getState().stream).toEqual({ kind: 'faulted', fault: 'start-failed' })
+  })
+
+  describe('through the gate that prompts for nothing', () => {
+    it('resumes when access, location and the app in front are there', async () => {
+      await expect(resumeRecording(checkForCapture)).resolves.toBe('resumed')
+      expect(calls).toEqual(['markResumed', 'start'])
+      expect(port.requestForegroundAccess).not.toHaveBeenCalled()
+      expect(port.requestBackgroundAccess).not.toHaveBeenCalled()
+    })
+
+    it('stays paused on a missing permission, asking nothing', async () => {
+      port.hasBackgroundAccess.mockResolvedValue(false)
+      await expect(resumeRecording(checkForCapture)).resolves.toBe('permission-missing')
+      expect(port.requestBackgroundAccess).not.toHaveBeenCalled()
+      expect(repo.markResumed).not.toHaveBeenCalled()
+      expect(useRecordingStore.getState().session).toEqual(paused)
+    })
+
+    it('stays paused with location off, offering no prompt', async () => {
+      port.isLocationAvailable.mockResolvedValue(false)
+      await expect(resumeRecording(checkForCapture)).resolves.toBe('location-off')
+      expect(port.promptToEnableLocation).not.toHaveBeenCalled()
+      expect(repo.markResumed).not.toHaveBeenCalled()
+    })
+
+    it('stays paused with the app behind, waiting for nothing', async () => {
+      app.isAppActive.mockReturnValue(false)
+      await expect(resumeRecording(checkForCapture)).resolves.toBe('app-behind')
+      expect(app.whenAppActive).not.toHaveBeenCalled()
+      expect(repo.markResumed).not.toHaveBeenCalled()
+    })
   })
 })
 
@@ -662,7 +699,7 @@ describe('the history factor', () => {
   const historyFactor = () => useRecordingStore.getState().historyFactor
 
   it('is read when a recording starts', async () => {
-    await startRecording()
+    await startRecording(promptForStart)
     await settle()
     expect(historyFactor()).toBe(1.5)
   })
@@ -670,7 +707,7 @@ describe('the history factor', () => {
   it('is read again when a recording resumes', async () => {
     row = paused
     useRecordingStore.setState({ session: paused })
-    await resumeRecording()
+    await resumeRecording(promptForResume)
     await settle()
     expect(historyFactor()).toBe(1.5)
   })

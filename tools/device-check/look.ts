@@ -56,7 +56,7 @@ export function crop(ref: string, label: string): string {
 }
 
 // Taps the middle of bounds just read from a dump.
-export async function tapAt(bounds: Bounds, holdMs?: number): Promise<{ x: number; y: number }> {
+async function tapAt(bounds: Bounds, holdMs?: number): Promise<{ x: number; y: number }> {
   const { x, y } = centre(bounds)
   await shell(holdMs !== undefined ? `input swipe ${x} ${y} ${x} ${y} ${holdMs}` : `input tap ${x} ${y}`)
   return { x, y }
@@ -91,7 +91,7 @@ async function readOrAnsweredError(id: string): Promise<ScreenRead | string> {
 // at least once and up to the cap. A moment with no resumed activity, or a read the reader answers
 // with an error, as both happen while one screen hands over to another, is waited through and
 // breaks the run of reads.
-export async function pollScreen<T>(capS: number, judge: Judge<T>): Promise<Polled<T>> {
+async function pollScreen<T>(capS: number, judge: Judge<T>): Promise<Polled<T>> {
   const id = await serial()
   const started = Date.now()
   let last = ''
@@ -120,7 +120,7 @@ export interface TapOptions { holdMs?: number; until?: Expected; timeoutS?: numb
 export async function tap(label: string, options: TapOptions = {}): Promise<string> {
   const aimed = await pollScreen(TARGET_CAP_S, (current, previous) => tapTarget(label, current, previous))
   if (aimed.found === null) throw new Error(targetAtCap(label, TARGET_CAP_S, aimed))
-  if (aimed.found.kind === 'missing') throw new Error(aimed.found.reason)
+  if (aimed.found.kind !== 'still') throw new Error(aimed.found.reason)
   const { x, y } = await tapAt(aimed.found.bounds, options.holdMs)
   const tapped = `${options.holdMs !== undefined ? `held ${options.holdMs} ms` : 'tapped'} "${label}" at ${x},${y}, still after ${aimed.waitedS.toFixed(1)} s`
   const expected = options.until ?? null
@@ -150,7 +150,7 @@ export const settleAfter = (before: UiNode[]) => awaitOutcome(null, before, SETT
 export const settledText = (done: string, after: Polled<TapOutcome>) => outcomeText(done, null, SETTLE_CAP_S, after)
 
 // Drags the largest list of the screen read as `nodes`; false when nothing there scrolls.
-export async function swipe(nodes: UiNode[], direction: ScrollDirection): Promise<boolean> {
+async function swipe(nodes: UiNode[], direction: ScrollDirection): Promise<boolean> {
   const plan = scrollSwipe(nodes, direction)
   if (plan === null) return false
   await shell(`input swipe ${plan.x} ${plan.from} ${plan.x} ${plan.to} ${plan.ms}`)

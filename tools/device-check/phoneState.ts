@@ -1,5 +1,9 @@
 export const APP_PACKAGE = 'com.zorzi.onfootrn'
 
+// The app's folder on shared storage (its `hookFolder()`), which adb reads and writes: a snapshot's
+// files and the GPX files pushed for an import.
+export const HOOK_FOLDER = `/sdcard/Android/data/${APP_PACKAGE}/files/hooks`
+
 export type Foreground =
   | { kind: 'on-foot' | 'picker' | 'share-sheet' | 'other'; activity: string }
   | { kind: 'unreadable' }

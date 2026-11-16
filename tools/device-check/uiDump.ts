@@ -94,8 +94,6 @@ const LABELS = 'labels: '
 
 export const labelsLine = (nodes: UiNode[]) => `${LABELS}${summaryLine(nodes)}`
 
-export const isLabelsLine = (line: string) => line.startsWith(LABELS)
-
 // An accessibility label names a control; a text may also be a title that reads the same, so a
 // label match wins over a text match.
 export function findByLabel(nodes: UiNode[], label: string): LabelMatch {

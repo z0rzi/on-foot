@@ -26,13 +26,22 @@ const input: NewActivityInput = {
 
 beforeEach(() => {
   jest.clearAllMocks()
-  useActivitiesStore.setState({ activities: [], version: 0 })
+  useActivitiesStore.setState({ activities: [], version: 0, loaded: false })
 })
 
 test('loadActivities caches summaries from the repository', async () => {
   fakeRepo.listOverviewRows.mockResolvedValue([summary(2), summary(1)])
   await useActivitiesStore.getState().loadActivities()
   expect(useActivitiesStore.getState().activities.map((a) => a.id)).toEqual([2, 1])
+})
+
+test('is loaded once a load has read the list, and not after a failed one', async () => {
+  fakeRepo.listOverviewRows.mockRejectedValueOnce(new Error('disk'))
+  await expect(useActivitiesStore.getState().loadActivities()).rejects.toThrow('disk')
+  expect(useActivitiesStore.getState().loaded).toBe(false)
+  fakeRepo.listOverviewRows.mockResolvedValue([])
+  await useActivitiesStore.getState().loadActivities()
+  expect(useActivitiesStore.getState().loaded).toBe(true)
 })
 
 test('removeActivity deletes via the repository and reloads the cache', async () => {

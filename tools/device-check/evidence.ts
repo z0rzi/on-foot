@@ -2,12 +2,14 @@ import { mkdirSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 const REPO_ROOT = join(__dirname, '..', '..')
+// One folder a day under it, each check's files numbered in it.
+export const EVIDENCE_ROOT = join(REPO_ROOT, '.scratch', 'device-checks')
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
 export function evidenceDir(now = new Date()): string {
   const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
-  const dir = join(REPO_ROOT, '.scratch', 'device-checks', date)
+  const dir = join(EVIDENCE_ROOT, date)
   mkdirSync(dir, { recursive: true })
   return dir
 }

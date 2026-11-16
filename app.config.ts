@@ -77,6 +77,19 @@ const config: ExpoConfig = {
       },
     ],
   ],
+  // The build's identity, computed by the toolkit's build command (tools/device-check/build.ts) and
+  // read in the app through expo-constants; the native fingerprint leaves `extra` out of its hash
+  // (fingerprint.config.js), so the identity does not change it. Values stay strings: the config
+  // loader turns a null into an empty object.
+  extra: process.env.ON_FOOT_BUILD_COMMIT
+    ? {
+        build: {
+          commit: process.env.ON_FOOT_BUILD_COMMIT,
+          uncommitted: process.env.ON_FOOT_BUILD_UNCOMMITTED ?? '',
+          fingerprint: process.env.ON_FOOT_BUILD_FINGERPRINT,
+        },
+      }
+    : {},
   experiments: {
     typedRoutes: true,
     reactCompiler: true,

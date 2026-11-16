@@ -30,7 +30,9 @@ no way home. The Sonnet trial left On Foot with the raw Home key three times, ou
 that keeps a check's key presses away from the owner's other apps; the skill allows raw `input`
 only for the app switcher and waking the screen. The Opus re-run went through the app switcher.
 
-Feature-sized: goes brainstorm → spec → plan, this ticket then points at the spec. After it lands,
+Feature-sized: goes brainstorm → spec → plan, this ticket then points at the spec. The build
+identity half is folded into [[2026-11-15-check-hooks-design]]: `state` names the commit and the
+native fingerprint of the installed build. The leaving-the-app half stays here. After it lands,
 the same check is run once more by a cold Opus and a cold Sonnet, with the waits the claims require
 counted the same way, for the speed-up figure the first measurement could not give and the model
 decision of the speed spec's item 07.

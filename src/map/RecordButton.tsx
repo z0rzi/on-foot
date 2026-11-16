@@ -8,8 +8,8 @@ import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
 import { useRecordingStore } from '../recording/recordingStore'
 import { recordingPhase } from '../recording/recordingPhase'
-import { useMapStore } from '../store/mapStore'
-import { startRecording, pauseRecording } from '../recording/recordingController'
+import { pauseRecording, promptForStart } from '../recording/recordingController'
+import { startFromMap } from '../recording/mapRecording'
 import { captureRefusalAlert } from '../recording/captureAlerts'
 import { showToast } from '../components/toast'
 import { errorClass, logEvent } from '../log'
@@ -40,12 +40,10 @@ export function RecordButton({ animatedBottom }: { animatedBottom: SharedValue<n
 
   const onPlay = useCallback(async () => {
     try {
-      const result = await startRecording()
-      if (result === 'started') {
-        useMapStore.getState().endActivityView()
-      } else if (result === 'already-active') {
+      const result = await startFromMap(promptForStart)
+      if (result === 'already-active') {
         router.push('/activity/save')
-      } else {
+      } else if (result !== 'started') {
         const { title, message } = captureRefusalAlert(result, 'start')
         Alert.alert(title, message)
       }

@@ -1,6 +1,7 @@
 export type { BackgroundTrackingOptions, LocationFix, NotificationAccess } from './types'
 export {
   defineBackgroundFixHandler,
+  hasBackgroundAccess,
   hasForegroundAccess,
   isLocationAvailable,
   promptToEnableLocation,

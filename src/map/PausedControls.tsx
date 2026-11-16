@@ -4,9 +4,9 @@ import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reani
 import { useRouter } from 'expo-router'
 import { useTheme } from '../theme/useTheme'
 import { MapTokens } from '../theme/tokens'
-import { resumeRecording, linkTrailForSave } from '../recording/recordingController'
+import { promptForResume, resumeRecording } from '../recording/recordingController'
+import { stopForSave } from '../recording/mapRecording'
 import { captureRefusalAlert } from '../recording/captureAlerts'
-import { currentAlongTrailId } from '../recording/currentAlongTrail'
 import { errorClass, logEvent } from '../log'
 import { ControlButton } from '../components/ControlButton'
 import { PlayIcon } from '../assets/icons/play'
@@ -18,7 +18,7 @@ export function PausedControls({ animatedBottom }: { animatedBottom: SharedValue
 
   const onResume = useCallback(async () => {
     try {
-      const result = await resumeRecording()
+      const result = await resumeRecording(promptForResume)
       if (result !== 'resumed') {
         const { title, message } = captureRefusalAlert(result, 'resume')
         Alert.alert(title, message)
@@ -31,7 +31,7 @@ export function PausedControls({ animatedBottom }: { animatedBottom: SharedValue
 
   const onStop = useCallback(async () => {
     try {
-      await linkTrailForSave(currentAlongTrailId())
+      await stopForSave()
       router.push('/activity/save')
     } catch (error) {
       logEvent('error', 'error', 'stop recording threw', { errorClass: errorClass(error) })

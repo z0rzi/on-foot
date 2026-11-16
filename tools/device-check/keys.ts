@@ -4,7 +4,7 @@ import { readScreen, requireForeground } from './screen'
 import { typingScript } from './typing'
 
 // Presses the back key, then waits for the screen to settle as a tap with no outcome named does.
-export async function pressBack() {
+async function pressBack() {
   const id = await serial()
   await requireForeground()
   const before = await readScreen(id)

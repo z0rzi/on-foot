@@ -13,9 +13,8 @@ brief: the plan says what to check and how to reach it; what is allowed stays th
 For a plan, the claims come from its final check (`docs/agents/issue-tracker.md`, Plan work
 items): its `Device:` lines, put in run order, with its waits and feel items.
 
-- **Build.** A string `devcheck build-has` finds only in a bundle holding the change (a log message
-  or a label; Hermes drops constant names), copied from the source, and the commit the build must
-  hold. A change to native code, or one with no such string, says so: the agent builds.
+- **Build.** The commit the build must hold, for `devcheck build-has --commit` (`HEAD` when the
+  change is uncommitted in the checkout the agent runs from).
 - **Each claim**, in the order to run them:
   - the claim, with its ticket or spec;
   - why only the device can show it: rendering, OS or lifecycle behaviour, a native module, or
@@ -26,10 +25,13 @@ items): its `Device:` lines, put in run order, with its waits and feel items.
   - the expected observation in the words the phone shows: a log entry as area, message and detail
     keys, from its `logEvent` call (`file:line`); a label, from its `accessibilityLabel`. Copy them
     from the source;
-  - the steps that reach it by its cheapest evidence, as `devcheck` command lines or one `do` list:
-    `fast` or a jump unless the claim reads pace (the skill's Pace says what does); the shortest
-    dead or background stretch that still shows the behaviour; one theme, one map layer and one
-    font scale unless the claim is about them;
+  - its stage, as hook commands: the `DEVCHECK` trail or agent session it needs (`route` and
+    `import-gpx`, `record …`), what the map shows (`select`), the state to confirm first (`state`);
+  - the steps that observe it by its cheapest evidence, as `devcheck` command lines or one `do`
+    list: the screen only for what the claim is about; `fast` or a jump unless the claim reads
+    pace (the skill's Pace says what does); the shortest dead or background stretch that still
+    shows the behaviour; one theme, one map layer and one font scale unless the claim is about
+    them;
   - what `failed` looks like, when it is more than the expected observation missing;
   - the waits the claim sets itself (a walk at `walk` pace, an app timer, a stretch dead or in the
     background), with their length;
@@ -50,5 +52,5 @@ claims left `blocked`.
 
 The plan is a starting script: the agent runs it, trusts the screen in front of it over the plan,
 and reports where it departed from it. Done when every claim has its reason, an expected
-observation copied from the source and steps by its cheapest evidence, the waits carry their
-total, and `docs/tickets/device-checks.md` has been read for owed claims.
+observation copied from the source, its stage, and steps by its cheapest evidence, the waits
+carry their total, and `docs/tickets/device-checks.md` has been read for owed claims.

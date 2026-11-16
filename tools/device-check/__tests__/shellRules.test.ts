@@ -101,3 +101,41 @@ describe('tapTarget', () => {
     expect(at('server-recording-card-open.xml')).toBeLessThan(at('server-recording-card-closed.xml')!)
   })
 })
+
+describe('tapTarget on a delete confirmation', () => {
+  const xml = readFileSync(join(__dirname, '..', 'fixtures', 'ui-delete-trail-dialog.xml'), 'utf8')
+  const naming = (name: string) => parseUiDump(xml.replace('DEVCHECK climb', name))
+  const activityDialog = (name: string) =>
+    parseUiDump(
+      xml
+        .replace('>Delete trail<', '>Delete activity<')
+        .replace('text="Delete trail"', 'text="Delete activity"')
+        .replace('Delete &quot;DEVCHECK climb&quot; and its offline map? This cannot be undone.', `Are you sure you want to delete &quot;${name}&quot;? This action cannot be undone.`),
+    )
+  const still = (label: string, nodes: ReturnType<typeof parseUiDump>) => tapTarget(label, nodes, nodes)
+
+  it('taps Delete on a dialog naming a DEVCHECK item', () => {
+    expect(still('DELETE', naming('DEVCHECK climb'))).toEqual({ kind: 'still', bounds: { left: 780, top: 1280, right: 980, bottom: 1380 } })
+    expect(still('DELETE', activityDialog('DEVCHECK walk'))?.kind).toBe('still')
+  })
+
+  it('refuses Delete on a dialog naming an item not named DEVCHECK, naming it', () => {
+    expect(still('DELETE', naming('Col de la Croix'))).toEqual({
+      kind: 'refused',
+      reason: 'refused: the dialog deletes "Col de la Croix", not a DEVCHECK item; only DEVCHECK items are deleted',
+    })
+    expect(still('DELETE', activityDialog('Morning hike'))?.kind).toBe('refused')
+    expect(still('DELETE', naming('DEVCHECKclimb'))?.kind).toBe('refused')
+  })
+
+  it('refuses Delete on a dialog naming no item', () => {
+    expect(still('DELETE', parseUiDump(xml.replace(/&quot;/g, '')))).toEqual({
+      kind: 'refused',
+      reason: 'refused: the dialog names no item; only DEVCHECK items are deleted',
+    })
+  })
+
+  it("lets Cancel close the owner's dialog", () => {
+    expect(still('CANCEL', naming('Col de la Croix'))?.kind).toBe('still')
+  })
+})

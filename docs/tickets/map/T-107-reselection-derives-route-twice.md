@@ -38,3 +38,13 @@ has not been looked at.
 Two costs: on a long trail the pass runs twice, and that pass is the cost T-4 measures; and T-4's
 reading gets two `route derived` lines for one selection, where its "Why a human" expects one
 beside one `route loaded`.
+
+## Seen again, 2026-11-16
+
+In the check-hooks re-run of the field-diagnostics check (release build of `f864514`,
+[[2026-11-16-check-hooks-rerun]]), the same sequence: an activity saved and so shown, cleared with
+**Stop showing activity**, selected again from the Activities list, then `fit requested`, `route
+derived {"kind":"activity","points":7,"ms":0.1}`, `map mode`, `route loaded
+{"kind":"activity","points":7,"ms":34.4}`, `route derived` again, `fit fired`, all at
+11:19:31–32. The first selection of the trail, nothing held, wrote one `route derived` after its
+`route loaded`.

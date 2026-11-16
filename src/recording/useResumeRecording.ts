@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useRootNavigationState } from 'expo-router'
 import { resumeIfActive } from './recordingController'
-import { deviceInfo, errorClass, logEvent, runtimeAgeMs } from '../log'
+import { coldStartDetail, errorClass, logEvent } from '../log'
 
 export function useResumeRecording() {
   const navState = useRootNavigationState()
@@ -10,7 +10,7 @@ export function useResumeRecording() {
   useEffect(() => {
     if (handled.current || !navState?.key) return
     handled.current = true
-    logEvent('info', 'launch', 'cold start', { appVersion: deviceInfo().appVersion, runtimeAgeMs: runtimeAgeMs() })
+    logEvent('info', 'launch', 'cold start', coldStartDetail())
     resumeIfActive()
       .then(({ action, sessionId }) => {
         logEvent('info', 'launch', `launch action ${action}`, { sessionId })

@@ -8,6 +8,10 @@ async function foreground(): Promise<Foreground> {
   return classifyForeground(await shell('dumpsys activity activities | grep topResumedActivity || true'))
 }
 
+export async function onFootInFront(): Promise<boolean> {
+  return (await foreground()).kind === 'on-foot'
+}
+
 export const UNREADABLE_FRONT = 'cannot tell which app is in front (screen off or locked?)'
 
 // Keeps the owner's other apps out of the evidence and out of reach of taps. Null while no activity
@@ -33,13 +37,9 @@ export async function fixIntake(): Promise<FixIntake> {
   return classifyServices(await shell(`dumpsys activity services ${APP_PACKAGE}`))
 }
 
-export async function refuseWhileRecording(what: string): Promise<void> {
-  if ((await fixIntake()) !== 'not-taking-fixes') throw new Error(`${what} refused: On Foot is recording, or its state cannot be read`)
-}
-
-// A screen of the app by its route, through the app's own `onfootrn://` scheme.
-export async function openInApp(route: string): Promise<void> {
-  await shell(`am start -a android.intent.action.VIEW -d onfootrn://${route} ${APP_PACKAGE}`)
+// On Foot in front as its launcher icon opens it: started if dead, its task brought back if not.
+export async function launchOnFoot(): Promise<void> {
+  await shell(`monkey -p ${APP_PACKAGE} -c android.intent.category.LAUNCHER 1`)
 }
 
 export async function displaySize(): Promise<DisplaySize> {

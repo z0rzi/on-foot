@@ -55,6 +55,10 @@ Every source file holding an `eslint-disable` is named in this section; `lintDeb
 - **`@typescript-eslint/no-explicit-any`** in `src/data/trails/gpx/parse.ts` — the `fast-xml-parser`
   boundary emits untyped nodes; leaf values are validated by `num()`/`str()`, so typing the tree
   rigorously would add casts without adding safety.
+- **`@typescript-eslint/no-require-imports`** in `app/_layout.tsx` — **deliberate**: the check hooks'
+  dispatcher is reached only through a `require` in a branch on the inlined
+  `EXPO_PUBLIC_DEBUG_CHECK_HOOKS`, so a build without the flag drops it; an import would put it in
+  every bundle (`checkHooksGuard.test.ts` holds the shape).
 
 ## Scoped relaxations
 

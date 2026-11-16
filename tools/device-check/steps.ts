@@ -1,19 +1,6 @@
-import { parseCommand, STEPS, UsageError, type Command } from './commandLine'
+import { parseCommand, REFUSED, STEPS, UsageError, type Command } from './commandLine'
 
 export interface Step { text: string; command: Command }
-
-const OWN_GUARDS = 'a flow with guards of its own: run it on its own'
-export const REFUSED: Record<string, string> = {
-  walk: 'a move is a long wait: run it on its own, in the background, so the harness reports its end',
-  'build-has': 'it pulls the installed bundle, a long wait: run it on its own, in the background',
-  'import-gpx': OWN_GUARDS,
-  'save-activity': OWN_GUARDS,
-  delete: OWN_GUARDS,
-  cleanup: OWN_GUARDS,
-  route: 'it writes a file and touches no phone: run it on its own',
-  'native-errors': 'its finding is its exit code, not a failure: run it on its own',
-  do: 'a step list cannot hold another list',
-}
 
 function parseStep(text: string): Command {
   const words = splitWords(text)
