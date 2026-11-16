@@ -10,23 +10,45 @@ brief: the plan says what to check and how to reach it; what is allowed stays th
 
 ## The check plan
 
+For a plan, the claims come from its final check (`docs/agents/issue-tracker.md`, Plan work
+items): its `Device:` lines, put in run order, with its waits and feel items.
+
 - **Build.** A string `devcheck build-has` finds only in a bundle holding the change (a log message
   or a label; Hermes drops constant names), copied from the source, and the commit the build must
   hold. A change to native code, or one with no such string, says so: the agent builds.
 - **Each claim**, in the order to run them:
   - the claim, with its ticket or spec;
+  - why only the device can show it: rendering, OS or lifecycle behaviour, a native module, or
+    what survives a kill. A claim the Jest suite answers has no such reason: drop it, or read its
+    result once in a state the check reaches anyway, on the data the other claims already make
+    (walking 2.4 km of history for the personal factor, whose arithmetic its tests hold, cost one
+    check 50 minutes);
   - the expected observation in the words the phone shows: a log entry as area, message and detail
     keys, from its `logEvent` call (`file:line`); a label, from its `accessibilityLabel`. Copy them
     from the source;
-  - the steps that reach it, as `devcheck` command lines or one `do` list, each move with its pace;
+  - the steps that reach it by its cheapest evidence, as `devcheck` command lines or one `do` list:
+    `fast` or a jump unless the claim reads pace (the skill's Pace says what does); the shortest
+    dead or background stretch that still shows the behaviour; one theme, one map layer and one
+    font scale unless the claim is about them;
   - what `failed` looks like, when it is more than the expected observation missing;
-  - the waits the claim sets itself (an app timer, a stretch in the background), with their length;
+  - the waits the claim sets itself (a walk at `walk` pace, an app timer, a stretch dead or in the
+    background), with their length;
   - the part that is feel, marked `owner to verify`.
+- **Owed claims**: the entries of `docs/tickets/device-checks.md` the same build reaches, each
+  written as a claim like the others and placed in the run order.
+- **Waits**: every claim's waits, owed claims' among them, and their total. Read the total before
+  dispatching: it is time the run spends on the clock whatever the phone does, so a wait a
+  cheaper evidence would replace is cut here.
 - **Files to read**: the changed files, by path, for when a step does not go as the plan says.
 
 Order the claims so that a long wait (a walk, an app timer) runs in the background while the
 claims it does not disturb run on the phone.
 
+**A re-check brief** after a defect's fix lists only the claims that failed and those the fix can
+touch, on one build holding the fix. After the phone dropped off, the re-dispatch lists only the
+claims left `blocked`.
+
 The plan is a starting script: the agent runs it, trusts the screen in front of it over the plan,
-and reports where it departed from it. Done when every claim has an expected observation copied
-from the source and steps that reach it.
+and reports where it departed from it. Done when every claim has its reason, an expected
+observation copied from the source and steps by its cheapest evidence, the waits carry their
+total, and `docs/tickets/device-checks.md` has been read for owed claims.

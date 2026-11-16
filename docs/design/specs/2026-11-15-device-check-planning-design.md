@@ -1,6 +1,6 @@
 # Device-check planning: one check per plan, claims only a device can answer — Design
 
-**Status:** Planned, [[2026-11-15-device-check-planning]].
+**Status:** Built, [[2026-11-15-device-check-planning]].
 **From:** the owner's question of 2026-11-15 ("maybe the agents are just planning their checks very
 badly … if I did the checks myself, it would take 5 minutes, maybe 10 minutes"), the owner's order
 of the same day ("Do only one final device check, don't let each worker do their own device

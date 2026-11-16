@@ -16,7 +16,7 @@ export interface ItemViolation {
 type Report = (problem: string) => void
 type Fields = Record<string, unknown>
 /** `null` in an enum admits an empty value. */
-type Enums = Record<string, (string | null)[]>
+type Enums = Record<string, (string | boolean | null)[]>
 
 const FRONTMATTER = /^---\n([\s\S]*?)\n---\n/
 const WIKILINK = /^\[\[([^\]]+)\]\]$/
@@ -59,9 +59,15 @@ export function readFrontmatter(content: string, report: Report): { fields: Fiel
   return { fields: data as Fields, body: content.slice(fm[0].length) }
 }
 
-export function checkKeys(fields: Fields, keys: readonly string[], report: Report): void {
+/** `optional` keys may be absent; any other key outside `keys` is unknown. */
+export function checkKeys(
+  fields: Fields,
+  keys: readonly string[],
+  report: Report,
+  optional: readonly string[] = [],
+): void {
   for (const key of Object.keys(fields)) {
-    if (!keys.includes(key)) report(`unknown frontmatter key ${key}`)
+    if (!keys.includes(key) && !optional.includes(key)) report(`unknown frontmatter key ${key}`)
   }
   for (const key of keys) {
     if (!(key in fields)) report(`missing frontmatter key ${key}`)
@@ -70,11 +76,20 @@ export function checkKeys(fields: Fields, keys: readonly string[], report: Repor
 
 export function checkEnums(fields: Fields, enums: Enums, report: Report): void {
   for (const [key, allowed] of Object.entries(enums)) {
-    if (key in fields && !allowed.includes(fields[key] as string | null)) {
+    if (key in fields && !allowed.includes(fields[key] as string | boolean | null)) {
       const shown = allowed.map((v) => v ?? '(empty)').join(' | ')
       report(`${key} is ${JSON.stringify(fields[key])}, expected ${shown}`)
     }
   }
+}
+
+const linkTarget = (entry: unknown) => (typeof entry === 'string' ? WIKILINK.exec(entry)?.[1] : undefined)
+
+/** The targets of a list field's well-formed `[[wikilinks]]`; `checkLinks` reports the rest. */
+export function readLinks(fields: Fields, key: string): string[] {
+  const links = fields[key]
+  if (!Array.isArray(links)) return []
+  return links.map(linkTarget).filter((target): target is string => target !== undefined)
 }
 
 /** A list field of `[[wikilinks]]`, each resolving to a name in `known`. */
@@ -92,7 +107,7 @@ export function checkLinks(
     return
   }
   for (const entry of links) {
-    const target = typeof entry === 'string' ? WIKILINK.exec(entry)?.[1] : undefined
+    const target = linkTarget(entry)
     if (!target) report(`${key} entry ${JSON.stringify(entry)} is not a [[wikilink]]`)
     else if (!known.has(target)) report(`${key} links [[${target}]], which is not ${describe}`)
   }

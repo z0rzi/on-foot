@@ -31,15 +31,19 @@ Report those as `owner to verify` and never claim them.
    needed. Then `devcheck native-errors`: any line it prints is evidence before the first check
    (quote it under **Other observations**, or as the cause of a check it explains). Done when you
    can name the build you are checking and have its native errors.
-2. **List the checks.** A brief carrying a check plan ([BRIEF.md](BRIEF.md)) is the list: run it, read the files it names when a step does not go as it
-   says, and report where you departed from it. Without one, each claim to check gets a one-line
-   expected observation and, if it moves, its pace (see Walks). Done when every claim has one.
+2. **List the checks.** The claims you were given are the scope. A brief carrying a check plan
+   ([BRIEF.md](BRIEF.md)) is the list: run it, read the files it names when a step does not go as
+   it says, and report where you departed from it. Without one, each claim to check gets a
+   one-line expected observation and, if it moves, its pace (see Walks). Done when every claim has
+   one.
 3. **Run them.** Make the data and movement each check needs: create test activities and fake
    walks freely, since a check run on whatever data happens to be on the phone proves little.
    Wait on events (a label named with `tap --until` or `wait-for`, a walk's own return), and run
    anything longer than a minute in the background so the harness tells you when it ends. While a
    long wait runs (a walk, a time the claim sets, an app timer), run the checks it does not
-   disturb. Done when every check has a verdict.
+   disturb. A variant you think worth running (another theme or layer, a second kill) goes in the
+   report under **Other observations** as a suggestion, unrun. Done when every listed check has a
+   verdict.
 4. **Clean up.** With no recording running, `devcheck cleanup` deletes every `DEVCHECK` activity
    and trail on the phone, so run it once every check is done, and names any it could not (delete
    those by hand, see Test activities). It then goes back to the map and, unless a walk moves,
@@ -50,9 +54,9 @@ Report those as `owner to verify` and never claim them.
 5. **Report.** Per check: verdict `verified` | `failed` (what contradicted it) | `owner to verify`
    (feel) | `unobservable` (why) | `blocked` (what stopped you), then the evidence: what you did,
    what you saw (on-screen text and log entries quoted verbatim), file paths. Then **Other
-   observations**: anything odd seen in passing, with evidence. Then the state you left the phone
-   in, including whether it may still stand on a fake position and whether the reader and the
-   recorder still run.
+   observations**: anything odd seen in passing, with evidence, and the variants you suggest.
+   Then the state you left the phone in, including whether it may still stand on a fake position
+   and whether the reader and the recorder still run.
 
 ## Rules
 

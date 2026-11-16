@@ -28,11 +28,16 @@ const plan = (folder = "2026-11-06-hiking-ux"): ItemFile => ({
 const item = (
   file = "2026-11-06-hiking-ux/01-status-pill.md",
   fields: Record<string, string> = {},
-  heading = `# ${path.basename(file).slice(0, 2)}: a title`,
+  {
+    heading = `# ${path.basename(file).slice(0, 2)}: a title`,
+    body = "Body.",
+  }: { heading?: string; body?: string } = {},
 ): ItemFile => ({
   path: file,
-  content: `---\n${frontmatter(fields)}\n---\n${heading}\n\nBody.\n`,
+  content: `---\n${frontmatter(fields)}\n---\n${heading}\n\n${body}\n`,
 });
+
+const DEVICE = "- [ ] Device: the puck follows the walk";
 
 const OPEN_TICKETS = ["T-14-hiking-ux-without-nav-bar"];
 const problems = (files: ItemFile[], tickets = OPEN_TICKETS) =>
@@ -103,7 +108,10 @@ describe("plan work item conventions", () => {
     "flags the item name %s",
     (name) => {
       expect(
-        problems([plan(), item(`2026-11-06-hiking-ux/${name}`, {}, "# 01: t")]),
+        problems([
+          plan(),
+          item(`2026-11-06-hiking-ux/${name}`, {}, { heading: "# 01: t" }),
+        ]),
       ).toContainEqual(expect.stringContaining("file name"));
     },
   );
@@ -228,9 +236,216 @@ describe("plan work item conventions", () => {
     expect(problems(files)).toContainEqual(expect.stringContaining("T-3-gone"));
   });
 
+  test("reads an absent final_check as false and accepts it set to false", () => {
+    expect(
+      findPlanViolations(
+        [plan(), item(undefined, { final_check: "false" })],
+        [],
+      ),
+    ).toEqual([]);
+  });
+
+  test("accepts final_check: true on the item holding the device criteria", () => {
+    expect(
+      findPlanViolations(
+        [plan(), item(undefined, { final_check: "true" }, { body: DEVICE })],
+        [],
+      ),
+    ).toEqual([]);
+  });
+
+  test("flags a device criterion in an item that is not the final check, naming it", () => {
+    const files = [
+      plan(),
+      item("2026-11-06-hiking-ux/01-a.md", {}, { body: DEVICE }),
+      item(
+        "2026-11-06-hiking-ux/02-check.md",
+        { final_check: "true", blocked_by: '["[[01-a]]"]' },
+        { body: DEVICE },
+      ),
+    ];
+    expect(findPlanViolations(files, [])).toEqual([
+      {
+        file: "2026-11-06-hiking-ux/01-a.md",
+        problem: expect.stringContaining("Device:"),
+      },
+    ]);
+  });
+
+  test("flags two final_check items in one plan, not one in each of two plans", () => {
+    const final = { final_check: "true" };
+    const twice = [
+      plan(),
+      item("2026-11-06-hiking-ux/01-a.md", final, { body: DEVICE }),
+      item("2026-11-06-hiking-ux/02-b.md", final, { body: DEVICE }),
+    ];
+    expect(problems(twice)).toContainEqual(
+      expect.stringContaining("one final_check"),
+    );
+    const apart = [
+      plan("a"),
+      plan("b"),
+      item("a/01-a.md", final, { body: DEVICE }),
+      item("b/01-b.md", final, { body: DEVICE }),
+    ];
+    expect(findPlanViolations(apart, [])).toEqual([]);
+  });
+
+  test("flags a plan with device criteria and no final_check item", () => {
+    const files = [
+      plan(),
+      item("2026-11-06-hiking-ux/01-a.md", {}, { body: DEVICE }),
+    ];
+    expect(findPlanViolations(files, [])).toContainEqual({
+      file: "2026-11-06-hiking-ux",
+      problem: expect.stringContaining("one final_check"),
+    });
+  });
+
+  test("accepts device criteria only in the final check, which every other item blocks", () => {
+    const files = [
+      plan(),
+      item("2026-11-06-hiking-ux/01-a.md"),
+      item("2026-11-06-hiking-ux/02-b.md", { status: "claimed" }),
+      item(
+        "2026-11-06-hiking-ux/03-check.md",
+        { final_check: "true", blocked_by: '["[[01-a]]", "[[02-b]]"]' },
+        {
+          body: `- [ ] \`npm run verify\` green\n${DEVICE}\n- [ ] Device: the sheet opens`,
+        },
+      ),
+    ];
+    expect(findPlanViolations(files, [])).toEqual([]);
+  });
+
+  test("flags an item that does not reach the final check through blocked_by", () => {
+    const files = [
+      plan(),
+      item("2026-11-06-hiking-ux/01-a.md"),
+      item("2026-11-06-hiking-ux/02-b.md", { status: "claimed" }),
+      item(
+        "2026-11-06-hiking-ux/03-check.md",
+        { final_check: "true", blocked_by: '["[[02-b]]"]' },
+        { body: DEVICE },
+      ),
+    ];
+    expect(findPlanViolations(files, [])).toEqual([
+      {
+        file: "2026-11-06-hiking-ux/01-a.md",
+        problem: expect.stringContaining("03-check"),
+      },
+    ]);
+  });
+
+  test("accepts an item that reaches the final check through another item", () => {
+    const files = [
+      plan(),
+      item("2026-11-06-hiking-ux/01-a.md"),
+      item("2026-11-06-hiking-ux/02-b.md", { blocked_by: '["[[01-a]]"]' }),
+      item(
+        "2026-11-06-hiking-ux/03-check.md",
+        { final_check: "true", blocked_by: '["[[02-b]]"]' },
+        { body: DEVICE },
+      ),
+    ];
+    expect(findPlanViolations(files, [])).toEqual([]);
+  });
+
+  test("flags an item blocked by the final check", () => {
+    const files = [
+      plan(),
+      item(
+        "2026-11-06-hiking-ux/01-check.md",
+        { final_check: "true" },
+        { body: DEVICE },
+      ),
+      item("2026-11-06-hiking-ux/02-b.md", { blocked_by: '["[[01-check]]"]' }),
+    ];
+    expect(findPlanViolations(files, [])).toContainEqual({
+      file: "2026-11-06-hiking-ux/02-b.md",
+      problem: expect.stringContaining("blocked by the final check"),
+    });
+  });
+
+  test("flags a final check that does not carry the plan's highest number, naming it", () => {
+    const files = [
+      plan(),
+      item(
+        "2026-11-06-hiking-ux/01-check.md",
+        { final_check: "true", blocked_by: '["[[02-b]]"]' },
+        { body: DEVICE },
+      ),
+      item("2026-11-06-hiking-ux/02-b.md"),
+    ];
+    expect(findPlanViolations(files, [])).toEqual([
+      {
+        file: "2026-11-06-hiking-ux/01-check.md",
+        problem: expect.stringContaining("numbered last"),
+      },
+    ]);
+  });
+
+  test("flags a final_check item with no device criterion", () => {
+    const files = [
+      plan(),
+      item("2026-11-06-hiking-ux/01-check.md", { final_check: "true" }),
+    ];
+    expect(findPlanViolations(files, [])).toEqual([
+      {
+        file: "2026-11-06-hiking-ux/01-check.md",
+        problem: expect.stringContaining("Device:"),
+      },
+    ]);
+  });
+
+  test.each([
+    "- [ ] The `device-check` skill says the brief's claims are the scope",
+    "- [ ] A device criterion is a checkbox line starting `Device:`",
+    "Device: a prose line, not a checkbox",
+    "```markdown\n- [ ] Device: quoted in a code block\n```",
+    "- An example:\n\n  ```markdown\n  - [ ] Device: quoted in a list's code block\n  ```",
+    "~~~markdown\n- [ ] Device: quoted in a tilde code block\n~~~",
+  ])("reads %s as no device criterion", (line) => {
+    const files = [
+      plan(),
+      item("2026-11-06-hiking-ux/01-a.md", {}, { body: line }),
+    ];
+    expect(findPlanViolations(files, [])).toEqual([]);
+  });
+
+  test("reads a device criterion after a line opening on an inline code span", () => {
+    const files = [
+      plan(),
+      item(
+        "2026-11-06-hiking-ux/01-a.md",
+        {},
+        { body: `\`\`\`npm run verify\`\`\` stays green\n${DEVICE}\n\`\`\`\n` },
+      ),
+    ];
+    expect(findPlanViolations(files, [])).toContainEqual({
+      file: "2026-11-06-hiking-ux/01-a.md",
+      problem: expect.stringContaining("Device:"),
+    });
+  });
+
+  test("accepts a plan with no device criterion and no final_check item", () => {
+    const files = [
+      plan(),
+      item("2026-11-06-hiking-ux/01-a.md"),
+      item("2026-11-06-hiking-ux/02-b.md"),
+    ];
+    expect(findPlanViolations(files, [])).toEqual([]);
+  });
+
+  test.each(["", "yes", '"true"'])("flags final_check: %s", (value) => {
+    expect(
+      problems([plan(), item(undefined, { final_check: value })]),
+    ).toContainEqual(expect.stringContaining("final_check"));
+  });
+
   test("flags a heading that does not start with the number", () => {
     expect(
-      problems([plan(), item(undefined, {}, "# 02: wrong")]),
+      problems([plan(), item(undefined, {}, { heading: "# 02: wrong" })]),
     ).toContainEqual(expect.stringContaining("heading"));
   });
 });

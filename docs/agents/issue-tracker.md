@@ -66,6 +66,7 @@ The plan is the folder `docs/design/plans/YYYY-MM-DD-<slug>/`:
 status: open             # open | claimed; a landed item is deleted, not marked
 blocked_by: []           # wikilinks to items of this plan: ["[[01-status-pill]]"]
 closes: []               # wikilinks to open tracker tickets this item retires: ["[[T-14-hiking-ux-without-nav-bar]]"]
+final_check: false       # true on the plan's final check only; absent reads as false
 ---
 # 03: the elevation graph is the sheet's header
 
@@ -75,6 +76,28 @@ closes: []               # wikilinks to open tracker tickets this item retires: 
 - [ ] `npm run verify` green
 ```
 
+A **device criterion** is an acceptance line only the phone can tick, written as a checkbox whose
+text starts `Device:` (`- [ ] Device: the puck follows the walk`). A line that mentions the device
+in another sense, such as a criterion about the `device-check` skill, is not one, nor is a line in
+a fenced code block. A plan's device criteria live in one item only, its **final check**: the item
+with `final_check: true`, numbered last, listed in no item's `blocked_by`, and blocked by every
+other item, directly or through items that block it. Its body lists the device criteria grouped by
+the item they come from, then the claim-set waits and the owner's feel items. A plan with no device
+criterion has no final check.
+
+- A worker on any other item does no device work: no build for the phone, no install, no check. An
+  item whose change needs the phone to confirm puts its `Device:` line in the final check, so it
+  survives the item's file being deleted at landing.
+- The final check is dispatched once, after the plan's last code review, on the integrated build,
+  with a check plan copied from its body (`.claude/skills/device-check/BRIEF.md`).
+- A defect it finds is fixed by an item or a fix on the integration branch, then re-checked on one
+  new build: the failed claims and the claims the fix can touch, not the whole list again. A fix
+  item takes the final check's number and the final check the next one, so it stays last.
+- The claims it could not confirm on the device, the owner's feel items among them, go to
+  `docs/tickets/device-checks.md` in the merge that lands it, as one entry for the plan: a bold
+  lead naming it and its spec, what was confirmed and when, what stays owed, so they outlive the
+  file the landing deletes.
+
 A worker sets `status: claimed` before starting. The merge that lands an item deletes its file and
 every ticket its `closes` names, and drops the item from its siblings' `blocked_by`. A folder with
 only `plan.md` left is a built effort; the spec's status line says so (`**Status:** Built,
@@ -82,9 +105,13 @@ only `plan.md` left is a built effort; the spec's status line says so (`**Status
 folders is the Obsidian view: by plan, the frontier (open and unblocked), the claimed.
 
 `src/architecture/__tests__/planItems.test.ts` enforces the folder shape (`plan.md` present, item
-names, numbers unique within a plan, nothing nested), the three keys, `blocked_by` resolving
-within the plan and `closes` resolving to an open ticket, and the heading. It shares its core with
-the ticket check (`src/architecture/markdownItems.ts`).
+names, numbers unique within a plan, nothing nested), the three keys and the optional
+`final_check` (`true` | `false`), `blocked_by` resolving within the plan and `closes` resolving to
+an open ticket, and the heading. In a plan with any device criterion it enforces the final check:
+exactly one item has `final_check: true` and it carries the plan's highest item number, no
+device criterion sits outside it, every other item reaches it through `blocked_by`, and none is
+blocked by it. A `final_check` item with no device criterion is flagged in any plan. It shares its
+core with the ticket check (`src/architecture/markdownItems.ts`).
 
 ## Ideas
 
@@ -139,12 +166,15 @@ A feature-sized request is not a worklist entry: it goes brainstorm → spec →
 The tickets it produces are **work items**, not worklist tickets. Publish them as the plan folder
 above: create `docs/design/plans/YYYY-MM-DD-<slug>/plan.md` with the item table, then one
 `NN-<slug>.md` per item in dependency order, using the item template, with `closes` naming every
-open worklist ticket the item retires. Nothing goes to `docs/tickets/`.
+open worklist ticket the item retires. Every `Device:` criterion goes in the plan's final check,
+never in the item whose change it confirms (see **Plan work items**). Nothing goes to
+`docs/tickets/`.
 
 ## When `/implement-spec` or `/implement` takes an item
 
 Read the plan folder; the frontier is every `status: open` item whose `blocked_by` is empty. Claim
-it by setting `status: claimed` in a commit on the worker branch `<slug>-NN`. Resolve it the way
+it by setting `status: claimed` in a commit on the worker branch `<slug>-NN`. Only the final check does device
+work (see **Plan work items**). Resolve it the way
 the tracker closes work: the merge into the integration branch deletes the item file and the
 tickets it closes. A worker that passes a ticket reference (`T-n`) instead works a worklist ticket
 on `ticket/T-n` as before. Either branch lands on `master` squashed into one commit (see
