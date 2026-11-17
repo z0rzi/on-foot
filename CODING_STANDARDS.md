@@ -1,6 +1,6 @@
 # Coding standards
 
-Read at review time, by `/_last-checks` through `/code-review`. The base standard is the
+Read at review time, by `/code-review`. The base standard is the
 **Architecture principles** section of `AGENTS.md` (seams, no quick-fixes, existing patterns,
 small units, TDD for pure logic, persist the minimum). Four of those principles are restated
 below in review form, as what / why / fix, so a finding can cite them: naming the sibling,

@@ -5,7 +5,7 @@ description: Whole-codebase health check — triggered, scoped, and closed out b
 # Health-Check — whole-codebase review
 
 A whole-repo pass, not tied to one feature. It exists because the per-iteration review
-(`/_last-checks`, against `CODING_STANDARDS.md` and the spec) is scoped to a diff and
+(`/code-review`, against `CODING_STANDARDS.md` and the spec) is scoped to a diff and
 cannot see a copy of a file it never opened. Run it on a trigger, keep it small, and end it by
 turning findings into gates.
 
@@ -80,4 +80,4 @@ of these it became:
 - **recorded-not-done**, with the reason and what would trigger doing it.
 
 A finding that became none of these is the next check's finding again. Then run
-`/_last-checks` on the check's own diff and `/_if-from-zero` on any abstraction it introduced.
+`/code-review` on the check's own diff and `/z-if-from-zero` on any abstraction it introduced.

@@ -75,9 +75,9 @@ uphold the original design, do not let it erode one expedient change at a time.
   **`## Failure modes`** section: each degraded mode the feature can hit (offline or network
   drop, permission denied, empty or malformed input, cancel mid-operation, render-time throw)
   with its visible and recoverable outcome; "none" is acceptable only with the reason.
-- **Review is by standards and by spec.** `/_last-checks` runs after every unit of work:
-  `npm run verify`, then `/code-review` against `CODING_STANDARDS.md` (the review-time
-  judgement calls, with the principles above as their base) and against the feature's spec.
+- **Review is by standards and by spec.** After every unit of work: `npm run verify`, then
+  `/code-review` against `CODING_STANDARDS.md` (the review-time judgement calls, with the
+  principles above as their base) and against the feature's spec.
   Why there is no post-work checklist: `docs/adr/0001-review-by-standards-and-spec.md`.
 
 When a request tempts you toward a shortcut that violates the above, surface the tension

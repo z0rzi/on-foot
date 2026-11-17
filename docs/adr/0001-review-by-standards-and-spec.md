@@ -2,7 +2,7 @@
 
 Until 2026-10-11 every unit of work ended with `/retro-quality`: a bespoke agent walking a six-check
 procedure (`POST-WORK.md`) and told, by an after-the-fact list from the implementer, which decisions
-not to question. We replaced it with `/_last-checks`, a thin command over `/code-review`: the
+not to question. We replaced it with `/code-review`, run after `npm run verify`: the
 Standards axis reads `CODING_STANDARDS.md` (review-time judgement calls only; the `AGENTS.md`
 principles are its base and `npm run verify` owns everything mechanical) and the Spec axis reads the
 feature's spec, written before the code. The checklist was deleted rather than kept as a parallel
