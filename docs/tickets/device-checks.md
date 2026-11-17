@@ -284,3 +284,11 @@ prefix; see `README.md`.
   - **when a recording stays at "0 m" while the puck moves:** share the log before relaunching;
     `delivery fault` or `delivery waiting` names the JS path, their absence points at the native
     side.
+- **T-49, preferences written only after hydration** (`69fa8a8`) was checked on the device on
+  2026-11-16 ([[2026-11-16-check-hooks-rerun]]), on a release build `build-has --commit` proved: a
+  preference changed in Settings survives a kill and relaunch (smoothing 100 m and speed mode, read
+  in Settings and in `snapshot`'s stored preferences). That is a write after hydration surviving.
+  Unobserved: the race the fix closes, a change made before the hydration lands (the first moments
+  of a launch) or in a session whose hydration failed (it needs a failing AsyncStorage), leaving
+  the other preferences as storage held them; `src/settings/__tests__/preferencesStore.test.ts`
+  holds it.

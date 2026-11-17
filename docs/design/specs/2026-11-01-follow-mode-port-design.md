@@ -1,6 +1,7 @@
 # Follow Mode on the Map Port — Design
 
-**Status:** Approved design (owner ruling 2026-10-26)
+**Status:** Built, [[2026-11-01-worklist-batch]] (`c62fede`); approved by the owner's ruling of
+2026-10-26
 **Ticket:** `PROP-2`
 **Plan:** `docs/design/plans/2026-11-01-worklist-batch.md`
 **Date:** 2026-11-01
