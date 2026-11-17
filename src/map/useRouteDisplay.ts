@@ -6,7 +6,7 @@ import { profileSourceFor } from './profileSource'
 import { routeTiming } from './routeTiming'
 import type { MapMode } from './mapMode'
 import type { Trail } from '../data/trails/types'
-import type { Activity, LiveTrackPoint } from '../data/activities/types'
+import type { Activity, TrackPoint } from '../data/activities/types'
 
 // The one place the elevation view of the on-screen route is derived, and the only place the
 // smoothing preference is read for display. Everything that draws the route or its graph takes
@@ -22,12 +22,12 @@ export function useRouteDisplay(
   mode: MapMode,
   trail: Trail | null,
   activity: Activity | null,
-  livePoints: LiveTrackPoint[],
+  liveSegments: TrackPoint[][],
 ): RouteDisplay | null {
   const smoothing = usePreferencesStore((s) => s.elevationSmoothingMeters)
   const source = useMemo(
-    () => profileSourceFor(mode, trail, activity, livePoints),
-    [mode, trail, activity, livePoints],
+    () => profileSourceFor(mode, trail, activity, liveSegments),
+    [mode, trail, activity, liveSegments],
   )
   const kind = source?.kind ?? null
   const segments = source?.segments ?? null

@@ -29,7 +29,7 @@ interface RecordingStore extends StreamState {
   // In-memory reflection of the durable recording_sessions row; set from it on every transition.
   session: RecordingSession | null
   // Flat, segment-tagged points mirroring the recording_points rows. Segments are the distinct
-  // `segment` values; consumers group on demand (groupPointsBySegment) for rendering and metrics.
+  // `segment` values, grouped in one place for rendering and metrics (selectLiveSegments).
   livePoints: LiveTrackPoint[]
   // Launch handling has decided what the durable session means for this process.
   resumeSettled: boolean

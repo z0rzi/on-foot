@@ -2,9 +2,9 @@ import { useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme } from '../theme/useTheme'
 import { usePreferencesStore } from '../settings/preferencesStore'
-import { groupPointsBySegment } from '../data/activities/mapping'
 import { metricsForSegments } from '../data/geo/metrics'
 import { useRecordingStore } from './recordingStore'
+import { useLiveSegments } from './useLiveSegments'
 import { useMovingStopwatch } from './useMovingStopwatch'
 import { currentPace } from './currentPace'
 import { recordingFigures } from './recordingFigures'
@@ -17,12 +17,11 @@ const FIGURE_MIN_SIZE = 16
 export function RecordingFigures() {
   const c = useTheme()
   const session = useRecordingStore((s) => s.session)
-  const livePoints = useRecordingStore((s) => s.livePoints)
   const paceSpeedMode = usePreferencesStore((s) => s.paceSpeedMode)
   const togglePaceSpeed = usePreferencesStore((s) => s.togglePaceSpeed)
   const movingSeconds = useMovingStopwatch(session) / 1000
   // The stopwatch re-renders every second; the track is measured only when it grows.
-  const segments = useMemo(() => groupPointsBySegment(livePoints), [livePoints])
+  const segments = useLiveSegments()
   const metrics = useMemo(() => metricsForSegments(segments), [segments])
   const pace = useMemo(() => currentPace(segments), [segments])
   const [time, distance, paceFigure, gain] = recordingFigures({

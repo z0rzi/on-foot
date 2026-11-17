@@ -28,6 +28,7 @@ import { useMapStore, type Selection } from '../store/mapStore'
 import { mapMode, trailToShow } from './mapMode'
 import { useRecordingStore } from '../recording/recordingStore'
 import { recordingPhase } from '../recording/recordingPhase'
+import { useLiveSegments } from '../recording/useLiveSegments'
 import { recordingHealthFor } from '../recording/streamHealth'
 import { useRouteDisplay } from './useRouteDisplay'
 import { useGraphPuck } from './useGraphPuck'
@@ -75,7 +76,8 @@ export function MapScreen() {
   )
   const livePoints = useRecordingStore((s) => s.livePoints)
 
-  const display = useRouteDisplay(mode, trail, activity, livePoints)
+  const liveSegments = useLiveSegments()
+  const display = useRouteDisplay(mode, trail, activity, liveSegments)
   const puck = useGraphPuck(mode, display, livePoints)
 
   const locationAvailable = useRecordingStore((s) => s.locationAvailable)

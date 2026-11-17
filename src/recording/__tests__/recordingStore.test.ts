@@ -6,7 +6,7 @@ jest.mock('../../data/activities', () => ({
 import { recordingPhase } from '../recordingPhase'
 import { useRecordingStore } from '../recordingStore'
 import { LiveTrackPoint, RecordingSession, TrackPoint } from '../../data/activities/types'
-import { groupPointsBySegment } from '../../data/activities/mapping'
+import { selectLiveSegments } from '../liveSegments'
 import { activitiesRepository, type Activity } from '../../data/activities'
 import { logEvent } from '../../log'
 
@@ -59,13 +59,13 @@ describe('recordingStore', () => {
     useRecordingStore.getState().beginSession(recordingSession)
     useRecordingStore.getState().appendLivePoints(0, [p(1), p(2)])
     useRecordingStore.getState().appendLivePoints(1, [p(3)])
-    expect(groupPointsBySegment(useRecordingStore.getState().livePoints)).toEqual([[p(1), p(2)], [p(3)]])
+    expect(selectLiveSegments(useRecordingStore.getState())).toEqual([[p(1), p(2)], [p(3)]])
   })
   it('appending into the same segment across calls extends that segment', () => {
     useRecordingStore.getState().beginSession(recordingSession)
     useRecordingStore.getState().appendLivePoints(0, [p(1)])
     useRecordingStore.getState().appendLivePoints(0, [p(2)])
-    expect(groupPointsBySegment(useRecordingStore.getState().livePoints)).toEqual([[p(1), p(2)]])
+    expect(selectLiveSegments(useRecordingStore.getState())).toEqual([[p(1), p(2)]])
   })
   it('appendLivePoints with [] is a no-op (same reference)', () => {
     useRecordingStore.getState().beginSession(recordingSession)

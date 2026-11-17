@@ -6,10 +6,10 @@ import { useMapStore, type Selection } from '../store/mapStore'
 import { followCameraProps, manualPitchProps } from './followCamera'
 import { useRecordingStore } from '../recording/recordingStore'
 import { recordingPhase } from '../recording/recordingPhase'
+import { useLiveSegments } from '../recording/useLiveSegments'
 import { MapTokens } from '../theme/tokens'
 import type { Trail } from '../data/trails/types'
 import { Activity } from '../data/activities/types'
-import { groupPointsBySegment } from '../data/activities/mapping'
 import { boundsForPoints, flattenSegments, pointCount, type LngLatBounds } from './geo'
 import { MapOverlays, type OverlayRoute } from './MapOverlays'
 import { useCurrentMapStyle } from './useCurrentMapStyle'
@@ -85,9 +85,8 @@ export function MapCanvas({
   }, [northResetNonce])
 
   const active = useRecordingStore((s) => recordingPhase(s.session) !== 'idle')
-  const livePoints = useRecordingStore((s) => s.livePoints)
-  const liveSegments = useMemo(() => groupPointsBySegment(livePoints), [livePoints])
-  const showLiveTrack = active && livePoints.length >= 2
+  const liveSegments = useLiveSegments()
+  const showLiveTrack = active && pointCount(liveSegments) >= 2
 
   const route = useMemo(() => overlayRoute(trail, activity), [trail, activity])
   // The colouring belongs to the route being displayed, never to the live track, which keeps its
