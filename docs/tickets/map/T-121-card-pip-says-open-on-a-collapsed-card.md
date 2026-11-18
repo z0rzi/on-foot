@@ -6,7 +6,7 @@ triage:
 origin: agent
 filed: 2026-11-16
 from: "device check, 2026-11-16"
-blocked_by: []
+blocked_by: ["[[T-122-open-card-clips-grown-ahead-lines]]"]
 ---
 # T-121: after the offline map chooser, the trail card is collapsed but its pip still says it is open
 
@@ -32,3 +32,12 @@ download's progress replaces the badge in the card's content.
 [[T-44-activity-sheet-offscreen-after-trail-rename]] is perhaps the same class, a card drawn
 where its sheet's state does not say with no `sheet settled` written; it has not been
 reproduced.
+
+## Folded into T-122 (owner, 2026-11-18)
+
+Worked with [[T-122-open-card-clips-grown-ahead-lines]], whose fix changes the held open height
+this ticket suspects (`MapInfoSheet.tsx:64-67`). What moved there: the repro (a download started
+with the trail card open, its badge replaced by the progress, read for `sheet settled` and the
+pip's label), and the criterion that after any change of the card's content while open, the card
+is drawn where its sheet's state says and the pip's label agrees. If the repro shows another
+cause, this ticket is unfolded and keeps its own fix.

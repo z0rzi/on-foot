@@ -38,8 +38,14 @@ row. The commit that fixes it revises D43's row in [[2026-11-06-hiking-ux-design
 reason it was first ruled (a content-driven height moved the sheet on its own) as what the fix must
 not bring back.
 
-## Related
+## T-121 folded in (owner, 2026-11-18)
 
-[[T-121-card-pip-says-open-on-a-collapsed-card]] suspects the same held open height reacting to
-content that changes while the card is open (a download's progress replacing the badge); its
-cause is not traced. A fix here that lets an open card re-snap could produce T-121's kind of move.
+[[T-121-card-pip-says-open-on-a-collapsed-card]] (after the offline map chooser, the trail card is
+drawn collapsed while its pip still says open) suspects the same held open height reacting to
+content that changes while the card is open: a download's progress replacing the badge. Its cause
+is not traced. Its repro comes first: start a download with the trail card open and read
+`sheet settled` and the pip's label. A fix that lets an open card re-snap could produce T-121's
+kind of move, so the fix is done when, after any change of the open card's content (the ahead
+lines growing, a download's progress, a rename), the card is drawn where its sheet's state says,
+the pip's label agrees, and a `sheet settled` is written for every move. If the repro shows
+another cause, T-121 is unfolded and keeps its own fix.
