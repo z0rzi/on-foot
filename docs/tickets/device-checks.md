@@ -118,9 +118,9 @@ prefix; see `README.md`.
   the lowest and highest points and at the last metre, whole, reaching into the card's margin; then
   in dark scheme the recording card (Along row, summary row, ahead lines, no grid) and both lists.
   Owed: the description divider and the next-climb and climbing lines in dark; the scrub cursor
-  passing under the puck. Seen in passing: a card opened while "Not on the trail" keeps its
-  one-line height when the two ahead lines arrive, so the climb line sits half under the nav row
-  until the card is collapsed and reopened.
+  passing under the puck. Seen in passing and filed as
+  [[T-122-open-card-clips-grown-ahead-lines]]: a card opened while "Not on the trail" hides the
+  climb line under the nav row once the two ahead lines arrive.
 - **draped-route-overlay/01, the in-tier layer order** (T-78, D83, D102)
   was checked on the device on 2026-11-10, terrain on, along a trail on two segments whose dashed
   connector crosses its own line, on builds whose arrows and dots were draped lines (items 02 and 03,
