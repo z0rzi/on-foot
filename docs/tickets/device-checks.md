@@ -52,12 +52,18 @@ prefix; see `README.md`.
   after the unmount reset; the three stored `d&#039;` names, which the owner renames. The map tab's
   status bar over light Mapbox styles in dark scheme stays the owner's call, not built.
 - **IDEA-18, the last camera** (PROP-46, PROP-47, PROP-48, [[2026-11-02-last-camera-design]]) is
-  built and unit-tested, never run on a device. Owed, the owner's: pan, tilt and rotate, kill,
-  relaunch → same framing, pitch and heading, with no globe frame at any point (the splash holds
-  until the map mounts on it); following at kill → relaunch opens on the last camera with no globe frame, then moves to the user; kill with the
-  save-activity screen open while free → the map comes back on the last camera; the North button
-  still appears after a rotation and resets. Unobserved by construction: the bounded wait's `warn`
-  line (`map store hydration timed out` / `failed`), which needs a broken AsyncStorage.
+  built and unit-tested. Checked on the device on 2026-11-17, release build of `9c71917`, on a
+  process that died with the swipe (a paused agent session, so no foreground service): with the
+  save-activity screen open, camera free on a framed route, rotated, then again pitched in 3D, each
+  relaunch logged `launch camera` `restore` `from: true` and opened on the map with the same framing,
+  pitch and heading, the North button shown. **Failed on a warm runtime**: when the swipe leaves the
+  process alive (a running recording), the reopen logs `cold start` with a large `runtimeAgeMs` and
+  no `launch camera`, and opens on the camera of the process's first launch, free or following;
+  cause and evidence in [[T-84-relaunch-old-camera]]. Owed, the owner's: pan, tilt and rotate by
+  hand (no gesture injection on this phone: `zoom` and `sendevent` are refused by SELinux), and no
+  globe frame at any point (the launch is faster than a frame strip reaches On Foot in front).
+  Unobserved by construction: the bounded wait's `warn` line (`map store hydration timed out` /
+  `failed`), which needs a broken AsyncStorage.
 - **T-74, the route tiers** (D83, [[2026-11-06-hiking-ux-design]]) was checked on the device on
   2026-11-09, release build. Confirmed: after a cold-start relaunch mid-recording (`launch action
   resume`), and after switching Outdoors → Default → Outdoors, the recorded track's line covers the
@@ -85,8 +91,8 @@ prefix; see `README.md`.
   on the device on 2026-11-09. Confirmed: the save-activity screen's Duration reads "3 min 02 s" and
   "20 min 46 s", the activity card's "3 min 02 s" and "4 h 14", the Activities list's lines
   "134 m · 3 min 02 s" and "16.2 km · 4 h 14", while the pill's stopwatch reads "3:01" and "16:16"
-  and the banner's "Recording · 27:17". Unobserved: a stopwatch past an hour ("1:02:00"), as no
-  recording ran an hour.
+  and the banner's "Recording · 27:17". On 2026-11-17 an agent session ran past an hour: the pill
+  read "1:01:25", the banner "Recording · 1:02:01" and the save screen's Duration "1 h 02".
 - **T-90, climbs from steep stretches** (D93, [[2026-11-09-walking-time-ahead-design]]) was checked
   on the device on 2026-11-09, with the T-77 replays. Confirmed: on a trail climbing 40 m at 10 %
   from 400 m then rising 16 m at 2 % over 800 m, "Next climb in 400 m · … · 40 m up", "Climbing ·
@@ -104,12 +110,17 @@ prefix; see `README.md`.
   grid; with the trail shown alone, its graph's y-axis reads "180 m" and "160 m", apart, with no
   label over the top 20 m. Recording along `DEVCHECK owed desc` with a description set through the
   trail form, a hairline divider under the ahead lines and the description under it in the
-  secondary text (Verification 21's divider). Owed: the other scheme for all of it; the D99
-  next-climb line ("Next climb in 12 min (1.2 km) · 340 m to climb") and "At the trail end"; the
-  trail card keeping its grid and the Trails and Activities rows leading their summary with the
-  badge on one line (the rest of Verification 21); the graph puck's centre on the line at the
-  profile's lowest and highest points and its first and last metre, whole, reaching into the
-  card's margin, the scrub cursor passing under it (Verification 24).
+  secondary text (Verification 21's divider). On 2026-11-17, release build of `9c71917`, along
+  `DEVCHECK owed climb` (a dip, a flat, a 10 % climb, a descent): the D99 next-climb line "Next climb
+  in 12 min (979 m) · 79 m to climb", "Climbing · 7 min to the top (64 m up)", "No climb left" and
+  "At the trail end"; the trail card keeping its grid; the Trails and Activities rows leading their
+  summary with the badge on one line; the graph puck's centre on the line near the first metre, at
+  the lowest and highest points and at the last metre, whole, reaching into the card's margin; then
+  in dark scheme the recording card (Along row, summary row, ahead lines, no grid) and both lists.
+  Owed: the description divider and the next-climb and climbing lines in dark; the scrub cursor
+  passing under the puck. Seen in passing: a card opened while "Not on the trail" keeps its
+  one-line height when the two ahead lines arrive, so the climb line sits half under the nav row
+  until the card is collapsed and reopened.
 - **draped-route-overlay/01, the in-tier layer order** (T-78, D83, D102)
   was checked on the device on 2026-11-10, terrain on, along a trail on two segments whose dashed
   connector crosses its own line, on builds whose arrows and dots were draped lines (items 02 and 03,
@@ -122,8 +133,11 @@ prefix; see `README.md`.
   a live track resumed away from its pause point draws its late connector. The order has since
   become casing, line, connectors, arrows, endpoints (D102). **Unobservable** with terrain on: the
   markers' place among the lines, Mapbox drawing the arrows and dots above every line whatever
-  their place in the style. Owed on the restored build: the line and casing stay under the
-  connectors after a slope ↔ plain switch within one trail (the remount T-78 described). A trail
+  their place in the style. On 2026-11-17 (`9c71917`), selecting the same two-segment trail: the
+  connector's dashes over the slope-coloured line and casing once settled. **Unobservable**: the
+  plain line before the slope one within that selection (the T-78 remount), as the derivation lands
+  75 ms after the load and a frame strip's frames are 0.65 s apart; a smoothing change does not
+  re-derive the shown route. A trail
   shown alone draws both endpoint dots over its arrows: seen on 2026-11-16 along `DEVCHECK owed
   zigzag`, a line running back and forth so its arrows cross both ends, arrow strokes passing
   under each dot and out at its rim.
@@ -149,9 +163,8 @@ prefix; see `README.md`.
     `launch camera` (which branch ran) and whether each `fit requested` has its `fit fired`.
 - **The family list in the card** (overview-on-map 09, [[2026-11-11-overview-on-map-design]] D115)
   was checked on the device on 2026-11-12, release build. Two fragments stay: whether the rows read
-  as rows on the white light-theme panel is the owner's look; a long family scrolling inside the card
-  was not checked, as the longest family on the phone has three activities and a longer one needs
-  as many linked recordings.
+  as rows on the white light-theme panel is the owner's look. A family of seven agent sessions
+  scrolled inside the card, the nav row fixed, on 2026-11-17 in dark scheme.
 - **The overview backfill** (overview-on-map 02, [[2026-11-11-overview-on-map-design]] D121) was
   checked on the device on 2026-11-12, release build. Unobserved: an `overview backfill` entry
   appearing only after a recording that was running at launch ends, since every row on the phone is
@@ -173,8 +186,10 @@ prefix; see `README.md`.
   ~3 frames a second a screenshot loop reaches. A linked activity's family was checked on
   2026-11-16, in the check-hooks check: with an activity selected, its sibling activity and
   its trail drawn at full strength, the trail it no longer links dimmed, read from the pixels.
-  Blocked: a selection with about 300 items not stalling the map, since the only way to
-  seed them is one picker import per trail (~24 s each, ~2 h for 300).
+  With 317 trails seeded through `import-gpx` (about 0.6 s each) on 2026-11-17: a selection's
+  `fit fired` 226 ms after its `fit requested`, its pins file (322 pins) written in 13 ms, the
+  framed trail on screen by the second frame (0.8 s); the Trails toggle rewrote the pins in 8.5 and
+  16.5 ms. Each import's `overview loaded` took 6 to 14 ms. Stutter is the owner's to feel.
 - **The Layers menu** (overview-on-map 05, [[2026-11-11-overview-on-map-design]] D119, D124, D130,
   D135) was checked on the device on 2026-11-12, release build; the roles are right in the dump
   (radio buttons and checkboxes, each with its state). Owed to the owner: what TalkBack says.
@@ -198,8 +213,9 @@ prefix; see `README.md`.
   17 for one that splits), though both branches behave as built; the pins' labels in airplane mode on
   a phone whose map never showed them online (it would mean clearing the owner's data); at most two
   `overview-pins-*.json` in `files/overview/` (no `run-as`). Blocked: panning and pinching with
-  about 300 items writing no `overview loaded` and no `overview pins written`, for the seeding reason
-  above; at 35 trails and 23 activities they write nothing.
+  about 300 items writing no `overview loaded` and no `overview pins written`: seeding is now cheap,
+  but this phone refuses injected multi-touch (`zoom` fails on `sendevent`) and the toolkit has no
+  pan; at 35 trails and 23 activities they write nothing.
 - **A tap on nothing** (overview-on-map review, [[2026-11-11-overview-on-map-design]] D139) was
   checked on the device on 2026-11-12, release build, over TEST data: a tap on the bare map closes
   the card (`outcome deselect`) with the framing unchanged, a tap on the selected route and one
@@ -227,15 +243,17 @@ prefix; see `README.md`.
   place, and in a frame strip `⬇ 79%` to `86%` with its progress bar and `Downloading Satellite ·
   79%` there, then `✓ Offline` and the badge back; the activity card's name and ⋮, the `Moderate`
   badge with the date beside it, and its five tiles; the save-activity form's three tiles; the
-  Activities list's ⋮ menu opening and deleting. Owed: the other scheme; a name long enough to
-  wrap beside its ⋮; `⚠ Failed`, which needs a failed download.
+  Activities list's ⋮ menu opening and deleting. On 2026-11-17, in both schemes, a trail name over
+  three lines wrapped beside its ⋮ with the `Hard` badge under it, the pill keeping it on one line.
+  Owed: the download progress in dark; `⚠ Failed`, which needs a failed download.
 - **The app-log capture** ([[2026-11-15-app-log-capture-design]]) was checked on the device on
   2026-11-15: a recorder started 1.5 min after a launch holds it; a kill and relaunch 2 min later
   shows both processes; an unplug and replug leaves one gap marker, no line twice, entries after
   it, and `logcat -T` takes its spaced time as one argument; a 15-minute walk with a recording,
   about 62 logcat lines a second, leaves the capture holding the launch 35 minutes back; `cleanup`
-  leaves no recorder and no `adb logcat`, and keeps `NN-app-log.txt`. Unobserved: a span of over an
-  hour, and a capture that cannot be written failing the next command with its cause.
+  leaves no recorder and no `adb logcat`, and keeps `NN-app-log.txt`. On 2026-11-17 a capture held
+  82 minutes (15:26 to 16:48, three processes, about 2 000 lines) with no gap marker. Unobserved: a
+  capture that cannot be written failing the next command with its cause.
 - **A recording survives the death of its process**
   ([[2026-11-14-recording-survives-process-death-design]], T-95) was checked on the device on
   2026-11-15, release build of `ffcba43`, under a mock walk along a straight 4 km route, read in

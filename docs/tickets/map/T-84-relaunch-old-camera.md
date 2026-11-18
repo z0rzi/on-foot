@@ -57,3 +57,15 @@ scope). A recording now keeps a JS runtime warm while the app is dead, so a rela
 can open on that runtime (a `cold start` with a large `runtimeAgeMs`) instead of a fresh one; the
 observations above predate it. Repeat the kill and relaunch with the camera free and framed, on a
 warm runtime, and read `launch camera` and any `fit requested` after the `cold start`.
+
+Reproduced on 2026-11-17 (release build of `9c71917`, agent session along `DEVCHECK owed climb`,
+mocked GPS). A swipe from Recents left the process alive (same pid); the reopen logged `cold start`
+with `runtimeAgeMs` 1222779, then `launch action held`, and **no `launch camera`** and no `fit
+requested`. With the camera free and framed on the route at the kill (`fit requested` `by:
+recenter` 2 min before), the map opened on the view of the process's first launch, 55 minutes
+earlier, far from the route. Following at the kill, the same: the first frames show that old
+view, then the map moves to the user. Cause, read in the source: `MapLaunchGate` decides once per
+JS runtime (`launchResolved` in `useMapStore` stays true in a warm runtime), so a new activity's
+map mounts on the `startingCamera` the first launch stored (`restoreCamera` / `startFollow`,
+`src/store/mapStore.ts`), not on `lastCamera`. The 2026-11-09 observations ("the camera from before
+the check session") fit the same cause if those relaunches also found a live process.
