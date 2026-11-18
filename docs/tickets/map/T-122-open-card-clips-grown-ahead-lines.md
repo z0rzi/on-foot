@@ -30,6 +30,16 @@ grown details reach clear of the nav row by scrolling (the details' clip and scr
 rest.navRowHeight`). The off-trail line is the common way in: a recording's card opened before the
 first fixes, or off the trail, reads one line.
 
+## Ruling (owner, 2026-11-18)
+
+D43 is reversed for content that grows while the card is open: the open card takes up its new
+measured height, rather than keeping its height and scrolling the grown details clear of the nav
+row. The commit that fixes it revises D43's row in [[2026-11-06-hiking-ux-design]], keeping the
+reason it was first ruled (a content-driven height moved the sheet on its own) as what the fix must
+not bring back.
+
+## Related
+
 [[T-121-card-pip-says-open-on-a-collapsed-card]] suspects the same held open height reacting to
 content that changes while the card is open (a download's progress replacing the badge); its
 cause is not traced. A fix here that lets an open card re-snap could produce T-121's kind of move.
